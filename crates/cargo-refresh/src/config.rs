@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
-use crate::cli::RunArgs;
+use crate::cli::{Features, RunArgs};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Metadata {
@@ -63,6 +63,7 @@ pub struct Config {
     pub invocation: RunArgs,
     pub package: String,
     pub bin: String,
+    pub features: Features,
     pub edit: Vec<String>,
     pub allow_tracing_metadata: bool,
     pub after_patch_hook: bool,
@@ -92,6 +93,7 @@ impl Config {
         let cwd = std::env::current_dir().context("get current directory")?;
         let output = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
             .args(["metadata", "--format-version", "1"])
+            .args(args.features.cargo_args())
             .output()
             .context("run cargo metadata")?;
         if !output.status.success() {
@@ -218,6 +220,7 @@ impl Config {
             invocation,
             package: package.name.clone(),
             bin,
+            features: args.features,
             edit,
             allow_tracing_metadata: settings.allow_tracing_metadata,
             after_patch_hook: settings.after_patch_hook,
