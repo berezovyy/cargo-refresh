@@ -153,6 +153,7 @@ def expected_contract(spec: dict) -> dict:
         "steps": [{"name": step["name"],
                    "stock-after-restart": step["stock_after_restart"],
                    "live-expected": step["live_expected"]} for step in spec["steps"]],
+        # Historical stock-record provenance; fresh runtime evidence is separate.
         "live-verification": "UNMEASURED: refresh adapter not yet implemented",
     }
 
@@ -487,7 +488,7 @@ def main() -> int:
     parser.add_argument("--case", action="append", default=[], help="exact case name or two-digit prefix; repeatable")
     parser.add_argument("--record", action="store_true", help="record stock outputs after verifying edits.toml declarations")
     parser.add_argument("--offline", action="store_true", help="require dependencies already cached by Cargo")
-    parser.add_argument("--results", type=Path, help="write compact verification JSON (including final binary hashes)")
+    parser.add_argument("--results", type=Path, help="write compact JSON: stock binary hashes or refresh outcome/probe observations")
     parser.add_argument("--controller", type=Path, help="cargo-refresh executable (default: Cargo PATH lookup)")
     parser.add_argument("--support", type=Path, help="complete verified installed-support directory")
     parser.add_argument("--archive", type=Path, help="local support archive with adjacent checksum")

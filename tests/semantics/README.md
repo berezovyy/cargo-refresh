@@ -48,11 +48,12 @@ It does not use periodic output, sleep for startup, or accept matching substring
 - `steps`: cumulative edits, each with a name, ordered literal `edits` (`file`,
   `find`, `replace`), optional compiler `environment` updates, and ordered
   `stock_after_restart` and `live_expected` probe responses.
-- Case 10 also has `frontiers`: two required future refresh configurations,
+- Case 10 also has `frontiers`: two required refresh configurations,
   one covering all callers and one with a caller outside the frontier.
 
-Every find must match exactly once. All edits in one step form one logical
-save; a future watcher driver should batch them before waiting for an outcome.
+Every find must match exactly once. Each current source-edit step changes one
+file. A multi-file extension would need controller batching before waiting for
+one outcome; the current driver does not provide an atomic multi-file save.
 Paths cannot escape the copied case. Each step starts from the previous step's
 source, not from the original. New-static case 03 therefore tests introduction
 **and a later edit of the same storage**.
@@ -149,9 +150,10 @@ callers; all other cases use ordinary unoptimized dev builds.
 
 Stock mode builds disposable source copies beneath `.work/sources/` and uses a
 shared warm `.work/target/`. Original case sources stay pristine. Staged files get fresh mtimes so Cargo
-cannot reuse the prior edited binary when restoring a base source. All builds run
-as `nice -n 19 cargo build -j 4` with an explicit toolchain and normal runs use
-`--locked`. Runs take a nonblocking exclusive lock so they cannot corrupt each
+cannot reuse the prior edited binary when restoring a base source. Stock oracle
+builds run as `nice -n 19 cargo build -j 4` with an explicit toolchain; normal stock
+runs use `--locked`. Refresh capture/check/build commands are owned by the
+controller and keep the copied fixture lockfile. Runs take a nonblocking exclusive lock so they cannot corrupt each
 other's source copies or targets. Build/probe timeouts fail the case. A memory
 guard stops owned child process groups below 6 GiB MemAvailable. No rustd is
 started by stock mode. Refresh mode automatically re-executes under the research
@@ -166,6 +168,6 @@ reruns; setting `CARGO_TARGET_DIR` would select the installer's conservative sto
 mode. The driver omits verbose controller config output to keep app stdout clean. Case 10 configurations have separate source/log directories. Controller
 stderr and events remain in `logs/<case>/session-*.{log,jsonl}` within that root.
 Stock build and stderr logs remain in `.work/logs/<case>/`. `--results` emits a compact
-JSON summary with observations and each final edited binary's SHA256. This is
+JSON summary with stock binary hashes or refresh outcome/probe observations. This is
 correctness evidence, not performance data. To reclaim only suite-created build
 artifacts, remove `tests/semantics/.work/` after the runner has exited.
