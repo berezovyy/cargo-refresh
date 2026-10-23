@@ -14,6 +14,7 @@ pub struct State {
     pub symbols: Vec<Symbol>,
     pub cumulative_roots: u64,
     pub retained_bytes: u64,
+    pub epoch_due: bool,
     pub segments: Vec<Segment>,
     pub pages: BTreeMap<u64, Arc<Page>>,
     pub writes: BTreeMap<u64, Write>,
@@ -98,6 +99,7 @@ impl State {
         self.symbols = m.symbols;
         self.cumulative_roots = m.cumulative_roots;
         self.retained_bytes = m.retained_bytes;
+        self.epoch_due = m.epoch_due;
         self.segments = m.segments;
         self.writes = writes;
         self.generation = m.generation;

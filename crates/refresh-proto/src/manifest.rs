@@ -3,6 +3,12 @@ use crate::{Error, Reader, Result};
 pub const V1_MAGIC: &[u8; 4] = b"RDM1";
 pub const VERSION: u16 = 1;
 pub const FLAG_CERTIFICATES: u16 = 1;
+pub const EPOCH_ROOT_LIMIT: u64 = 64;
+pub const EPOCH_RETAINED_LIMIT: u64 = 32 * 1024 * 1024;
+/// The epoch policy is derived from the v1 footer, without another wire field.
+pub fn epoch_due(cumulative_roots: u64, retained_bytes: u64) -> bool {
+    cumulative_roots > EPOCH_ROOT_LIMIT || retained_bytes >= EPOCH_RETAINED_LIMIT
+}
 pub const MAGIC: &[u8; 8] = b"RDM09001";
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Segment {
@@ -51,6 +57,8 @@ pub struct Manifest {
     pub symbols: Vec<Symbol>,
     pub cumulative_roots: u64,
     pub retained_bytes: u64,
+    /// Derived from the two epoch counters in the footer; false for v0.
+    pub epoch_due: bool,
     pub generation: u64,
     pub segments: Vec<Segment>,
     pub pages: Vec<Page>,
@@ -234,6 +242,7 @@ pub fn parse(bytes: &[u8]) -> Result<Manifest> {
         symbols,
         cumulative_roots,
         retained_bytes,
+        epoch_due: epoch_due(cumulative_roots, retained_bytes),
         generation,
         segments,
         pages,
@@ -253,6 +262,14 @@ pub fn crc32(bytes: &[u8]) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn epoch_footer_limits_are_bounded_and_independent() {
+        assert!(!epoch_due(0, 0));
+        assert!(!epoch_due(64, EPOCH_RETAINED_LIMIT - 1));
+        assert!(epoch_due(65, 0));
+        assert!(epoch_due(0, EPOCH_RETAINED_LIMIT));
+        assert!(epoch_due(u64::MAX, u64::MAX));
+    }
     fn empty() -> Vec<u8> {
         let mut b = MAGIC.to_vec();
         b.extend(1_u64.to_le_bytes());
