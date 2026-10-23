@@ -184,7 +184,13 @@ fn covers(d: &refresh_proto::async_certs::Descriptor, owner: &refresh_guard::Cha
         let Some((line, method)) = s.split_once("::") else {
             return false;
         };
-        if line.parse::<u32>().ok() != Some(d.owner_line) || d.owner_line == 0 {
+        let bounds = line.split_once('-').map_or_else(
+            || line.parse::<u32>().ok().map(|n| (n, n)),
+            |(first, last)| first.parse::<u32>().ok().zip(last.parse::<u32>().ok()),
+        );
+        if !bounds.is_some_and(|(first, last)| {
+            first != 0 && first <= d.owner_line && d.owner_line <= last
+        }) {
             return false;
         }
         method
@@ -365,6 +371,24 @@ mod async_tests {
         assert!(s.decide(&[method.clone()]).is_ok());
         method.name = "@line:43::handler".into();
         assert!(s.decide(&[method]).is_err());
+    }
+    #[test]
+    fn method_attribute_anchors_require_the_original_header_range() {
+        let mut s = AsyncRuntime::default();
+        s.pending.insert("poll".into(), row(1, 1));
+        for (name, allowed) in [
+            ("@line:40-42::handler", true),
+            ("@line:42-44::handler", true),
+            ("@line:43-44::handler", false),
+            ("@line:40-41::handler", false),
+            ("@line:44-40::handler", false),
+            ("@line:0-42::handler", false),
+            ("@line:garbage::handler", false),
+        ] {
+            let mut method = owner();
+            method.name = name.into();
+            assert_eq!(s.decide(&[method]).is_ok(), allowed, "{name}");
+        }
     }
     #[test]
     fn uncertified_runtime_cannot_reuse_the_original_baseline() {

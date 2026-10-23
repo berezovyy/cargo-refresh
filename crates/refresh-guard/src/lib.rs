@@ -246,7 +246,12 @@ impl Guard {
         let mut owners = Vec::new();
         let class = self.classify_inner(&before, &after, true, &mut owners);
         for owner in &mut owners {
-            if let Some(line) = methods.get(&(owner.path.clone(), owner.name.clone())) {
+            if let Some(&(first, last)) = methods.get(&(owner.path.clone(), owner.name.clone())) {
+                let line = if first == last {
+                    first.to_string()
+                } else {
+                    format!("{first}-{last}")
+                };
                 owner.name = format!("@line:{line}{}", owner.name);
             }
         }

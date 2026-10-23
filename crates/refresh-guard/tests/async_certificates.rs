@@ -50,7 +50,7 @@ fn unique_async_methods_require_declaration_location_coverage() {
     let (class, owners) = classify(old, &new);
     assert!(matches!(class, Class::LiveEligible { .. }), "{class:?}");
     assert_eq!(owners.len(), 1);
-    assert_eq!(owners[0].name, "@line:4::call");
+    assert_eq!(owners[0].name, "@line:3-4::call");
     assert!(matches!(
         Guard::default().classify(
             &[FileSnapshot::new("src/lib.rs", old)],
@@ -75,4 +75,12 @@ fn ambiguous_methods_and_method_header_changes_keep_restart() {
         classify(old, &old.replace("struct A;", "struct A(u64);")).0,
         Class::LiveEligible { .. }
     ));
+}
+
+#[test]
+fn attribute_coverage_is_bounded_by_the_unique_method_header() {
+    let old = "struct A;\nimpl A {\n #[instrument(\n fields(values = [1, 2])\n )]\n pub(crate) async fn call(&self) { 1; }\n}";
+    let (class, owners) = classify(old, &old.replace("1;", "3;"));
+    assert!(matches!(class, Class::LiveEligible { .. }));
+    assert_eq!(owners[0].name, "@line:3-6::call");
 }
