@@ -25,3 +25,5 @@ PY
 cd "$M2_V4"
 ./tools/fast-refresh session --config configs/web.toml
 python3 gw/scripts/stock_oracle.py
+
+python3 "$script_dir/summarize_capture.py" "$output"

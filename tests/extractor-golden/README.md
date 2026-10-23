@@ -46,3 +46,18 @@ excludes file reading/decompression, baseline indexing, and prior-generation
 replay. One sample per golden; report median, min/max and n. The historical
 Python ~48 ms controller preparation residual has a different boundary, so it
 is contextual, not an A/B speedup measurement.
+
+## Accepted M2-T3 run (2026-10-23)
+
+The recorded prefix delivered 28/28 saves: 25 live and three conservative async
+restarts; stock replay matched all 28 endpoint sets. All 25 live wires are
+byte-identical in Rust, including four new-helper saves, three tracing line
+shifts, and the entry restore in the explicit apply/revert pair. The compressed
+fixture set occupies 278,342,083 bytes.
+
+One release extraction sample per golden measured median 0.821029 ms
+[0.182754, 1.230898], n=25, on a Linux host. Load1 was 1.97
+before and after the block; MemAvailable was 25,924,689,920 bytes before and
+25,744,814,080 after. This is a standalone extraction number, not an end-to-end
+latency or an interleaved comparison with Python. Raw results are in
+`work/m2-t3/extraction-timings.log` and `timing-machine-{before,after}.json`.

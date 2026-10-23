@@ -634,7 +634,7 @@ mod tests {
             println!(
                 "EXTRACTION n={} median_ms={:.6} min_ms={:.6} max_ms={:.6}",
                 times.len(),
-                times[times.len() / 2],
+                (times[(times.len() - 1) / 2] + times[times.len() / 2]) / 2.0,
                 times[0],
                 times[times.len() - 1]
             );

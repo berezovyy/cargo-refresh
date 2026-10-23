@@ -17,7 +17,7 @@ if os.environ.get('M2_GOLDENS'):
  original_send=manifest.ManifestExtractor.send
  def send(self,path,sock,artifact=None):
   # Freeze pre-application inputs; output comes from the real Python send.
-  number=len(list(root.glob('[0-9]*')));folder=root/f'{number:03d}';folder.mkdir()
+  number=sum(p.is_dir() and p.name.isdigit() for p in root.iterdir());folder=root/f'{number:03d}';folder.mkdir()
   baseline=bytes(self.x.base.data)  # already normalized, equivalent to on-disk RELATIVE normalization
   digest=hashlib.sha256(baseline).hexdigest();basefile=root/(digest+'.elf.gz')
   if not basefile.exists():basefile.write_bytes(gzip.compress(baseline,compresslevel=1))
