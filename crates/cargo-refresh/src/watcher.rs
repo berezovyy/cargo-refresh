@@ -76,13 +76,15 @@ impl WatchSpec {
     }
 
     fn accepts_file(&self, path: &Path) -> bool {
-        !self.excluded(path) && (self.input_files.contains(path) || self.source_path(path, false))
+        !self.excluded_files.contains(path)
+            && (self.input_files.contains(path) || self.source_path(path, false))
     }
 
     fn topology_path(&self, path: &Path) -> bool {
-        !self.excluded(path)
-            && (self.source_path(path, true)
-                || self.source_roots.iter().any(|root| root.starts_with(path))
+        !self.excluded_files.contains(path)
+            && ((!self.excluded(path)
+                && (self.source_path(path, true)
+                    || self.source_roots.iter().any(|root| root.starts_with(path))))
                 || self.input_files.iter().any(|input| input.starts_with(path)))
     }
 
@@ -126,7 +128,9 @@ impl WatchSpec {
             }
         }
         for file in &self.input_files {
-            if self.excluded(file) {
+            // Explicit rustc inputs may be generated beneath target/. Watch the
+            // named input alone; output-directory recursion remains excluded.
+            if self.excluded_files.contains(file) {
                 continue;
             }
             if file.is_file() {
@@ -288,6 +292,12 @@ impl SourceWatcher {
         Ok(result)
     }
 
+    /// Preserve queued close-write notices while capture adds dependency inputs.
+    pub fn reconfigure(&mut self, spec: WatchSpec) -> Result<()> {
+        self.spec = spec;
+        self.refresh_watches()
+    }
+
     /// Take the baseline after installing watches; events during hashing remain queued.
     pub fn files(&self) -> Result<BTreeSet<PathBuf>> {
         Ok(self.spec.inventory()?.files)
@@ -420,6 +430,74 @@ mod tests {
         assert!(!inventory.directories.contains(&root.join("src/.hidden")));
         assert!(!inventory.directories.contains(&root.join("src/target")));
         assert!(inventory.directories.contains(root));
+    }
+
+    #[test]
+    fn explicit_generated_input_is_watched_without_watching_other_outputs() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join("target/build/out")).unwrap();
+        let input = root.join("target/build/out/data.bin");
+        fs::write(&input, "before").unwrap();
+        let spec = WatchSpec::new(vec![], vec![input.clone()], vec![root.join("target")]);
+        assert!(spec.accepts_file(&input));
+        assert!(!spec.accepts_file(&root.join("target/build/out/unrelated")));
+        let mut watcher = SourceWatcher::new(spec).unwrap();
+        fs::write(&input, "after").unwrap();
+        assert!(
+            watcher
+                .next_batch(Duration::from_secs(2))
+                .unwrap()
+                .unwrap()
+                .paths
+                .contains(&input)
+        );
+    }
+
+    #[test]
+    fn dependency_discovery_does_not_swallow_a_save_queued_during_capture() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir(root.join("src")).unwrap();
+        let input = root.join("message.txt");
+        fs::write(&input, "before").unwrap();
+        let mut watcher = SourceWatcher::new(spec(root)).unwrap();
+        let mut tracker =
+            crate::changes::ChangeTracker::new(watcher.files().unwrap(), watcher.build_inputs())
+                .unwrap();
+        fs::write(&input, "after").unwrap();
+        let mut updated = spec(root);
+        updated.input_files.insert(input.clone());
+        watcher.reconfigure(updated).unwrap();
+        tracker.set_build_inputs(watcher.build_inputs());
+        let batch = watcher.next_batch(Duration::from_secs(2)).unwrap().unwrap();
+        let changes = tracker.observe(batch.paths).unwrap();
+        assert_eq!(changes.changes.len(), 1);
+        assert_eq!(
+            changes.changes[0].content.as_deref(),
+            Some(b"after".as_slice())
+        );
+        assert_eq!(changes.changes[0].kind, crate::changes::PathKind::Manifest);
+    }
+
+    #[test]
+    fn reconfiguration_preserves_already_queued_source_saves() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir(root.join("src")).unwrap();
+        let input = root.join("src/main.rs");
+        fs::write(&input, "before").unwrap();
+        let mut watcher = SourceWatcher::new(spec(root)).unwrap();
+        fs::write(&input, "after").unwrap();
+        watcher.reconfigure(spec(root)).unwrap();
+        assert!(
+            watcher
+                .next_batch(Duration::from_secs(2))
+                .unwrap()
+                .unwrap()
+                .paths
+                .contains(&input)
+        );
     }
 
     #[test]

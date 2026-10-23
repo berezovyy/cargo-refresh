@@ -102,7 +102,13 @@ pub fn classify_record(
     let module = string(base, a[10], a[11])?;
     let file = string(base, a[12], a[13])?;
     ensure!(
-        file.ends_with(".rs") && module.contains("::"),
+        file.ends_with(".rs")
+            && module.split("::").all(|part| {
+                // module_path!() at a crate root is a single identifier.
+                let mut chars = part.strip_prefix("r#").unwrap_or(part).chars();
+                chars.next().is_some_and(|c| c == '_' || c.is_alphabetic())
+                    && chars.all(|c| c == '_' || c.is_alphanumeric())
+            }),
         "tracing source path"
     );
     for i in [4, 10, 12] {
@@ -300,6 +306,21 @@ mod tests {
         assert_eq!(u64_at(&out, 16).unwrap(), 0x15b0);
         assert_eq!(u64_at(&out, 32).unwrap(), 0x1540);
     }
+    #[test]
+    fn tracing_module_path_can_be_a_single_crate_identifier() {
+        let (mut base, mut fresh, sym) = metadata();
+        put(&mut base, 0x1520, b"root");
+        put(&mut fresh, 0x1520, b"root");
+        word(&mut base, 0x1158, 4);
+        word(&mut fresh, 0x1158, 4);
+        assert_eq!(
+            classify_record(&base, &fresh, &sym, &section(), true)
+                .unwrap()
+                .1,
+            DataClass::TracingMetadata
+        );
+    }
+
     #[test]
     fn all_tracing_refusal_fields() {
         // Each change independently breaks one scalar/identity/text/graph rule.

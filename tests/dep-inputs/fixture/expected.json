@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "case": "dep-inputs-regression",
+  "v0.1-allowed-outcomes": [
+    "stock"
+  ],
+  "state-rule": "Every embedded-input edit rebuilds through Cargo, including inputs introduced after the session starts.",
+  "base": [
+    "probe=message-v1",
+    "probe=message-v1"
+  ],
+  "steps": [
+    {
+      "name": "root-text",
+      "stock-after-restart": [
+        "probe=message-v2",
+        "probe=message-v2"
+      ],
+      "live-expected": [
+        "probe=message-v2",
+        "probe=message-v2"
+      ]
+    },
+    {
+      "name": "change-include-path",
+      "stock-after-restart": [
+        "probe=next-v1",
+        "probe=next-v1"
+      ],
+      "live-expected": [
+        "probe=next-v1",
+        "probe=next-v1"
+      ]
+    },
+    {
+      "name": "newly-discovered-text",
+      "stock-after-restart": [
+        "probe=next-v2",
+        "probe=next-v2"
+      ],
+      "live-expected": [
+        "probe=next-v2",
+        "probe=next-v2"
+      ]
+    },
+    {
+      "name": "introduce-include-bytes",
+      "stock-after-restart": [
+        "probe=bytes-v1",
+        "probe=bytes-v1"
+      ],
+      "live-expected": [
+        "probe=bytes-v1",
+        "probe=bytes-v1"
+      ]
+    },
+    {
+      "name": "newly-discovered-bytes",
+      "stock-after-restart": [
+        "probe=bytes-v2",
+        "probe=bytes-v2"
+      ],
+      "live-expected": [
+        "probe=bytes-v2",
+        "probe=bytes-v2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

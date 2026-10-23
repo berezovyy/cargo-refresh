@@ -126,6 +126,8 @@ fn terminate(child: &mut Child, grace: Duration) {
 }
 #[derive(Debug)]
 pub struct Build {
+    /// A full native link replaces the runtime and all manifest/extractor state.
+    pub native_rebase: bool,
     pub manifest_path: PathBuf,
     pub candidate_path: PathBuf,
     pub manifest: Vec<u8>,
@@ -158,6 +160,19 @@ impl Build {
         Ok(())
     }
 }
+fn native_rebase_reply(reply: &str) -> Result<Option<PathBuf>> {
+    for line in reply.lines() {
+        if line.starts_with("ok object=")
+            && let Some((_, path)) = line.split_once(" native-rebase=")
+        {
+            let path: PathBuf = serde_json::from_str(path).context("invalid native rebase path")?;
+            ensure!(path.is_absolute(), "native rebase path must be absolute");
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
 struct SocketAlias {
     _dir: tempfile::TempDir,
     home: PathBuf,
@@ -380,7 +395,17 @@ impl Client {
         );
         let mut command = self.command(&self.config.rustd);
         command.arg("sync").arg(&sockets[0]);
-        self.run(command, self.config.command_timeout)?;
+        let reply = self.run(command, self.config.command_timeout)?;
+        if let Some(candidate_path) = native_rebase_reply(&reply)? {
+            ensure!(candidate_path.is_file(), "native rebase candidate missing");
+            self.last_manifest.clear();
+            return Ok(Build {
+                native_rebase: true,
+                manifest_path: PathBuf::new(),
+                candidate_path,
+                manifest: Vec::new(),
+            });
+        }
         let manifest_path = newest_manifest(&self.config.project)?;
         let manifest = fs::read(&manifest_path)?;
         ensure!(
@@ -395,6 +420,7 @@ impl Client {
             "manifest candidate binary missing"
         );
         Ok(Build {
+            native_rebase: false,
             manifest_path,
             candidate_path,
             manifest,
@@ -475,6 +501,23 @@ mod tests {
         fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
     }
     #[test]
+    fn native_rebase_reply_is_explicit_and_supports_spaces() {
+        assert_eq!(
+            native_rebase_reply("ok object=/a functions=2 native-rebase=\"/tmp/a b/bin\"\n")
+                .unwrap(),
+            Some(PathBuf::from("/tmp/a b/bin"))
+        );
+        assert!(native_rebase_reply("ok patch=/a").unwrap().is_none());
+        assert!(
+            native_rebase_reply("error: native-rebase=\"/a\"")
+                .unwrap()
+                .is_none()
+        );
+        assert!(native_rebase_reply("ok object=/a native-rebase=bad").is_err());
+        assert!(native_rebase_reply("ok object=/a native-rebase=\"relative\"").is_err());
+    }
+
+    #[test]
     fn env_scrubbing_and_manifest_selection() {
         let tmp = tempfile::tempdir().unwrap();
         let rustd = tmp.path().join("rustd");
@@ -541,6 +584,7 @@ mod tests {
             }
             bytes.extend([0; 24]);
             Build {
+                native_rebase: false,
                 manifest: bytes,
                 manifest_path: "unused".into(),
                 candidate_path: "unused".into(),
