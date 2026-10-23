@@ -2,7 +2,7 @@
 """Hand-run end-to-end controller checks. Hold the rustd lane around this script.
 Copies fixtures before invoking; project must be a disposable work directory.
 """
-import argparse,json,os,pathlib,signal,socket,subprocess,time,urllib.request,urllib.error
+import argparse,json,os,pathlib,signal,socket,subprocess,sys,time,urllib.request,urllib.error
 
 def free_port():
     with socket.socket() as s:s.bind(('127.0.0.1',0));return s.getsockname()[1]
@@ -149,6 +149,7 @@ def canonical(responses):
 
 def web(args):
     import importlib.util
+    sys.dont_write_bytecode=True
     spec=importlib.util.spec_from_file_location('scenarios',args.scenarios);scenarios=importlib.util.module_from_spec(spec);spec.loader.exec_module(scenarios)
     steps=list(scenarios.generate(args.project));assert len(steps)==64
     arena=args.out.resolve()/'arena'
@@ -215,7 +216,7 @@ def resilience(args):
     try:
         s.wait(lambda:http(s.port)==(200,'1'))
         first=s.save({'src/main.rs':text(2)},'warm-live','2');assert first['path']=='live',first
-        daemon=s.project/'target/refresh/d-0/daemon.log'
+        daemon=pathlib.Path(next(r['message'] for r in s.read() if r['event']=='compiler_ready'))/'daemon.log'
         pid=int(re.search(r'of pid (\d+) listens',daemon.read_text()).group(1))
         command=pathlib.Path(f'/proc/{pid}/cmdline').read_bytes();assert b'rustd' in command and b'daemon' in command,command
         os.kill(pid,signal.SIGKILL)

@@ -83,6 +83,7 @@ pub struct Pipeline {
     hook_missing: bool,
     recovery_restart: bool,
     view_dirty: BTreeSet<PathBuf>,
+    session_home: PathBuf,
 }
 fn mark(phases: &mut BTreeMap<Phase, f64>, phase: Phase) {
     phases.insert(phase, monotonic_seconds().unwrap_or(0.0) * 1000.0);
@@ -128,21 +129,16 @@ fn native_binary(config: &Config) -> Result<PathBuf> {
 }
 fn start_fast(
     config: &Config,
+    session_home: &std::path::Path,
     seq: u64,
     floor: u64,
     cancel: Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<Fast> {
-    let control = config
-        .target_directory
-        .join("refresh")
-        .join(format!("promote-{seq}"));
+    let control = session_home.join(format!("promote-{seq}"));
     fs::create_dir_all(control.parent().unwrap())?;
     fs::write(&control, "0")?;
     let mut cfg = rustd::Config::new(&config.workspace_root, compiler_path()?, &config.bin)?;
-    cfg.home = config
-        .target_directory
-        .join("refresh")
-        .join(format!("d-{seq}"));
+    cfg.home = session_home.join(format!("d-{seq}"));
     cfg.memory_min_bytes = floor;
     cfg.cancel = Some(cancel);
     if let Some(value) = std::env::var_os("REFRESH_RUSTD_ENV") {
@@ -210,6 +206,10 @@ impl Pipeline {
             config.after_patch_hook,
             config.bin.clone().into(),
         )?;
+        let session_home = tempfile::Builder::new()
+            .prefix("session-")
+            .tempdir_in(config.target_directory.join("refresh"))?
+            .keep();
         let workspace = if config.check || config.strict {
             Some(Workspace::copy(&config)?)
         } else {
@@ -235,6 +235,7 @@ impl Pipeline {
             hook_missing: false,
             recovery_restart: false,
             view_dirty: BTreeSet::new(),
+            session_home,
         })
     }
     fn event(&self, name: &'static str, message: impl Into<String>) {
@@ -245,9 +246,19 @@ impl Pipeline {
         });
     }
     pub fn setup(&mut self) -> Result<()> {
-        match start_fast(&self.config, 0, self.floor, self.fence.stopping.clone()) {
+        match start_fast(
+            &self.config,
+            &self.session_home,
+            0,
+            self.floor,
+            self.fence.stopping.clone(),
+        ) {
             Ok(fast) => {
                 self.runtime.start(&native_binary(&self.config)?)?;
+                self.event(
+                    "compiler_ready",
+                    fast.client.config.home.display().to_string(),
+                );
                 self.fast = Some(fast);
             }
             Err(error) => {
@@ -306,12 +317,15 @@ impl Pipeline {
         let seq = self.reset_seq;
         let config = self.config.clone();
         let floor = self.floor;
+        let session_home = self.session_home.clone();
         let cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let task_cancel = cancel.clone();
         self.reset = Some(Reset {
             revision: self.fence.revision,
             cancel,
-            task: thread::spawn(move || start_fast(&config, seq, floor, task_cancel)),
+            task: thread::spawn(move || {
+                start_fast(&config, &session_home, seq, floor, task_cancel)
+            }),
         });
         self.event(
             "worker_reset_start",

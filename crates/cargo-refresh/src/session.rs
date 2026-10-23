@@ -28,6 +28,19 @@ pub fn run(config: Config) -> Result<()> {
         libc::signal(libc::SIGINT, stop as *const () as libc::sighandler_t);
         libc::signal(libc::SIGTERM, stop as *const () as libc::sighandler_t);
     }
+    let storage = config.target_directory.join("refresh");
+    fs::create_dir_all(&storage)?;
+    let session_lock = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(storage.join("session.lock"))?;
+    use std::os::fd::AsRawFd;
+    anyhow::ensure!(
+        unsafe { libc::flock(session_lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0,
+        "another cargo refresh session owns this workspace"
+    );
     let mut events = EventLog::open(&config.events)?;
     let mut spec = WatchSpec::new(
         config.source_roots.clone(),
