@@ -235,6 +235,23 @@ def resilience(args):
         s.flush();(s.out/'completed.json').write_text(json.dumps({'daemon_kill_fallback':True,'saves_during_reset':True,'recovered_live':True,'rapid_final_value':200,'oracle_matches':1}))
     finally:s.close()
 
+def strict(args):
+    import shutil
+    fixture=pathlib.Path(__file__).resolve().parent.parent/'tests/tiny-axum'
+    for name in ['Cargo.toml','src/main.rs']:shutil.copyfile(fixture/name,args.project/name)
+    args.strict=True;s=Session(args);source=(s.project/'src/main.rs').read_text()
+    try:
+        s.wait(lambda:http(s.port)==(200,'1'))
+        live=s.save({'src/main.rs':source.replace('number: 1','number: 2')},'strict-live','2');assert live['path']=='live',live;s.oracle_tiny(live,2)
+        bad=source.replace('fn value() -> u64 { Value { number: 1 }.number }','fn value() -> u64 { let number = 6; let borrowed = &mut number; *borrowed }')
+        error=s.save({'src/main.rs':bad},'borrow-error','2',True);assert error['path']=='error',error
+        assert 'build_start' not in error['event']['phases'] and 'patch_sent' not in error['event']['phases']
+        assert (s.project/'src/main.rs').read_text()==bad
+        assert not any(r['event'] in ('tainted','revert','application_exit') for r in s.read())
+        s.oracle_tiny(error,2,True)
+        (s.out/'completed.json').write_text(json.dumps({'strict_borrow_error_blocked_before_build':True,'editor_preserved':True,'oracle_matches':2}))
+    finally:s.close()
+
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','resilience']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
+    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','resilience','strict']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
 if __name__=='__main__':main()

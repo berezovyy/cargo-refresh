@@ -4,7 +4,10 @@ use refresh_proto::wire::{self, Record};
 use serde::{Deserialize, Serialize};
 use std::{
     io::{Read, Write},
-    os::unix::net::UnixStream,
+    os::{
+        fd::{AsRawFd, FromRawFd, OwnedFd},
+        unix::{ffi::OsStrExt, net::UnixStream},
+    },
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
@@ -53,6 +56,61 @@ pub fn action(reply: &Reply) -> Action {
         }
     }
 }
+fn connect(path: &Path, deadline: Instant) -> Result<UnixStream> {
+    let bytes = path.as_os_str().as_bytes();
+    let mut address: libc::sockaddr_un = unsafe { std::mem::zeroed() };
+    ensure!(
+        !bytes.contains(&0) && bytes.len() < address.sun_path.len(),
+        "invalid agent socket path"
+    );
+    address.sun_family = libc::AF_UNIX as libc::sa_family_t;
+    for (to, from) in address.sun_path.iter_mut().zip(bytes) {
+        *to = *from as libc::c_char;
+    }
+    let raw = unsafe {
+        libc::socket(
+            libc::AF_UNIX,
+            libc::SOCK_STREAM | libc::SOCK_CLOEXEC | libc::SOCK_NONBLOCK,
+            0,
+        )
+    };
+    ensure!(
+        raw >= 0,
+        "create agent socket: {}",
+        std::io::Error::last_os_error()
+    );
+    let fd = unsafe { OwnedFd::from_raw_fd(raw) };
+    let length =
+        (std::mem::offset_of!(libc::sockaddr_un, sun_path) + bytes.len() + 1) as libc::socklen_t;
+    loop {
+        ensure!(Instant::now() < deadline, "agent connect timed out");
+        let rc = unsafe {
+            libc::connect(
+                fd.as_raw_fd(),
+                (&address as *const libc::sockaddr_un).cast(),
+                length,
+            )
+        };
+        if rc == 0 {
+            break;
+        }
+        let error = std::io::Error::last_os_error();
+        match error.raw_os_error() {
+            Some(libc::EISCONN) => break,
+            Some(libc::EINTR) => continue,
+            // Unix sockets use EAGAIN for a full listener backlog. Retry the
+            // nonblocking connect, never block in the kernel past our deadline.
+            Some(libc::EAGAIN) | Some(libc::EINPROGRESS) | Some(libc::EALREADY) => {
+                thread::sleep(Duration::from_millis(1))
+            }
+            _ => return Err(error).context("connect to application agent"),
+        }
+    }
+    let stream = UnixStream::from(fd);
+    stream.set_nonblocking(false)?;
+    Ok(stream)
+}
+
 pub struct Client {
     socket: PathBuf,
     legacy: bool,
@@ -91,9 +149,8 @@ impl Client {
             bytes.extend((24_u64 + body.len() as u64 - 8).to_le_bytes());
             bytes.extend(&body[8..]);
         }
-        let mut stream =
-            UnixStream::connect(&self.socket).context("connect to application agent")?;
         let deadline = Instant::now() + Duration::from_secs(5);
+        let mut stream = connect(&self.socket, deadline)?;
         let remaining = || {
             deadline
                 .checked_duration_since(Instant::now())
@@ -220,6 +277,16 @@ mod tests {
         assert!(!client.ping().unwrap().ok);
         assert!(client.apply(&[]).unwrap().ok);
         host.join().unwrap();
+    }
+    #[test]
+    fn full_listener_backlog_respects_the_connect_deadline() {
+        let temp = tempfile::tempdir().unwrap();
+        let socket = temp.path().join("a");
+        let listener = UnixListener::bind(&socket).unwrap();
+        assert_eq!(unsafe { libc::listen(listener.as_raw_fd(), 0) }, 0);
+        let _queued = UnixStream::connect(&socket).unwrap();
+        let error = connect(&socket, Instant::now() + Duration::from_millis(20)).unwrap_err();
+        assert!(error.to_string().contains("timed out"));
     }
     #[test]
     fn rolled_back_preserves_app_and_unknown_fails_closed() {
