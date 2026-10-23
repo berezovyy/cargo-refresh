@@ -154,20 +154,14 @@ impl Supervisor {
         let run = tempfile::Builder::new().prefix("refresh-run-").tempdir()?;
         fs::set_permissions(run.path(), fs::Permissions::from_mode(0o700))?;
         let executable = run.path().join("app");
-        // The compiler has completed and validation has passed. Shutdown and the
-        // final ELF snapshot write are independent; join both before exec.
-        let stopped = thread::scope(|scope| -> Result<_> {
-            let snapshot = scope.spawn(|| snapshot_executable(binary, &executable));
-            self.stop();
-            let stopped = started.elapsed();
-            snapshot
-                .join()
-                .map_err(|_| anyhow::anyhow!("snapshot worker panicked"))?
-                .context("snapshot application executable")?;
-            Ok(stopped)
-        })?;
+        // Keep serving while preparing the immutable replacement. On disk a
+        // sparse ELF snapshot can take much longer than process shutdown; doing
+        // these concurrently turns all of that I/O into connection downtime.
+        snapshot_executable(binary, &executable).context("snapshot application executable")?;
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o500))?;
         let snapshotted = started.elapsed();
+        self.stop();
+        let stopped = started.elapsed();
         let socket = run.path().join("agent.sock");
         let mut command = Command::new(&executable);
         command
@@ -241,9 +235,9 @@ impl Supervisor {
         if std::env::var_os("REFRESH_PROFILE_RESTART").is_some() {
             eprintln!(
                 "restart-timeline-us: stop={} snapshot={} spawn={} load_base={} symbols={} agent={}",
-                stopped.as_micros(),
-                (snapshotted - stopped).as_micros(),
-                (spawned - snapshotted).as_micros(),
+                (stopped - snapshotted).as_micros(),
+                snapshotted.as_micros(),
+                (spawned - stopped).as_micros(),
                 (located - spawned).as_micros(),
                 (indexed - located).as_micros(),
                 (started.elapsed() - indexed).as_micros()
@@ -397,8 +391,25 @@ mod tests {
                 .unwrap()
                 .ok
         );
-        supervisor.stop();
+        let old_executable = supervisor.executable.clone();
+        let old_socket = supervisor.socket.clone();
+        assert!(
+            supervisor
+                .start(&storage.path().join("missing-candidate"))
+                .is_err()
+        );
+        assert_eq!(supervisor.pid(), Some(pid));
+        assert_eq!(supervisor.executable, old_executable);
+        assert_eq!(supervisor.socket, old_socket);
+        assert!(supervisor.poll_exit().unwrap().is_none());
+        assert!(crate::agent::Client::new(&old_socket).ping().unwrap().ok);
+        supervisor.start(Path::new("/bin/bash")).unwrap();
+        let replacement = supervisor.pid().unwrap();
+        assert_ne!(replacement, pid);
         assert!(!Path::new(&format!("/proc/{pid}")).exists());
+        assert!(!old_executable.exists());
+        supervisor.stop();
+        assert!(!Path::new(&format!("/proc/{replacement}")).exists());
     }
     #[test]
     fn stock_mode_runs_without_an_agent_and_resets_symbols() {
