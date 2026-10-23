@@ -1,7 +1,9 @@
 The matrix checks all four combinations of `debug-assertions` and
 `overflow-checks` against stock, before and after a live leaf edit. It observes
 `cfg!(debug_assertions)`, a caught `debug_assert!` panic, and a caught runtime
-integer overflow. Profile settings are applied to disposable copies of the
+integer overflow. An additional `strip = "symbols"` case must also patch live,
+so loss of the ELF symbols needed by the patch pipeline cannot silently pass.
+Profile settings are applied to disposable copies of the
 committed fixture.
 
 ```sh
