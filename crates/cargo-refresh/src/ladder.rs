@@ -465,10 +465,15 @@ impl Pipeline {
         self.advance_checked(&job.changes);
         self.event("check_ok", "stock build passed borrow checking");
         if manifest_change {
-            if self.workspace.is_some() {
-                self.workspace = Some(Workspace::copy(&self.config)?);
-                self.view_dirty.clear();
-            }
+            // A session can gain qualified support after its toolchain/config
+            // changes. Recreate checks from the new policy before warming rustd.
+            self.workspace =
+                if self.config.support.is_some() && (self.config.check || self.config.strict) {
+                    Some(Workspace::copy(&self.config)?)
+                } else {
+                    None
+                };
+            self.view_dirty.clear();
             self.sender.send(Update::Reconfigure(
                 Box::new(self.config.clone()),
                 job.changes.revision,
