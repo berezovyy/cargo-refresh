@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Build a local release candidate. Never publishes or downloads executables.
+set -euo pipefail
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+[[ $# == 1 && $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
+  echo 'Usage: scripts/release.sh <version> (e.g. 0.1.0-dev)' >&2; exit 2;
+}
+VERSION=$1
+RESEARCH=${REFRESH_RESEARCH_ROOT:-/path/to/research}
+RUSTD=${REFRESH_RUSTD_SOURCE:-rustd}
+LANE=${REFRESH_LANE:-$RESEARCH/tools/lane.sh}
+export RUSTUP_TOOLCHAIN=1.99.0
+export CARGO_BUILD_JOBS=4
+unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTC_WRAPPER RUSTC_WORKSPACE_WRAPPER CARGO_BUILD_TARGET
+COMMIT=$(rustc -Vv | sed -n 's/^commit-hash: //p')
+[[ $COMMIT == b940084d7eb6a299eb4bfeb8e34901bc051e7ac4 ]] || { echo 'Unqualified rustc commit; run manual qualification first' >&2; exit 1; }
+[[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'Only Linux x86_64 releases are supported' >&2; exit 1; }
+for tool in zstd tar objdump sha256sum python3 make; do command -v "$tool" >/dev/null; done
+[[ $(git -C "$RUSTD" branch --show-current) == refresh/m1 ]] || { echo 'rustd must be on refresh/m1' >&2; exit 1; }
+# Check the compiler and RA together inside their resource lane, before compiling.
+"$LANE" rustd -- bash -c 'test -z "$(git -C "$1" status --porcelain)" && test -z "$(git -C "$1/vendor/rust-analyzer" status --porcelain)"' _ "$RUSTD" || {
+  echo 'Compiler/RA sources must be clean' >&2; exit 1;
+}
+RUSTD_COMMIT=$(git -C "$RUSTD" rev-parse HEAD)
+RA_COMMIT=$(git -C "$RUSTD" rev-parse HEAD:vendor/rust-analyzer)
+WORK=$ROOT/.release-work
+mkdir -p "$WORK" "$ROOT/dist"
+NAME=cargo-refresh-$VERSION-$COMMIT-x86_64-linux
+STAGE=$(mktemp -d "$WORK/package.XXXXXXXX")
+trap 'rm -rf "$STAGE"' EXIT
+# Build with bounded parallelism and RAM guard, private target, no daemon.
+"$LANE" build -- python3 "$ROOT/scripts/run-guarded.py" env \
+  CARGO_TARGET_DIR="$WORK/rustd-target" CARGO_PROFILE_RELEASE_DEBUG=0 \
+  nice -n 19 cargo build --manifest-path "$RUSTD/Cargo.toml" --release --locked --offline -p rustd --bins -j 4
+for bin in rustd cargo-rustd rustd-rustc; do
+  install -m 755 "$WORK/rustd-target/release/$bin" "$STAGE/$bin"
+done
+# Static libunwind is preferred only when local PIC archives can actually link.
+# A failed static attempt never changes the production Makefile's dynamic default.
+STATIC=0
+if [[ -f $(cc -print-file-name=libunwind.a) && -f $(cc -print-file-name=libunwind-x86_64.a) ]]; then
+  if nice -n 19 make -C "$ROOT/agent" release \
+      LDLIBS='-Wl,-z,now -Wl,-Bstatic -lunwind -lunwind-x86_64 -Wl,-Bdynamic -ldl -lpthread'; then
+    STATIC=1
+  else
+    echo 'Static libunwind unavailable/non-PIC; building dynamic fallback.' >&2
+  fi
+fi
+if (( ! STATIC )); then
+  # Avoid reusing the static attempt or an older library with other link flags.
+  rm -f "$ROOT/agent/build-release/librefresh.so"
+  nice -n 19 make -C "$ROOT/agent" release
+fi
+install -m 755 "$ROOT/agent/build-release/librefresh.so" "$STAGE/librefresh.so"
+"$ROOT/scripts/new-toolchain.sh" 1.99.0 --dry-run
+QUAL=$WORK/qualification/$COMMIT
+install -m 644 "$QUAL/abi-facts.bundle" "$STAGE/abi-facts.bundle"
+python3 "$ROOT/scripts/qualification/runtime-requirements.py" "$STAGE" > "$STAGE/RUNTIME.txt"
+cat "$STAGE/RUNTIME.txt"
+cat > "$STAGE/VERSION" <<METADATA
+cargo_refresh=$VERSION
+cargo_refresh_commit=$(git -C "$ROOT" rev-parse HEAD)
+rustd_commit=$RUSTD_COMMIT
+ra_commit=$RA_COMMIT
+rustc_commit=$COMMIT
+target=x86_64-unknown-linux-gnu
+agent_static_libunwind=$STATIC
+METADATA
+mkdir "$STAGE/licenses"
+for file in LICENSE-MIT LICENSE-APACHE; do
+  install -m 644 "$ROOT/$file" "$STAGE/licenses/cargo-refresh-$file"
+  install -m 644 "$RUSTD/$file" "$STAGE/licenses/rustd-$file"
+  "$LANE" rustd -- install -m 644 "$RUSTD/vendor/rust-analyzer/$file" "$STAGE/licenses/rust-analyzer-$file"
+done
+# A concurrent source change would make the recorded source identity misleading.
+[[ $(git -C "$RUSTD" rev-parse HEAD) == "$RUSTD_COMMIT" ]] || { echo 'Compiler changed during release' >&2; exit 1; }
+"$LANE" rustd -- bash -c 'test -z "$(git -C "$1" status --porcelain)"' _ "$RUSTD"
+(
+  cd "$STAGE"
+  find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS
+  sha256sum -c SHA256SUMS
+)
+EPOCH=$(git -C "$RUSTD" show -s --format=%ct HEAD)
+TEMP=$STAGE/$NAME.tar.zst
+# Explicit members prevent inclusion of the temporary archive in itself.
+tar --sort=name --mtime="@$EPOCH" --owner=0 --group=0 --numeric-owner \
+  -C "$STAGE" -cf - rustd cargo-rustd rustd-rustc librefresh.so abi-facts.bundle VERSION RUNTIME.txt licenses SHA256SUMS \
+  | zstd -T1 -q -o "$TEMP"
+mv "$TEMP" "$ROOT/dist/$NAME.tar.zst"
+(cd "$ROOT/dist" && sha256sum "$NAME.tar.zst" > "$NAME.tar.zst.sha256" && cat "$NAME.tar.zst.sha256")
+stat --format='%n %s bytes' "$ROOT/dist/$NAME.tar.zst"
+echo 'Local candidate only. Full qualification and oldest-distro validation remain release gates.'

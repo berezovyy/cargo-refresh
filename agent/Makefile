@@ -69,3 +69,7 @@ test-panic: all $(BUILD)/host-panic
 .PHONY: test-pressure
 test-pressure: all $(BUILD)/host $(BUILD)/host-pie
 	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/pressure.py $(BUILD)/librefresh.so
+
+.PHONY: release
+release:
+	$(MAKE) BUILD=build-release all
