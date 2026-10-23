@@ -2,7 +2,7 @@ use anyhow::Result;
 use cargo_refresh::{
     cli::{Cli, Command},
     config::Config,
-    events::EventLog,
+    session,
 };
 
 fn main() -> Result<()> {
@@ -10,8 +10,7 @@ fn main() -> Result<()> {
         Command::Run(args) => {
             let config = Config::load(args)?;
             println!("{}", serde_json::to_string_pretty(&config)?);
-            let mut events = EventLog::open(&config.events)?;
-            events.event("start", 0)?;
+            session::run(config)?;
         }
         Command::Status | Command::Stop => println!("not implemented yet"),
     }

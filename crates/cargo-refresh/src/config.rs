@@ -68,11 +68,19 @@ pub struct Config {
     pub check: bool,
     pub events: PathBuf,
     pub verbose: u8,
+    #[serde(serialize_with = "serialize_args")]
     pub args: Vec<OsString>,
     pub workspace_root: PathBuf,
     pub target_directory: PathBuf,
     pub source_roots: Vec<PathBuf>,
     pub input_files: Vec<PathBuf>,
+}
+
+fn serialize_args<S: serde::Serializer>(
+    args: &[OsString],
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+    serializer.collect_seq(args.iter().map(|arg| arg.to_string_lossy()))
 }
 
 impl Config {
