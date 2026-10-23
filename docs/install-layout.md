@@ -209,9 +209,22 @@ one live save, checks PID and counter continuity, and compares the edited value
 with an independent stock build. Its `unsupported`, `corrupt`, `low-memory`, and
 `override` modes exercise stock decisions without starting rustd.
 
-Custom `[profile.dev]` settings in Cargo manifests are also refused before
-warming, including inline/quoted TOML spellings. They may change panic or codegen
-behavior beyond the qualified default. Release-only profiles do not affect the
-default development build and are allowed. Legacy `REFRESH_RUSTD_ENV` and inherited
+Development profiles may set `debug`, `split-debuginfo`, `strip`, `incremental`,
+`codegen-units`, `debug-assertions`, and `overflow-checks`, including package/build
+overrides and inline/quoted TOML spellings. The first five affect artifacts or
+compilation strategy. Rustd propagates the assertion/overflow flags into crate
+configuration and codegen; the four-combination stock/live regression is in
+`tests/profile-admission/`. Other keys select stock mode with the exact key in
+the reason, including `opt-level`, `panic`, and `lto`. Release-only profiles are
+allowed. Legacy `REFRESH_RUSTD_ENV` and inherited
 `RUSTD_*` tuning select stock mode; they cannot replace the verified compiler,
 ABI directory, or target behind the detector's back.
+
+
+The controller watches rustc dep-info inputs as well as source roots. Changes to
+embedded text/bytes, including root-level or external inputs, use stock Cargo
+and recapture. Changing an include invocation also recaptures its new inputs.
+Edits to an owned crate with a transitive caller outside the compiler frontier
+use stock Cargo: restarting a partial binary cannot update excluded generic,
+inlined, or const-evaluated copies. Add the callers with `--edit` to own the
+complete dependency closure.

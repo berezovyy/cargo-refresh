@@ -389,9 +389,35 @@ pub fn memory_allows(available: u64, peak: u64) -> bool {
     peak.checked_add(2 * GIB)
         .is_some_and(|required| available >= required)
 }
-fn default_profile(text: &str) -> Result<bool> {
+fn qualified_profile(text: &str) -> Result<()> {
     let manifest: toml::Value = toml::from_str(text)?;
-    Ok(manifest.get("profile").and_then(|p| p.get("dev")).is_none())
+    fn qualify(value: &toml::Value, prefix: &str) -> Result<()> {
+        let table = value.as_table().context("Cargo profile must be a table")?;
+        for (key, value) in table {
+            let path = format!("{prefix}.{key}");
+            match key.as_str() {
+                // Captured rustc artifacts retain their own debug/strip settings;
+                // rustd emits a single object and manages its own incremental cache.
+                "debug" | "split-debuginfo" | "strip" | "incremental" | "codegen-units"
+                | "debug-assertions" | "overflow-checks" => {}
+                "package" => {
+                    for (name, profile) in value
+                        .as_table()
+                        .context("profile package overrides must be a table")?
+                    {
+                        qualify(profile, &format!("{path}.{name}"))?;
+                    }
+                }
+                "build-override" => qualify(value, &path)?,
+                _ => bail!("unqualified Cargo profile key {path}"),
+            }
+        }
+        Ok(())
+    }
+    if let Some(dev) = manifest.get("profile").and_then(|p| p.get("dev")) {
+        qualify(dev, "profile.dev")?;
+    }
+    Ok(())
 }
 
 fn default_environment(config: &Config) -> Result<()> {
@@ -431,11 +457,8 @@ fn default_environment(config: &Config) -> Result<()> {
         .filter(|p| p.file_name().is_some_and(|n| n == "Cargo.toml"))
     {
         if manifest.is_file() {
-            ensure!(
-                default_profile(&fs::read_to_string(manifest)?)?,
-                "custom Cargo dev profile is not qualified: {}",
-                manifest.display()
-            );
+            qualified_profile(&fs::read_to_string(manifest)?)
+                .with_context(|| format!("{}", manifest.display()))?;
         }
     }
     let mut configs: Vec<_> = config
@@ -697,17 +720,34 @@ mod tests {
         assert!(!unknown.qualified());
     }
     #[test]
-    fn dev_profile_flags_are_refused_in_all_toml_spellings() {
-        for manifest in [
-            "[profile.dev]\npanic = 'abort'",
-            "[profile.\"dev\"]\nopt-level = 3",
-            "profile = { dev = { debug = 0 } }",
+    fn dev_profile_flags_are_qualified_individually_in_all_toml_spellings() {
+        for (manifest, key) in [
+            ("[profile.dev]\npanic = 'abort'", "profile.dev.panic"),
+            ("[profile.\"dev\"]\nopt-level = 3", "profile.dev.opt-level"),
+            (
+                "[profile.dev.package.foo]\nopt-level = 1",
+                "profile.dev.package.foo.opt-level",
+            ),
         ] {
-            assert!(!default_profile(manifest).unwrap());
+            assert!(
+                qualified_profile(manifest)
+                    .unwrap_err()
+                    .to_string()
+                    .contains(key)
+            );
         }
-        assert!(default_profile("[package]\nname = 'tiny'").unwrap());
-        assert!(default_profile("[profile.release]\nlto = true").unwrap());
-        assert!(default_profile("[invalid").is_err());
+        for manifest in [
+            "profile = { dev = { debug = 0 } }",
+            "[profile.dev]\ndebug-assertions = false\noverflow-checks = true",
+            "[profile.dev]\ndebug-assertions = true\noverflow-checks = false",
+            "[profile.dev]\ndebug = 0\nsplit-debuginfo = 'off'\nstrip = 'debuginfo'\nincremental = false\ncodegen-units = 1",
+            "[profile.dev.package.foo]\ndebug = 0",
+            "[package]\nname = 'tiny'",
+            "[profile.release]\nlto = true",
+        ] {
+            qualified_profile(manifest).unwrap();
+        }
+        assert!(qualified_profile("[invalid").is_err());
     }
 
     #[test]

@@ -22,7 +22,7 @@ static STOP: AtomicBool = AtomicBool::new(false);
 extern "C" fn stop(_: libc::c_int) {
     STOP.store(true, Ordering::SeqCst);
 }
-pub fn run(config: Config) -> Result<()> {
+pub fn run(mut config: Config) -> Result<()> {
     STOP.store(false, Ordering::SeqCst);
     unsafe {
         libc::signal(libc::SIGINT, stop as *const () as libc::sighandler_t);
@@ -41,6 +41,7 @@ pub fn run(config: Config) -> Result<()> {
         unsafe { libc::flock(session_lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0,
         "another cargo refresh session owns this workspace"
     );
+    crate::dep_info::extend(&mut config)?;
     let mut events = EventLog::open(&config.events)?;
     let mut spec = WatchSpec::new(
         config.source_roots.clone(),
@@ -186,8 +187,11 @@ pub fn run(config: Config) -> Result<()> {
                             vec![new_config.target_directory],
                         );
                         spec.exclude_file(config.events.clone());
-                        watcher = SourceWatcher::new(spec)?;
+                        watcher.reconfigure(spec)?;
                         tracker.set_build_inputs(watcher.build_inputs());
+                        // Newly captured inputs have no acknowledged hash yet.
+                        // Their first queued save must not be mistaken for the
+                        // compiled baseline merely because discovery reads it later.
                     }
                     Update::Event {
                         name,

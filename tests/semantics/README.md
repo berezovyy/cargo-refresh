@@ -1,13 +1,14 @@
 # M4 runtime semantics fixtures
 
 These 20 standalone packages implement the M4 §5 matrix. They specify desired
-live behavior and verify stock Rust behavior. They do **not** qualify live
-patching yet. Each case has Rust 1.99.0, `[profile.dev] debug = 0`, a lockfile,
+live behavior, verify stock Rust behavior, and exercise the real refresh
+controller. Qualification observations are written to the selected results file. Each case has Rust 1.99.0, `[profile.dev] debug = 0`, a lockfile,
 `edits.toml`, recorded `expected.json`, a README, and an executable `stock.sh`.
 
 Run from the product repository:
 
 ```sh
+python3 tests/semantics/test_runner.py
 python3 tests/semantics/run.py --mode stock
 python3 tests/semantics/run.py --mode stock --case 03 --case 17
 python3 tests/semantics/run.py --mode stock --offline --results /tmp/semantics.json
@@ -47,11 +48,12 @@ It does not use periodic output, sleep for startup, or accept matching substring
 - `steps`: cumulative edits, each with a name, ordered literal `edits` (`file`,
   `find`, `replace`), optional compiler `environment` updates, and ordered
   `stock_after_restart` and `live_expected` probe responses.
-- Case 10 also has `frontiers`: two required future refresh configurations,
+- Case 10 also has `frontiers`: two required refresh configurations,
   one covering all callers and one with a caller outside the frontier.
 
-Every find must match exactly once. All edits in one step form one logical
-save; a future watcher driver should batch them before waiting for an outcome.
+Every find must match exactly once. Each current source-edit step changes one
+file. A multi-file extension would need controller batching before waiting for
+one outcome; the current driver does not provide an atomic multi-file save.
 Paths cannot escape the copied case. Each step starts from the previous step's
 source, not from the original. New-static case 03 therefore tests introduction
 **and a later edit of the same storage**.
@@ -68,42 +70,72 @@ patch. A restart may never be counted as live success.
 then reproduce all stock observations. `--record` first verifies actual stock
 output against the TOML declarations; only a successful case updates its JSON
 and lockfile. This prevents accidentally blessing arbitrary output. Live
-expectations are specifications, always labeled UNMEASURED.
+expectations remain specifications; actual refresh observations are recorded separately
+in the selected results file, without rewriting the stock contract. The legacy
+`live-verification` text in `expected.json` describes its original stock-only
+provenance; it is not a verdict for a new refresh run.
 
-## Refresh adapter contract (not implemented)
+## Real refresh adapter
 
-`--mode refresh` currently exits unsuccessfully with an explicit message; it
-never invokes stock and reports that as refresh success. The future adapter
-must:
+Run the real controller with qualified installed support:
 
-1. Copy the case as the stock runner does and invoke `cargo refresh run` from
-   that package, preserving separate app stdin/stdout and controller events.
-2. Consume base probes before applying edits. Keep the process and its workers,
-   closures, pointers, initialized lazy cells, and live Drop values alive.
-3. Apply each cumulative step, wait for its explicit outcome event, and assert
-   that outcome is allowed by `v0_1` (and the selected frontier configuration).
-   Wait for applied-generation completion, not a timer or source-write alone.
-4. For a live event assert every `live-expected` line, unchanged process identity,
-   and no hidden restart. For restart or stock assert every
-   `stock-after-restart` line and a real restart. An unannounced refusal, wrong
-   output, crash, timeout, or unsupported input silently ignored is a failure.
-5. For stock + build.rs assert build metadata was recaptured. For include_str!
-   ensure the non-Rust file save actually triggers delivery. For env!/option_env!
-   supply the new environment through a controller/session reconfiguration
-   mechanism; changing the runner's environment cannot change a running
-   controller's environment. This mechanism is pending integration.
-6. Run case 10 twice: all three crates inside the frontier => live and all four
-   instantiations updated; caller outside => stock rebuild and restart.
-7. Record actual vtable routing from case 08, including retained and fresh trait
-   objects, saved method pointer, and direct call. Current target is method-entry
-   redirects reaching new code in all four paths. Old vtable behavior must be
-   documented and refused if that contract cannot be met; it is not an implicit
-   passing alternative.
-8. Record raw and formatted tracing locations from case 13. M3 §6 permits a
-   documented cosmetic cached-line limitation under a permissive policy; this
-   fixture specifies correct lines. If qualification finds stale formatting,
-   record it explicitly and decide the policy, rather than silently changing
-   expectations to accept it.
+```sh
+python3 tests/semantics/run.py --mode refresh --offline \
+  --controller /absolute/path/to/cargo-refresh \
+  --support /absolute/path/to/verified/support \
+  --results /tmp/semantics-refresh.json
+# Or use --archive /path/to/release.tar.zst (with its adjacent checksum).
+# With Cargo and support installed normally, no controller/support flags are needed.
+```
+
+The committed fixtures intentionally contain `[profile.dev] debug = 0` (case 11
+also sets optimization level 1). Current installation policy rejects any custom
+dev profile and chooses stock, which is recorded as an admission/path finding.
+For an explicit additional runtime sweep, pass `--default-profile` to both the
+stock and refresh modes, using separate `--work` and `--results` paths. This
+removes only a sole `debug = 0` override from disposable manifests; it leaves the
+optimized inline fixture unchanged. The result records every normalized manifest
+and labels its profile mode. Original manifests and output expectations stay
+pristine. Do not merge fixture-profile and default-profile results silently.
+
+The driver invokes `cargo refresh run` in disposable copies, retaining app stdin
+and stdout separately from controller stderr and JSONL events. It waits for
+`ready`, consumes the base probes exactly once, writes each cumulative edit,
+then waits for an explicit terminal `save` event. It never polls a stateful probe
+until a desired value appears. Every complete output line must match
+`live-expected` for live, or `stock-after-restart` for restart/stock. It also checks
+owned app PID plus Linux start ticks before and after every save and probe batch:
+live must preserve identity, and restart/stock must replace it. It does not
+substitute a stock run when a live probe fails. Well-formed but wrong base
+responses mark the configuration failed while still allowing the edit steps to
+run, so a baseline issue cannot hide subsequent edit behavior.
+
+Output correctness and path expectations are separate fields. A safe fallback
+with correct fresh-process output passes correctness and reports a path mismatch;
+`--require-paths` makes these mismatches affect the exit status too. Timeouts,
+crashes, error outcomes and wrong outputs fail. Timeout results retain all
+intervening events and one diagnostic probe (which cannot count as success).
+`--timeout` bounds ready/save waits; the default is 180 seconds. The results
+contain actual controller reasons and probe responses for each edit.
+
+Case 10 runs twice using its declared `--edit` frontier lists. Case 08 checks
+retained/fresh vtables, a saved pointer and a direct call in a single response;
+case 13 checks both raw and formatted tracing line metadata. Case 14 saves only
+`message.txt`, so a missing watcher notification fails rather than being masked
+by an extra Rust edit. Case 16 saves `build.rs` and records the controller's
+stock/recapture events. When qualified compiler support was active initially,
+it waits for `worker_reset` or reports a recapture failure; stock-only installation
+mode explicitly records recapture as not applicable.
+
+Case 15 is an explicit coverage limitation: a running controller has no
+in-session environment update API. The driver stops the session, supplies the new
+environment, launches `cargo refresh run` again, and checks fresh-process output
+and changed identity. Its actual route is recorded as `session-relaunch` with a
+path mismatch, **never** as a controller stock save event. This proves tracked
+environment inputs on relaunch only; automatic environment reconfiguration
+remains unqualified. Its configuration result is `PARTIAL` and makes the command
+exit nonzero, even when relaunch output passes. No artificial source edit or
+forced support failure is used.
 
 Rows marked works/refuse require qualification to determine which outcome is
 supported. Stock success alone settles none of TLS support, retained vtables,
@@ -116,16 +148,32 @@ Cases are independent Cargo workspaces, not members of the product workspace.
 Case 11 uses dev `opt-level = 1` plus `#[inline(always)]` to exercise inlined
 callers; all other cases use ordinary unoptimized dev builds.
 
-The runner builds disposable source copies beneath `.work/sources/` and uses a
+Stock mode builds disposable source copies beneath `.work/sources/` and uses a
 shared warm `.work/target/`. Original case sources stay pristine. Staged files get fresh mtimes so Cargo
-cannot reuse the prior edited binary when restoring a base source. All builds run
-as `nice -n 19 cargo build -j 4` with an explicit toolchain and normal runs use
-`--locked`. Runs take a nonblocking exclusive lock so they cannot corrupt each
+cannot reuse the prior edited binary when restoring a base source. Stock oracle
+builds run as `nice -n 19 cargo build -j 4` with an explicit toolchain; normal stock
+runs use `--locked`. Refresh capture/check/build commands are owned by the
+controller and keep the copied fixture lockfile. Runs take a nonblocking exclusive lock so they cannot corrupt each
 other's source copies or targets. Build/probe timeouts fail the case. A memory
 guard stops owned child process groups below 6 GiB MemAvailable. No rustd is
-started by stock mode; future refresh mode must use the rustd lane.
+started by stock mode. Refresh mode automatically re-executes under the research
+rustd lane when `--lane` exists; do not wrap it in another rustd lane. Controller
+capture/fallback builds and the stock oracle acquire the build lane separately,
+using four jobs. Outside the research machine, set `--lane` to a suitable lane
+script, or a nonexistent path when no shared lane service is required.
 
-Build and stderr logs remain in `.work/logs/<case>/`. `--results` emits a compact
-JSON summary with observations and each final edited binary's SHA256. This is
+Refresh uses `.work-refresh/` by default; `--work` selects another private warm
+root. Its Cargo builds use each copied case's default `target/`, preserved across
+reruns; setting `CARGO_TARGET_DIR` would select the installer's conservative stock
+mode. The driver omits verbose controller config output to keep app stdout clean. Case 10 configurations have separate source/log directories. Controller
+stderr and events remain in `logs/<case>/session-*.{log,jsonl}` within that root.
+Stock build and stderr logs remain in `.work/logs/<case>/`. `--results` emits a compact
+JSON summary with stock binary hashes or refresh outcome/probe observations. This is
 correctness evidence, not performance data. To reclaim only suite-created build
 artifacts, remove `tests/semantics/.work/` after the runner has exited.
+
+On a busy shared 31-GiB research host, set `M4_SEMANTICS_MIN_MEMORY_GIB=17`
+to wait for that much available RAM for five seconds before each refresh
+session. This avoids qualifying only stock fallbacks caused by transient
+resource pressure. It does not change the product's admission or safety floor.
+The option is unset by default, including on smaller machines.

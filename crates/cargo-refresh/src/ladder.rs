@@ -365,6 +365,8 @@ impl Pipeline {
             ensure!(result.success, "initial cargo check: {}", result.diagnostic);
             self.checked_available = true;
         }
+        // The public ready event must follow dependency-watch installation.
+        self.refresh_inputs()?;
         self.event(
             "ready",
             format!("application pid {}", self.runtime.pid().unwrap_or(0)),
@@ -375,6 +377,14 @@ impl Pipeline {
             self.runtime.pid().unwrap_or(0)
         );
         self.sender.send(Update::Ready)?;
+        Ok(())
+    }
+    fn refresh_inputs(&mut self) -> Result<()> {
+        crate::dep_info::extend(&mut self.config)?;
+        self.sender.send(Update::Reconfigure(
+            Box::new(self.config.clone()),
+            self.fence.revision,
+        ))?;
         Ok(())
     }
     fn quarantine(&mut self) {
@@ -451,8 +461,14 @@ impl Pipeline {
             .iter()
             .any(|c| c.kind == PathKind::Manifest);
         if manifest_change {
+            let watched_inputs = self.config.input_files.clone();
             self.config = Config::load(self.config.invocation.clone())?;
             crate::install::prepare(&mut self.config);
+            // Keep already captured inputs observable during the stock build.
+            // Installation policy above uses only the new Cargo configuration.
+            self.config.input_files.extend(watched_inputs);
+            self.config.input_files.sort();
+            self.config.input_files.dedup();
             self.runtime.configure_agent(
                 self.config
                     .support
@@ -506,6 +522,9 @@ impl Pipeline {
                     != Some(true);
         }
         self.recovery_restart = true;
+        // A client may save a newly included file immediately after the save
+        // event. Queue the new watch set first on the same ordered channel.
+        self.refresh_inputs()?;
         self.publish(job, SavePath::Stock, reason, true)?;
         // Stock build ran borrow checking and compiled the current source snapshot.
         self.advance_checked(&job.changes);
@@ -639,6 +658,15 @@ impl Pipeline {
                 "file is outside the editable compiler frontier".into(),
             );
         }
+        if job.changes.changes.iter().any(|c| {
+            self.config
+                .stock_frontier_roots
+                .iter()
+                .any(|root| c.path.starts_with(root))
+        }) {
+            return self.stock(&mut job,
+                "edited crate has callers outside the compiler frontier; stock rebuild required for generic, inline and const dependencies".into());
+        }
         if let Some(workspace) = &self.workspace {
             workspace.update(&job.changes)?;
         }
@@ -684,6 +712,20 @@ impl Pipeline {
                     false,
                 );
             }
+        }
+        if job.changes.changes.iter().any(|change| {
+            crate::dep_info::includes_changed(
+                self.sources
+                    .get(&change.path)
+                    .map_or(&[], |bytes| bytes.as_ref()),
+                change.content.as_deref().unwrap_or(&[]),
+            )
+        }) {
+            return self.stock(
+                &mut job,
+                "include macro inputs changed; refreshing rustc dep-info and compiler capture"
+                    .into(),
+            );
         }
         let certificates = async_certificates_enabled();
         let (class, async_owners) = if certificates {
@@ -742,14 +784,16 @@ impl Pipeline {
             self.event("superseded", "compiler result superseded by a newer save");
             // Deltas and semantic promotions must be consumed before any later build.
             if let Ok(build) = build {
-                let fast = self.fast.as_mut().unwrap();
-                let _ = fast.manifest.update(&build.manifest);
-                if certificates {
-                    fast.async_runtime
-                        .observe_certificates(fast.manifest.async_certificates.as_deref());
-                }
-                if promote {
-                    self.fast = None;
+                if build.native_rebase || promote {
+                    self.quarantine();
+                    self.recovery_restart = true;
+                } else {
+                    let fast = self.fast.as_mut().unwrap();
+                    let _ = fast.manifest.update(&build.manifest);
+                    if certificates {
+                        fast.async_runtime
+                            .observe_certificates(fast.manifest.async_certificates.as_deref());
+                    }
                 }
             }
             return Ok(());
@@ -770,6 +814,46 @@ impl Pipeline {
                 );
             }
         };
+        if build.native_rebase {
+            // A native link changed every address. No old page, redirect, or
+            // retained-state claim may cross this fresh process boundary.
+            let extractor = match ManifestExtractor::new(
+                &build.candidate_path,
+                self.config.allow_tracing_metadata,
+            ) {
+                Ok(extractor) => extractor,
+                Err(error) => {
+                    return self.stock(
+                        &mut job,
+                        format!("native rebase validation failed: {error:#}"),
+                    );
+                }
+            };
+            if !self.fence.current() {
+                self.quarantine();
+                self.recovery_restart = true;
+                return Ok(());
+            }
+            if let Err(error) = self.runtime.start(&build.candidate_path) {
+                return self.stock(&mut job, format!("native rebase restart failed: {error:#}"));
+            }
+            let fast = self.fast.as_mut().unwrap();
+            fast.extractor = extractor;
+            fast.manifest = State::default();
+            fast.async_runtime = AsyncRuntime::default();
+            fast.async_owners.clear();
+            fast.binary = build.candidate_path;
+            fast.promotions = 0;
+            fast.pressure = false;
+            self.recovery_restart = false;
+            mark(&mut job.phases, Phase::SpawnEnd);
+            return self.publish(
+                &job,
+                SavePath::Restart,
+                "compiler requested a full native rebase".into(),
+                true,
+            );
+        }
         // Fresh manifest != delivered edit. An untracked callback can produce
         // a successful zero-function splice of old code.
         // No compiler no-op classification is currently supported here.

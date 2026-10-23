@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "profile-admission",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "Profile flags match stock both before and after a live leaf edit.",
+  "base": [
+    "probe=version=1;cfg=false;debug=false;overflow=false",
+    "probe=version=1;cfg=false;debug=false;overflow=false"
+  ],
+  "steps": [
+    {
+      "name": "leaf",
+      "stock-after-restart": [
+        "probe=version=2;cfg=false;debug=false;overflow=false",
+        "probe=version=2;cfg=false;debug=false;overflow=false"
+      ],
+      "live-expected": [
+        "probe=version=2;cfg=false;debug=false;overflow=false",
+        "probe=version=2;cfg=false;debug=false;overflow=false"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

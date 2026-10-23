@@ -13,10 +13,22 @@ use crate::cli::{Features, RunArgs};
 #[derive(Debug, Clone, Deserialize)]
 pub struct Metadata {
     pub packages: Vec<Package>,
+    pub resolve: Option<Resolve>,
     pub workspace_root: PathBuf,
     pub target_directory: PathBuf,
     #[serde(default)]
     pub workspace_default_members: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Resolve {
+    pub nodes: Vec<ResolveNode>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ResolveNode {
+    pub id: String,
+    pub dependencies: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -85,6 +97,9 @@ pub struct Config {
     pub target_directory: PathBuf,
     pub source_roots: Vec<PathBuf>,
     pub frontier_roots: Vec<PathBuf>,
+    /// Edited library crates with transitive callers outside compiler ownership.
+    /// Without an instantiation/inlining proof, even a restart may be stale.
+    pub stock_frontier_roots: Vec<PathBuf>,
     pub package_roots: Vec<PathBuf>,
     pub input_files: Vec<PathBuf>,
 }
@@ -216,6 +231,55 @@ impl Config {
                     .filter_map(|t| t.src_path.parent().map(Path::to_path_buf))
             })
             .collect();
+        let owned: BTreeSet<_> = local
+            .iter()
+            .filter(|p| p.name == package.name || edit.contains(&p.name))
+            .map(|p| p.id.as_str())
+            .collect();
+        let mut linked = BTreeSet::from([package.id.as_str()]);
+        if let Some(resolve) = &metadata.resolve {
+            loop {
+                let count = linked.len();
+                for node in &resolve.nodes {
+                    if linked.contains(node.id.as_str()) {
+                        linked.extend(node.dependencies.iter().map(String::as_str));
+                    }
+                }
+                if linked.len() == count {
+                    break;
+                }
+            }
+        }
+        let stock_frontier_roots = local
+            .iter()
+            .filter(|p| owned.contains(p.id.as_str()))
+            .filter(|p| {
+                let Some(resolve) = &metadata.resolve else {
+                    // Older/incomplete metadata cannot prove the dependency closure.
+                    return local.iter().any(|other| !owned.contains(other.id.as_str()));
+                };
+                let mut callers = BTreeSet::from([p.id.as_str()]);
+                loop {
+                    let count = callers.len();
+                    for node in &resolve.nodes {
+                        if node
+                            .dependencies
+                            .iter()
+                            .any(|dep| callers.contains(dep.as_str()))
+                        {
+                            callers.insert(node.id.as_str());
+                        }
+                    }
+                    if callers.len() == count {
+                        break;
+                    }
+                }
+                callers
+                    .iter()
+                    .any(|id| linked.contains(id) && !owned.contains(id))
+            })
+            .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
+            .collect();
         let mut source_roots = BTreeSet::new();
         let mut input_files = BTreeSet::from([
             metadata.workspace_root.join("Cargo.toml"),
@@ -271,6 +335,7 @@ impl Config {
             target_directory: metadata.target_directory.clone(),
             source_roots: source_roots.into_iter().collect(),
             frontier_roots,
+            stock_frontier_roots,
             package_roots: local
                 .iter()
                 .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
@@ -311,6 +376,59 @@ mod tests {
         assert_eq!(
             config.events,
             PathBuf::from("/demo/target/refresh/events.jsonl")
+        );
+    }
+
+    #[test]
+    fn excluded_transitive_caller_requires_stock_even_for_owned_source() {
+        let mut meta = metadata(json!({}));
+        let mut library = meta.packages[0].clone();
+        library.id = "lib-id".into();
+        library.name = "lib".into();
+        library.manifest_path = "/demo/lib/Cargo.toml".into();
+        library.targets[0].src_path = "/demo/lib/src/lib.rs".into();
+        let mut caller = library.clone();
+        caller.id = "caller-id".into();
+        caller.name = "caller".into();
+        caller.manifest_path = "/demo/caller/Cargo.toml".into();
+        caller.targets[0].src_path = "/demo/caller/src/lib.rs".into();
+        meta.packages.extend([library, caller]);
+        meta.resolve = Some(
+            serde_json::from_value(json!({"nodes": [
+                {"id":"app-id","dependencies":["caller-id","lib-id"]},
+                {"id":"caller-id","dependencies":["lib-id"]},
+                {"id":"lib-id","dependencies":[]}
+            ]}))
+            .unwrap(),
+        );
+        let mut args = RunArgs {
+            edit: Some(vec!["lib".into()]),
+            ..Default::default()
+        };
+        let config = Config::resolve(args.clone(), &meta, Path::new("/demo")).unwrap();
+        assert_eq!(config.stock_frontier_roots, [PathBuf::from("/demo/lib")]);
+        args.edit.as_mut().unwrap().push("caller".into());
+        // An unrelated workspace package cannot retain code in this executable.
+        let mut unrelated = meta.clone();
+        unrelated.resolve.as_mut().unwrap().nodes[0].dependencies = vec!["lib-id".into()];
+        assert!(
+            Config::resolve(
+                RunArgs {
+                    edit: Some(vec!["lib".into()]),
+                    ..Default::default()
+                },
+                &unrelated,
+                Path::new("/demo")
+            )
+            .unwrap()
+            .stock_frontier_roots
+            .is_empty()
+        );
+        assert!(
+            Config::resolve(args, &meta, Path::new("/demo"))
+                .unwrap()
+                .stock_frontier_roots
+                .is_empty()
         );
     }
 

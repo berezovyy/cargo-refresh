@@ -13,6 +13,7 @@ make -C agent test
 make -C agent test-robustness test-panic test-pressure
 python3 tests/semantics/run.py --help
 python3 tests/semantics/run.py --mode stock --offline
+python3 tests/semantics/run.py --mode refresh
 ```
 
 `scripts/test.sh` runs formatting, Clippy and Rust workspace tests, stopping at the
@@ -22,8 +23,12 @@ qualification and defaults to the pinned baseline. Agent tests include a stock
 compiled C host oracle. The semantics runner compares each recorded case with a
 normal Cargo build. `--case <exact-name-or-prefix>` selects a case; `--results <path>`
 writes evidence. `--record` changes golden outputs: use it only when deliberately
-reviewing and updating the stock contract. Refresh mode currently refuses until a
-real runtime adapter exists; a stock pass alone is not live-patch qualification.
+reviewing and updating the stock contract. Refresh mode invokes the real Cargo
+subcommand, checks controller events, process identity and exact probe output, and
+reports safe path mismatches separately. It needs installed qualified toolchain
+support (or `--support` / `--archive`) and `cargo-refresh` on PATH (or
+`--controller /path/to/cargo-refresh`). See [the suite README](tests/semantics/README.md)
+for resource lanes, the environment-relaunch limitation and result interpretation.
 
 Real application sessions live outside this repository, at
 `/path/to/research/work/m4`. Read its README before running

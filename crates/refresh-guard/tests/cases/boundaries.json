@@ -347,11 +347,11 @@
     },
     "expected": {
       "admission": "missing-return-tail",
-      "class": "restart",
-      "reason": "macro-body"
+      "class": "live"
     },
     "comment": "Known EXP-119 false rejection: diverging macro with semicolon is valid Rust.",
-    "stock": "valid"
+    "stock": "valid",
+    "policy_change": "M4-T5: standard panic expression / builtin inline attribute does not make body edits opaque; admission is unchanged."
   },
   {
     "id": "panic-tail-no-semicolon",
@@ -363,10 +363,10 @@
     },
     "expected": {
       "admission": "admit",
-      "class": "restart",
-      "reason": "macro-body"
+      "class": "live"
     },
-    "stock": "valid"
+    "stock": "valid",
+    "policy_change": "M4-T5: standard panic expression / builtin inline attribute does not make body edits opaque; admission is unchanged."
   },
   {
     "id": "exp119-false-accept-wrong-tail-type",
@@ -1002,9 +1002,9 @@
     },
     "expected": {
       "admission": "admit",
-      "class": "restart",
-      "reason": "macro-body"
-    }
+      "class": "live"
+    },
+    "policy_change": "M4-T5: standard panic expression / builtin inline attribute does not make body edits opaque; admission is unchanged."
   },
   {
     "id": "doc-only-body",

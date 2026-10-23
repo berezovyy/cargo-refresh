@@ -1,0 +1,45 @@
+schema = 1
+case = "dep-inputs-regression"
+v0_1 = ["stock"]
+state_rule = "Every embedded-input edit rebuilds through Cargo, including inputs introduced after the session starts."
+base_probes = ["probe=message-v1", "probe=message-v1"]
+[[steps]]
+name = "root-text"
+stock_after_restart = ["probe=message-v2", "probe=message-v2"]
+live_expected = ["probe=message-v2", "probe=message-v2"]
+[[steps.edits]]
+file = "message.txt"
+find = "message-v1"
+replace = "message-v2"
+[[steps]]
+name = "change-include-path"
+stock_after_restart = ["probe=next-v1", "probe=next-v1"]
+live_expected = ["probe=next-v1", "probe=next-v1"]
+[[steps.edits]]
+file = "src/main.rs"
+find = "../message.txt"
+replace = "../next.txt"
+[[steps]]
+name = "newly-discovered-text"
+stock_after_restart = ["probe=next-v2", "probe=next-v2"]
+live_expected = ["probe=next-v2", "probe=next-v2"]
+[[steps.edits]]
+file = "next.txt"
+find = "next-v1"
+replace = "next-v2"
+[[steps]]
+name = "introduce-include-bytes"
+stock_after_restart = ["probe=bytes-v1", "probe=bytes-v1"]
+live_expected = ["probe=bytes-v1", "probe=bytes-v1"]
+[[steps.edits]]
+file = "src/main.rs"
+find = 'include_str!("../next.txt").trim().to_string()'
+replace = 'String::from_utf8(include_bytes!("../data.bin").to_vec()).unwrap()'
+[[steps]]
+name = "newly-discovered-bytes"
+stock_after_restart = ["probe=bytes-v2", "probe=bytes-v2"]
+live_expected = ["probe=bytes-v2", "probe=bytes-v2"]
+[[steps.edits]]
+file = "data.bin"
+find = "bytes-v1"
+replace = "bytes-v2"

@@ -114,6 +114,7 @@ dependencies = [
  "refresh-guard",
  "refresh-proto",
  "rustc-demangle",
+ "rustc_lexer",
  "serde",
  "serde_json",
  "sha2",

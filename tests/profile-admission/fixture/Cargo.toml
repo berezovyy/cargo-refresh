@@ -1,0 +1,11 @@
+[package]
+name = "profile-admission"
+version = "0.0.0"
+edition = "2024"
+
+[workspace]
+
+[profile.dev]
+debug = 0
+debug-assertions = false
+overflow-checks = false

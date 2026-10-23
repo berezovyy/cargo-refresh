@@ -85,6 +85,8 @@ impl Analysis {
         let source = std::str::from_utf8(bytes).map_err(|error| error.to_string())?;
         if source.len() >= 8192
             && source.contains("mod ")
+            // A parent module can shadow a prelude macro used by a child.
+            && !source.contains("macro") && !source.contains("use ")
             && let Some(result) = Self::parallel(source)
         {
             return result;
@@ -103,7 +105,10 @@ impl Analysis {
         let mut tree = syn::parse_file(source).map_err(|error| error.to_string())?;
         let mut result = Self::default();
         result.names.visit_file(&tree);
+        let mut shadowing = MacroShadowing::default();
+        shadowing.visit_file(&tree);
         Outline::<FAST> {
+            allow_bare_macros: !shadowing.0,
             path: Vec::new(),
             result: &mut result,
             module_slots,
@@ -365,25 +370,165 @@ fn partition_modules(source: &str) -> Option<(String, Vec<String>)> {
     Some((skeleton, modules))
 }
 
-/// Do not recurse inside a captured hazard: exactly the prototype visitor.
+/// Only these standard expression macros may omit the opaque-token hazard.
+fn expression_macro(path: &syn::Path, allow_bare: bool) -> bool {
+    let parts: Vec<_> = path.segments.iter().map(|s| s.ident.to_string()).collect();
+    let name = match parts.as_slice() {
+        [name] if allow_bare => name,
+        [root, name] if root == "std" || root == "core" => name,
+        _ => return false,
+    };
+    matches!(
+        name.as_str(),
+        "format"
+            | "format_args"
+            | "print"
+            | "println"
+            | "eprint"
+            | "eprintln"
+            | "write"
+            | "writeln"
+            | "panic"
+            | "assert"
+            | "assert_eq"
+            | "assert_ne"
+            | "debug_assert"
+            | "debug_assert_eq"
+            | "debug_assert_ne"
+            | "unreachable"
+            | "todo"
+            | "unimplemented"
+            | "vec"
+            | "matches"
+            | "dbg"
+            | "concat"
+            | "stringify"
+            | "line"
+            | "column"
+            | "file"
+    )
+}
+
 #[derive(Default)]
-struct Hazards(Vec<String>);
-impl<'ast> Visit<'ast> for Hazards {
-    fn visit_item(&mut self, item: &'ast syn::Item) {
-        self.0.push(item.to_token_stream().to_string());
+struct MacroShadowing(bool);
+impl<'ast> Visit<'ast> for MacroShadowing {
+    fn visit_item_macro(&mut self, item: &'ast syn::ItemMacro) {
+        self.0 |= item.ident.is_some();
     }
-    fn visit_expr_closure(&mut self, item: &'ast syn::ExprClosure) {
-        self.0.push(item.to_token_stream().to_string());
+    fn visit_attribute(&mut self, attr: &'ast syn::Attribute) {
+        self.0 |= attr.path().is_ident("macro_use");
     }
-    fn visit_expr_async(&mut self, item: &'ast syn::ExprAsync) {
-        self.0.push(item.block.to_token_stream().to_string());
-    }
-    fn visit_macro(&mut self, item: &'ast syn::Macro) {
-        self.0.push(item.to_token_stream().to_string());
+    fn visit_use_tree(&mut self, tree: &'ast syn::UseTree) {
+        let name = match tree {
+            syn::UseTree::Name(n) => Some(&n.ident),
+            syn::UseTree::Rename(n) => Some(&n.rename),
+            syn::UseTree::Glob(_) => {
+                self.0 = true;
+                None
+            }
+            _ => None,
+        };
+        if let Some(name) = name {
+            let path: syn::Path = syn::parse_quote!(#name);
+            self.0 |= expression_macro(&path, true);
+        }
+        syn::visit::visit_use_tree(self, tree);
     }
 }
 
+/// Standard macros still evaluate expressions that can contain local items,
+/// closures, async blocks or opaque nested macros. Parse their argument grammar
+/// rather than treating the entire token stream as an expression or ignoring it.
+fn safe_macro_arguments(item: &syn::Macro, allow_bare: bool) -> bool {
+    use syn::parse::Parser;
+    let name = item.path.segments.last().unwrap().ident.to_string();
+    // stringify never expands or evaluates its input tokens.
+    if name == "stringify" {
+        return true;
+    }
+    let tokens = item.tokens.clone();
+    let mut hazards = Hazards {
+        items: Vec::new(),
+        allow_bare,
+    };
+    if name == "vec" {
+        let Ok(array) = syn::parse2::<syn::Expr>(quote::quote!([#tokens])) else {
+            return false;
+        };
+        hazards.visit_expr(&array);
+    } else if name == "matches" {
+        let parser = |input: syn::parse::ParseStream<'_>| -> syn::Result<_> {
+            let value: syn::Expr = input.parse()?;
+            input.parse::<syn::Token![,]>()?;
+            let pattern = syn::Pat::parse_multi_with_leading_vert(input)?;
+            let guard = if input.peek(syn::Token![if]) {
+                input.parse::<syn::Token![if]>()?;
+                Some(input.parse::<syn::Expr>()?)
+            } else {
+                None
+            };
+            if input.peek(syn::Token![,]) {
+                input.parse::<syn::Token![,]>()?;
+            }
+            Ok((value, pattern, guard))
+        };
+        let Ok((value, pattern, guard)) = parser.parse2(tokens) else {
+            return false;
+        };
+        hazards.visit_expr(&value);
+        hazards.visit_pat(&pattern);
+        if let Some(guard) = guard {
+            hazards.visit_expr(&guard);
+        }
+    } else {
+        let Ok(expressions) =
+            syn::punctuated::Punctuated::<syn::Expr, syn::Token![,]>::parse_terminated
+                .parse2(tokens)
+        else {
+            return false;
+        };
+        for expression in expressions {
+            hazards.visit_expr(&expression);
+        }
+    }
+    hazards.items.is_empty()
+}
+
+struct Hazards {
+    items: Vec<String>,
+    allow_bare: bool,
+}
+impl<'ast> Visit<'ast> for Hazards {
+    fn visit_item(&mut self, item: &'ast syn::Item) {
+        self.items.push(item.to_token_stream().to_string());
+    }
+    fn visit_expr_closure(&mut self, item: &'ast syn::ExprClosure) {
+        self.items.push(item.to_token_stream().to_string());
+    }
+    fn visit_expr_async(&mut self, item: &'ast syn::ExprAsync) {
+        self.items.push(item.block.to_token_stream().to_string());
+    }
+    fn visit_macro(&mut self, item: &'ast syn::Macro) {
+        if !expression_macro(&item.path, self.allow_bare)
+            || !safe_macro_arguments(item, self.allow_bare)
+        {
+            self.items.push(item.to_token_stream().to_string());
+        }
+    }
+}
+
+fn opaque_attribute(attr: &syn::Attribute) -> bool {
+    // Only the builtin that prevents inlining is known to leave this body's
+    // patch boundary intact. Inline hints/always remain conservative.
+    !attr.path().is_ident("doc")
+        && !(attr.path().is_ident("inline")
+            && attr
+                .parse_args::<syn::Ident>()
+                .is_ok_and(|arg| arg == "never"))
+}
+
 struct Outline<'a, const FAST: bool> {
+    allow_bare_macros: bool,
     path: Vec<String>,
     result: &'a mut Analysis,
     module_slots: &'a mut Vec<usize>,
@@ -402,11 +547,14 @@ impl<const FAST: bool> Outline<'_, FAST> {
     }
 
     fn record_function(&mut self, item: &mut syn::ItemFn) {
-        let mut hazards = Hazards::default();
+        let mut hazards = Hazards {
+            items: Vec::new(),
+            allow_bare: self.allow_bare_macros,
+        };
         hazards.visit_block(&item.block);
         let key = format!("{}::{}", self.path.join("::"), item.sig.ident);
         let body = item.block.to_token_stream().to_string();
-        let runtime_attrs = item.attrs.iter().any(|a| !a.path().is_ident("doc"));
+        let runtime_attrs = item.attrs.iter().any(opaque_attribute);
         let simple = !runtime_attrs
             && item.sig.unsafety.is_none()
             && item.sig.asyncness.is_none()
@@ -432,7 +580,7 @@ impl<const FAST: bool> Outline<'_, FAST> {
                 } else {
                     String::new()
                 },
-                hazards: hazards.0,
+                hazards: hazards.items,
                 simple,
                 body: blake3::hash(body.as_bytes()),
                 attributed_body: if runtime_attrs || item.sig.ident == "main" {
@@ -477,15 +625,18 @@ impl<const FAST: bool> VisitMut for Outline<'_, FAST> {
         );
     }
     fn visit_impl_item_fn_mut(&mut self, item: &mut syn::ImplItemFn) {
-        let mut hazards = Hazards::default();
+        let mut hazards = Hazards {
+            items: Vec::new(),
+            allow_bare: self.allow_bare_macros,
+        };
         hazards.visit_block(&item.block);
-        self.result.hazards.extend(hazards.0);
+        self.result.hazards.extend(hazards.items);
         if item.sig.asyncness.is_some() {
             self.result
                 .hazards
                 .push(item.block.to_token_stream().to_string());
         }
-        if item.attrs.iter().any(|a| !a.path().is_ident("doc")) {
+        if item.attrs.iter().any(opaque_attribute) {
             self.result
                 .hazards
                 .push(item.block.to_token_stream().to_string());
