@@ -198,7 +198,7 @@ these messages, which differs from the token printer used by `stringify!` and
 `dbg!`. The controller scans editable files once at startup and updates only the
 changed-file entries after accepted saves. While any such source remains, it
 uses a stock Cargo baseline and stock rebuilds. It also recognizes uses inside
-macro definitions. This is deliberately conservative, including custom macros
+macro definitions and renamed imports. This is deliberately conservative, including custom macros
 with those names and assertions with explicit messages. The compiler separately
 marks resolved assertion-bearing roots and instances unsupported and refuses
 refresh builds involving these roots. This covers aliases and included/generated

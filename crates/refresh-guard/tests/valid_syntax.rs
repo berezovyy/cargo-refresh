@@ -68,6 +68,8 @@ fn unqualified_ast_stringification_is_found_through_wrappers() {
         "fn f() { core::debug_assert!(true); }",
         "macro_rules! wrap { ($e:expr) => { assert!($e) } }",
         "fn f() { r#assert!(true); }",
+        "use std::assert as renamed; fn f() { renamed!(false); }",
+        "use core::{debug_assert as renamed}; fn f() { renamed!(false); }",
     ] {
         assert!(blocked(source.as_bytes()), "{source}");
     }

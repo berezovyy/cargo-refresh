@@ -526,6 +526,11 @@ pub fn requires_stock_stringification(bytes: &[u8]) -> bool {
                 }
                 proc_macro2::TokenTree::Ident(ident) => {
                     let name = ident.to_string();
+                    // An imported alias can hide the spelling at the call site.
+                    // Conservatively fence `use ...::assert as alias` as well.
+                    if previous && name == "as" {
+                        return true;
+                    }
                     previous = matches!(name.trim_start_matches("r#"), "assert" | "debug_assert");
                 }
                 proc_macro2::TokenTree::Punct(punct) => {
