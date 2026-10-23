@@ -283,14 +283,15 @@ def strict(args):
 
 def triggers(args):
     """Exercise post-ACK ordering, rejection/skip, and failed notification restart."""
-    import http.server, threading
-    class Handler(http.server.BaseHTTPRequestHandler):
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    import threading
+    class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             assert self.path=='/refresh',self.path
             server.observed.append(http(server.app_port))
             self.send_response(server.status);self.end_headers()
         def log_message(self,*unused):pass
-    server=http.server.HTTPServer(('127.0.0.1',0),Handler)
+    server=HTTPServer(('127.0.0.1',0),Handler)
     server.status=204;server.observed=[]
     task=threading.Thread(target=server.serve_forever,daemon=True);task.start()
     source=(args.project/'src/main.rs').read_text();manifest=args.project/'Cargo.toml'
