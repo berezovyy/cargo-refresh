@@ -337,6 +337,7 @@ impl Pipeline {
             }
             Err(error) => {
                 self.recovery_restart = true;
+                self.memory_recovery.cooldown(Instant::now());
                 self.event("fast_unavailable", format!("{error:#}"));
                 let result = fallback::build(
                     &self.config,
@@ -648,7 +649,9 @@ impl Pipeline {
             return self.stock(&mut job, reason.into());
         }
         if job.changes.disposition == Disposition::Skip {
-            if let Some(workspace) = &self.workspace {
+            if self.fast.is_some()
+                && let Some(workspace) = &self.workspace
+            {
                 self.checker = Some((
                     Checker::start(&self.config, workspace, self.fence.clone(), self.floor),
                     job.changes.clone(),

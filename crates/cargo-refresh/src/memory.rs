@@ -71,6 +71,7 @@ fn location(membership: &str, mounts: &str) -> Result<Option<(PathBuf, PathBuf)>
                 .any(|c| matches!(c, Component::ParentDir)),
         "invalid cgroup membership"
     );
+    let mut selected: Option<(usize, PathBuf, PathBuf)> = None;
     for line in mounts.lines() {
         let Some((left, right)) = line.split_once(" - ") else {
             continue;
@@ -83,10 +84,20 @@ fn location(membership: &str, mounts: &str) -> Result<Option<(PathBuf, PathBuf)>
         let root = PathBuf::from(unescape_mount(fields[3]));
         let mount = PathBuf::from(unescape_mount(fields[4]));
         if let Ok(relative) = group.strip_prefix(&root) {
-            return Ok(Some((mount.clone(), mount.join(relative))));
+            let depth = root.components().count();
+            // A bind mount of a subtree must not hide a limiting ancestor
+            // when a broader view of the same hierarchy is also available.
+            if selected
+                .as_ref()
+                .is_none_or(|(old_depth, _, _)| depth < *old_depth)
+            {
+                selected = Some((depth, mount.clone(), mount.join(relative)));
+            }
         }
     }
-    anyhow::bail!("unified cgroup mount not found")
+    selected
+        .map(|(_, mount, leaf)| Some((mount, leaf)))
+        .context("unified cgroup mount not found")
 }
 fn in_tree(mut sample: Sample, mount: &Path, leaf: &Path) -> Result<Sample> {
     ensure!(leaf.starts_with(mount), "cgroup outside mount");
@@ -289,6 +300,36 @@ mod tests {
         assert!(location("0::/a/../b\n", mount).is_err());
         assert!(location("0::/a\n", "").is_err());
     }
+    #[test]
+    fn broader_mount_preserves_visible_ancestor_limit() {
+        let tree = tempfile::tempdir().unwrap();
+        let full = tree.path().join("full");
+        let short = tree.path().join("short");
+        let leaf = full.join("tenant/leaf");
+        write(&full, "memory.max", "1000");
+        write(&full, "memory.current", "900");
+        write(&full.join("tenant"), "memory.max", "max");
+        write(&leaf, "memory.max", "1000");
+        write(&leaf, "memory.current", "100");
+        std::os::unix::fs::symlink(full.join("tenant"), &short).unwrap();
+        let mounts = format!(
+            "1 0 0:1 /tenant {} rw - cgroup2 cgroup2 rw\n2 0 0:1 / {} rw - cgroup2 cgroup2 rw\n",
+            short.display(),
+            full.display()
+        );
+        let (mount, member) = location("0::/tenant/leaf\n", &mounts).unwrap().unwrap();
+        let budget = in_tree(
+            Sample {
+                available: 2000,
+                full_pressure: 0.0,
+            },
+            &mount,
+            &member,
+        )
+        .unwrap();
+        assert_eq!(budget.available, 100);
+    }
+
     #[test]
     fn psi_is_optional_and_only_accelerates_low_headroom_degrade() {
         let tree = tempfile::tempdir().unwrap();
