@@ -1,4 +1,4 @@
-# Toolchain support installation design
+# Toolchain support installation and portability
 
 This is the M5 packaging contract. Verified local installation and cache selection
 are implemented; public downloading remains planned. Releases are built by hand;
@@ -42,7 +42,7 @@ matching version label alone is insufficient. Only the qualified default GNU
 Linux x86-64 target/CPU/features and supported packaging flags may use rustd.
 Unknown target/ABI overrides must select stock mode.
 
-Proposed lookup/download/verification sequence:
+Cache/install contract and future download sequence:
 
 1. Check an explicit local support directory, then the commit-keyed cache. Validate
    identities, required members, permissions and all payload hashes before use.
@@ -85,7 +85,7 @@ require libunwind and it is unavailable, the diagnostic should say:
 
 Before warming, compare `/proc/meminfo` MemAvailable with the project's estimated
 warm-up peak plus a 2 GiB reserve. A missing estimate is not evidence that the
-project fits; use a conservative estimate. Proposed warning:
+project fits; use a conservative estimate. Memory warning:
 
 ```text
 [refresh] Live patching needs an estimated <peak> GiB plus 2 GiB reserve; <available> GiB is available.
@@ -99,15 +99,19 @@ integration task. Do not describe the default line-table compiler as meeting a
 
 ## Build host compatibility and qualification
 
-Run `scripts/release.sh <version>` locally. It builds rustd and both shims on the
-`refresh/m1` branch using rustc 1.99.0, and the production agent via
-`make -C agent release`. It attempts static libunwind only if local archives are
-available and linkable; otherwise the linker retains only libraries actually
-referenced. Test/CFI builds need libunwind; the current production artifact has
-no libunwind runtime dependency. See the artifact's `RUNTIME.txt` for measured GLIBC symbol versions and DT_NEEDED entries
-for each executable/library. The whole package's glibc floor can exceed the
-agent's. This host build does not establish an oldest-supported distro: rebuild
-in an agreed older-glibc environment and test loading there before publishing.
+Run `scripts/release.sh <version>` locally. The default portable build uses
+cargo-zigbuild targeting GNU x86-64/glibc 2.28 with rustc 1.99.0 and builds the
+production agent with Zig's old-glibc C headers/libraries. `--native` is an explicit
+host-only diagnostic alternative. The release rejects symbol imports above 2.28
+in portable mode, including weak imports. `RUNTIME.txt` records measured GLIBC
+symbol versions and DT_NEEDED entries for every artifact.
+
+The production hybrid agent does not link its test-only libunwind CFI walker.
+It dynamically opens `libgcc_s.so.1` for frame registration. Local Rocky Linux 8
+(glibc 2.28) checks ran the portable compiler, loaded the production agent, and
+completed archive installation plus one live save with PID/counter continuity
+and a matching stock oracle. This is container evidence on the host kernel;
+full release/app qualification remains a manual gate.
 
 `REFRESH_RESEARCH_ROOT`, `REFRESH_RUSTD_SOURCE` and `REFRESH_LANE` override local
 source/lane locations. `.release-work/` holds warm build targets and qualification
@@ -204,3 +208,10 @@ Or use `scripts/integration-install.py` with `--controller`, `--archive`, and a 
 one live save, checks PID and counter continuity, and compares the edited value
 with an independent stock build. Its `unsupported`, `corrupt`, `low-memory`, and
 `override` modes exercise stock decisions without starting rustd.
+
+Custom `[profile.dev]` settings in Cargo manifests are also refused before
+warming, including inline/quoted TOML spellings. They may change panic or codegen
+behavior beyond the qualified default. Release-only profiles do not affect the
+default development build and are allowed. Legacy `REFRESH_RUSTD_ENV` and inherited
+`RUSTD_*` tuning select stock mode; they cannot replace the verified compiler,
+ABI directory, or target behind the detector's back.
