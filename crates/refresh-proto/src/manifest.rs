@@ -3,8 +3,8 @@ use crate::{Error, Reader, Result};
 pub const V1_MAGIC: &[u8; 4] = b"RDM1";
 pub const VERSION: u16 = 1;
 pub const FLAG_CERTIFICATES: u16 = 1;
-pub const EPOCH_ROOT_LIMIT: u64 = 64;
-pub const EPOCH_RETAINED_LIMIT: u64 = 32 * 1024 * 1024;
+pub const EPOCH_ROOT_LIMIT: u64 = 512;
+pub const EPOCH_RETAINED_LIMIT: u64 = 128 * 1024 * 1024;
 /// The epoch policy is derived from the v1 footer, without another wire field.
 pub fn epoch_due(cumulative_roots: u64, retained_bytes: u64) -> bool {
     cumulative_roots > EPOCH_ROOT_LIMIT || retained_bytes >= EPOCH_RETAINED_LIMIT
@@ -292,8 +292,8 @@ mod tests {
     #[test]
     fn epoch_footer_limits_are_bounded_and_independent() {
         assert!(!epoch_due(0, 0));
-        assert!(!epoch_due(64, EPOCH_RETAINED_LIMIT - 1));
-        assert!(epoch_due(65, 0));
+        assert!(!epoch_due(EPOCH_ROOT_LIMIT, EPOCH_RETAINED_LIMIT - 1));
+        assert!(epoch_due(EPOCH_ROOT_LIMIT + 1, 0));
         assert!(epoch_due(0, EPOCH_RETAINED_LIMIT));
         assert!(epoch_due(u64::MAX, u64::MAX));
     }

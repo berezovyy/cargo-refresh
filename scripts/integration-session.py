@@ -25,7 +25,7 @@ class Session:
         while True:
             load=pathlib.Path('/proc/loadavg').read_text().strip();mem=next(l for l in pathlib.Path('/proc/meminfo').read_text().splitlines() if l.startswith('MemAvailable:'))
             samples.append({'time':time.time(),'loadavg':load,'mem_available':mem});(self.out/'preflight.json').write_text(json.dumps(samples,indent=2))
-            if float(load.split()[0])<=2:break
+            if os.environ.get('REFRESH_CORRECTNESS_ONLY') == '1' or float(load.split()[0])<=2:break
             time.sleep(5)
         self.proc=subprocess.Popen(command,cwd=self.project,env=self.env,stdout=self.log,stderr=subprocess.STDOUT)
         try:self.wait(lambda:any(r['event']=='ready' for r in self.read()),300)
@@ -44,7 +44,7 @@ class Session:
         for pid in children:
             try:
                 executable=os.readlink(f'/proc/{pid}/exe')
-                if executable.startswith('/tmp/refresh-run-') and executable.endswith('/app'):found.append(int(pid))
+                if '/refresh-run-' in executable and executable.endswith('/app'):found.append(int(pid))
             except FileNotFoundError:pass
         assert len(found)==1,found
         return found[0]
