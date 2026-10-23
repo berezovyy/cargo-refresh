@@ -74,26 +74,35 @@ The strict M0 (`M0_CERTS=0`) syntax policy is unconditional:
 
 - Async free-function bodies keep **all body tokens**, including pre/post-await
   strings, await points and cross-await locals. Comments/spacing are not tokens.
-- Async-block body tokens, macro token streams, closures, and nested items are
+- Async-block body tokens, opaque macro token streams, closures, and nested items are
   hazards. A changed hazard in a free function restarts. The prototype captures
   an async block's block tokens, rather than its outer `async move` prefix.
 - A free function's header contains its signature, visibility, and attributes.
-  Any header change restarts. `main` and any function with a non-doc attribute
-  also protect the entire body. The `macro-body` reason covers these broader
+  Any header change restarts. `main` and any function with an attribute other
+  than `doc` or builtin `inline(never)` also protect the entire body. The `macro-body` reason covers these broader
   header/local-item/closure/attribute hazards, matching the prototype policy.
 - Impl-method bodies are erased from structure. Their headers remain. An
   ordinary method's literal/arithmetic body edit can therefore go live, with
   **no entry in `changed_fns`**. Its closures, local items, macro bodies and async
   blocks are collected into the file's structure hazards. An async method or a
-  method with a non-doc attribute adds its entire body to those hazards. Changes
+  method with an attribute other than `doc`/`inline(never)` adds its entire body to those hazards. Changes
   to these hazards restart as `layout`, before free-function async checks.
   Trait default-method bodies remain in structure and also restart as `layout`.
-- New free functions must have no non-doc attributes, unsafe/async/extern marker,
+- New free functions must have no attributes other than `doc`/`inline(never)`, unsafe/async/extern marker,
   generic parameters, or body hazards. A new ordinary `const fn` is allowed.
   Existing generic/unsafe/extern free-function bodies follow the usual body rule.
 - Structure preserves uses, consts/statics, types, impls, traits and file docs,
   and removes free functions. **Changed imports restart**: this follows the
   actual prototype despite the phase prose's broader statement about imports.
+
+Standard expression macros have a closed allowlist: `format`, `format_args`,
+`print`, `println`, `eprint`, `eprintln`, `write`, `writeln`, `panic`, `assert`,
+`assert_eq`, `assert_ne`, `debug_assert`, `debug_assert_eq`, `debug_assert_ne`,
+`unreachable`, `todo`, `unimplemented`, `vec`, `matches`, `dbg`, `concat`,
+`stringify`, `line`, `column`, `file`. Bare and `std::`/`core::` forms qualify.
+Nested opaque macros, item/closure/async tokens retain the hazard. Known macro
+shadowing disables bare-name exceptions. Tracing event macros retain the opaque
+rule; tracing metadata still needs the controller's separate extraction policy.
 
 Live eligibility is permission to try rustd and extraction, not proof that a
 patch will succeed. Their refusals must still take the restart/stock ladder.
@@ -140,7 +149,7 @@ RUSTUP_TOOLCHAIN=1.99.0 nice -n 19 cargo clippy -p refresh-guard --all-targets -
 
 The workspace's `scripts/test.sh` already includes this crate. Portable cases
 need no research checkout or Python: 64 web transitions, 35 actual fixture S1–S8
-edits, 25 EXP-055 async edits, and 113 manually specified policy boundaries.
+edits, 25 EXP-055 async edits, and 119 manually specified policy boundaries plus 98 standard-expression-macro cases.
 Each case runs cold and cached. Fourteen additional API tests cover cache sharing,
 keys, bounds, parse failures, invalid input, thread transfer, and the free API.
 The corpus is in `tests/cases/`; source blobs are named by SHA-256 and provenance

@@ -132,3 +132,8 @@ fn async_exp055() {
 fn policy_boundaries() {
     run_suite("boundaries.json", 60);
 }
+
+#[test]
+fn standard_expression_macro_policy() {
+    run_suite("expression-macros.json", 90);
+}

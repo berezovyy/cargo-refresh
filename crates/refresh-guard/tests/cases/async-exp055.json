@@ -685,7 +685,7 @@
     },
     "expected": {
       "admission": "admit",
-      "class": "restart"
+      "class": "live"
     },
     "origin": "EXP-055 cases.py helper/e",
     "prototype": {
@@ -693,6 +693,7 @@
       "reason": "non-async header/local/macro change: ::helper",
       "owners": []
     },
-    "comment": "The helper is #[inline(never)]; its attributed body is guarded even though synchronous."
+    "comment": "The helper is #[inline(never)]; its attributed body is guarded even though synchronous.",
+    "policy_change": "M4-T5: standard panic expression / builtin inline attribute does not make body edits opaque; admission is unchanged."
   }
 ]

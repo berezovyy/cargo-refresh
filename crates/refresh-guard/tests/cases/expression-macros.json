@@ -1,0 +1,1289 @@
+[
+  {
+    "id": "allow-format",
+    "before": {
+      "lib.rs": "fn f() { format!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-format",
+    "before": {
+      "lib.rs": "fn f() { std::format!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-format",
+    "before": {
+      "lib.rs": "fn f() { core::format!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-format_args",
+    "before": {
+      "lib.rs": "fn f() { format_args!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { format_args!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-format_args",
+    "before": {
+      "lib.rs": "fn f() { std::format_args!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::format_args!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-format_args",
+    "before": {
+      "lib.rs": "fn f() { core::format_args!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::format_args!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-print",
+    "before": {
+      "lib.rs": "fn f() { print!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { print!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-print",
+    "before": {
+      "lib.rs": "fn f() { std::print!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::print!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-print",
+    "before": {
+      "lib.rs": "fn f() { core::print!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::print!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-println",
+    "before": {
+      "lib.rs": "fn f() { println!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { println!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-println",
+    "before": {
+      "lib.rs": "fn f() { std::println!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::println!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-println",
+    "before": {
+      "lib.rs": "fn f() { core::println!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::println!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-eprint",
+    "before": {
+      "lib.rs": "fn f() { eprint!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { eprint!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-eprint",
+    "before": {
+      "lib.rs": "fn f() { std::eprint!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::eprint!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-eprint",
+    "before": {
+      "lib.rs": "fn f() { core::eprint!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::eprint!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-eprintln",
+    "before": {
+      "lib.rs": "fn f() { eprintln!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { eprintln!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-eprintln",
+    "before": {
+      "lib.rs": "fn f() { std::eprintln!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::eprintln!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-eprintln",
+    "before": {
+      "lib.rs": "fn f() { core::eprintln!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::eprintln!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-write",
+    "before": {
+      "lib.rs": "fn f() { write!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { write!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-write",
+    "before": {
+      "lib.rs": "fn f() { std::write!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::write!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-write",
+    "before": {
+      "lib.rs": "fn f() { core::write!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::write!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-writeln",
+    "before": {
+      "lib.rs": "fn f() { writeln!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { writeln!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-writeln",
+    "before": {
+      "lib.rs": "fn f() { std::writeln!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::writeln!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-writeln",
+    "before": {
+      "lib.rs": "fn f() { core::writeln!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::writeln!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-panic",
+    "before": {
+      "lib.rs": "fn f() { panic!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { panic!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-panic",
+    "before": {
+      "lib.rs": "fn f() { std::panic!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::panic!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-panic",
+    "before": {
+      "lib.rs": "fn f() { core::panic!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::panic!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-assert",
+    "before": {
+      "lib.rs": "fn f() { assert!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { assert!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-assert",
+    "before": {
+      "lib.rs": "fn f() { std::assert!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::assert!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-assert",
+    "before": {
+      "lib.rs": "fn f() { core::assert!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::assert!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-assert_eq",
+    "before": {
+      "lib.rs": "fn f() { assert_eq!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { assert_eq!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-assert_eq",
+    "before": {
+      "lib.rs": "fn f() { std::assert_eq!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::assert_eq!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-assert_eq",
+    "before": {
+      "lib.rs": "fn f() { core::assert_eq!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::assert_eq!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-assert_ne",
+    "before": {
+      "lib.rs": "fn f() { assert_ne!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { assert_ne!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-assert_ne",
+    "before": {
+      "lib.rs": "fn f() { std::assert_ne!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::assert_ne!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-assert_ne",
+    "before": {
+      "lib.rs": "fn f() { core::assert_ne!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::assert_ne!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-debug_assert",
+    "before": {
+      "lib.rs": "fn f() { debug_assert!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { debug_assert!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-debug_assert",
+    "before": {
+      "lib.rs": "fn f() { std::debug_assert!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::debug_assert!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-debug_assert",
+    "before": {
+      "lib.rs": "fn f() { core::debug_assert!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::debug_assert!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-debug_assert_eq",
+    "before": {
+      "lib.rs": "fn f() { debug_assert_eq!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { debug_assert_eq!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-debug_assert_eq",
+    "before": {
+      "lib.rs": "fn f() { std::debug_assert_eq!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::debug_assert_eq!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-debug_assert_eq",
+    "before": {
+      "lib.rs": "fn f() { core::debug_assert_eq!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::debug_assert_eq!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-debug_assert_ne",
+    "before": {
+      "lib.rs": "fn f() { debug_assert_ne!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { debug_assert_ne!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-debug_assert_ne",
+    "before": {
+      "lib.rs": "fn f() { std::debug_assert_ne!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::debug_assert_ne!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-debug_assert_ne",
+    "before": {
+      "lib.rs": "fn f() { core::debug_assert_ne!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::debug_assert_ne!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-unreachable",
+    "before": {
+      "lib.rs": "fn f() { unreachable!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { unreachable!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-unreachable",
+    "before": {
+      "lib.rs": "fn f() { std::unreachable!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::unreachable!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-unreachable",
+    "before": {
+      "lib.rs": "fn f() { core::unreachable!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::unreachable!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-todo",
+    "before": {
+      "lib.rs": "fn f() { todo!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { todo!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-todo",
+    "before": {
+      "lib.rs": "fn f() { std::todo!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::todo!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-todo",
+    "before": {
+      "lib.rs": "fn f() { core::todo!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::todo!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-unimplemented",
+    "before": {
+      "lib.rs": "fn f() { unimplemented!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { unimplemented!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-unimplemented",
+    "before": {
+      "lib.rs": "fn f() { std::unimplemented!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::unimplemented!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-unimplemented",
+    "before": {
+      "lib.rs": "fn f() { core::unimplemented!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::unimplemented!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-vec",
+    "before": {
+      "lib.rs": "fn f() { vec!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { vec!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-vec",
+    "before": {
+      "lib.rs": "fn f() { std::vec!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::vec!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-vec",
+    "before": {
+      "lib.rs": "fn f() { core::vec!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::vec!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-matches",
+    "before": {
+      "lib.rs": "fn f() { matches!(Some(1), Some(1 | 2)); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { matches!(Some(2), Some(1 | 2)); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-matches",
+    "before": {
+      "lib.rs": "fn f() { std::matches!(Some(1), Some(1 | 2)); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::matches!(Some(2), Some(1 | 2)); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-matches",
+    "before": {
+      "lib.rs": "fn f() { core::matches!(Some(1), Some(1 | 2)); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::matches!(Some(2), Some(1 | 2)); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-dbg",
+    "before": {
+      "lib.rs": "fn f() { dbg!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { dbg!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-dbg",
+    "before": {
+      "lib.rs": "fn f() { std::dbg!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::dbg!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-dbg",
+    "before": {
+      "lib.rs": "fn f() { core::dbg!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::dbg!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-concat",
+    "before": {
+      "lib.rs": "fn f() { concat!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { concat!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-concat",
+    "before": {
+      "lib.rs": "fn f() { std::concat!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::concat!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-concat",
+    "before": {
+      "lib.rs": "fn f() { core::concat!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::concat!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-stringify",
+    "before": {
+      "lib.rs": "fn f() { stringify!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { stringify!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-stringify",
+    "before": {
+      "lib.rs": "fn f() { std::stringify!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::stringify!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-stringify",
+    "before": {
+      "lib.rs": "fn f() { core::stringify!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::stringify!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-line",
+    "before": {
+      "lib.rs": "fn f() { line!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { line!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-line",
+    "before": {
+      "lib.rs": "fn f() { std::line!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::line!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-line",
+    "before": {
+      "lib.rs": "fn f() { core::line!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::line!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-column",
+    "before": {
+      "lib.rs": "fn f() { column!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { column!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-column",
+    "before": {
+      "lib.rs": "fn f() { std::column!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::column!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-column",
+    "before": {
+      "lib.rs": "fn f() { core::column!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::column!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-file",
+    "before": {
+      "lib.rs": "fn f() { file!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { file!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-std-file",
+    "before": {
+      "lib.rs": "fn f() { std::file!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { std::file!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "allow-core-file",
+    "before": {
+      "lib.rs": "fn f() { core::file!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { core::file!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "unknown",
+    "before": {
+      "lib.rs": "fn f() { user_macro!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { user_macro!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "foreign-name",
+    "before": {
+      "lib.rs": "fn f() { foreign::format!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { foreign::format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "nested-unknown",
+    "before": {
+      "lib.rs": "fn f() { format!(\"{}\", user_macro!(1)); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { format!(\"{}\", user_macro!(2)); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "nested-item",
+    "before": {
+      "lib.rs": "fn f() { format!(\"{}\", { static X: u8 = 1; X }); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { format!(\"{}\", { static X: u8 = 2; X }); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "nested-closure",
+    "before": {
+      "lib.rs": "fn f() { format!(\"{}\", (|| 1)()); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { format!(\"{}\", (|| 2)()); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "nested-async",
+    "before": {
+      "lib.rs": "fn f() { format!(\"{}\", async { 1 }); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { format!(\"{}\", async { 2 }); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "almost-allowlisted",
+    "before": {
+      "lib.rs": "fn f() { debug_assert_custom!(1); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { debug_assert_custom!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "nested-standard",
+    "before": {
+      "lib.rs": "fn f() { println!(\"{}\", std::format!(\"{}\", 1)); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { println!(\"{}\", std::format!(\"{}\", 2)); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "shadow-definition",
+    "before": {
+      "lib.rs": "macro_rules! format { ($v:expr) => { $v }; } fn f() { format!(1); }"
+    },
+    "after": {
+      "lib.rs": "macro_rules! format { ($v:expr) => { $v }; } fn f() { format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "shadow-import",
+    "before": {
+      "lib.rs": "use foreign::format; fn f() { format!(1); }"
+    },
+    "after": {
+      "lib.rs": "use foreign::format; fn f() { format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "shadow-alias",
+    "before": {
+      "lib.rs": "use foreign::different as format; fn f() { format!(1); }"
+    },
+    "after": {
+      "lib.rs": "use foreign::different as format; fn f() { format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "glob-import",
+    "before": {
+      "lib.rs": "use foreign::*; fn f() { format!(1); }"
+    },
+    "after": {
+      "lib.rs": "use foreign::*; fn f() { format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "macro-use",
+    "before": {
+      "lib.rs": "#[macro_use] mod external; fn f() { format!(1); }"
+    },
+    "after": {
+      "lib.rs": "#[macro_use] mod external; fn f() { format!(2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "qualified-despite-shadow",
+    "before": {
+      "lib.rs": "macro_rules! format { () => {} } fn f() { std::format!(\"{}\", 1); }"
+    },
+    "after": {
+      "lib.rs": "macro_rules! format { () => {} } fn f() { std::format!(\"{}\", 2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "proc-attribute-remains-opaque",
+    "before": {
+      "lib.rs": "#[instrument] fn f() { println!(\"{}\", 1); }"
+    },
+    "after": {
+      "lib.rs": "#[instrument] fn f() { println!(\"{}\", 2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "builtin-inline",
+    "before": {
+      "lib.rs": "#[inline(never)] fn f() { println!(\"{}\", 1); }"
+    },
+    "after": {
+      "lib.rs": "#[inline(never)] fn f() { println!(\"{}\", 2); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "matches-pattern-alternation",
+    "before": {
+      "lib.rs": "fn f() { matches!(Some(1), Some(1 | 2)); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { matches!(Some(2), Some(1 | 2)); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "bitwise-or-expression",
+    "before": {
+      "lib.rs": "fn f() { println!(\"{}\", 1 | 2); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { println!(\"{}\", 2 | 4); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "vec-repeat",
+    "before": {
+      "lib.rs": "fn f() { vec![1; 2]; }"
+    },
+    "after": {
+      "lib.rs": "fn f() { vec![2; 2]; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "stringify-does-not-evaluate",
+    "before": {
+      "lib.rs": "fn f() { stringify!(fn value() { user!(); }); }"
+    },
+    "after": {
+      "lib.rs": "fn f() { stringify!(fn other() { user!(); }); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  }
+]
