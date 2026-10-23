@@ -724,11 +724,7 @@ impl Pipeline {
             return Ok(());
         }
         mark(&mut job.phases, Phase::PatchSent);
-        let reply = (|| -> Result<_> {
-            let mut agent = agent::Client::new(&self.runtime.socket);
-            agent.ping()?;
-            agent.apply(&patch.records)
-        })();
+        let reply = self.runtime.apply_patch(&patch);
         mark(&mut job.phases, Phase::PatchAck);
         match reply {
             Ok(reply) => {

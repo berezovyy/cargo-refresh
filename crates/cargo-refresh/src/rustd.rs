@@ -78,7 +78,6 @@ impl Config {
             .env("RUSTD_SPARE", "0")
             .env("RUSTD_CACHE", "off")
             .env("RUSTD_IDLE_SECS", "0")
-            .env("RUSTD_DEBUGINFO", "0")
             .env("CARGO_BUILD_JOBS", "4");
         let mut paths = vec![self.rustd.parent().unwrap().to_owned()];
         if let Some(path) = std::env::var_os("PATH") {

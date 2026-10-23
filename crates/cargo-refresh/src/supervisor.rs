@@ -5,7 +5,8 @@ use std::{
     fs,
     os::unix::{fs::PermissionsExt, process::CommandExt},
     path::{Path, PathBuf},
-    process::{Child, Command, ExitStatus},
+    process::{Child, Command, ExitStatus, Stdio},
+    sync::{Arc, RwLock},
     thread,
     time::{Duration, Instant},
 };
@@ -22,6 +23,9 @@ pub struct Supervisor {
     hook: bool,
     name: OsString,
     exit_reported: bool,
+    symbols: Arc<RwLock<crate::symbolize::SymbolIndex>>,
+    stderr: Option<crate::symbolize::StderrPump>,
+    load_base: u64,
 }
 pub fn terminate(child: &mut Child, grace: Duration) {
     let group = -(child.id() as i32);
@@ -70,6 +74,9 @@ impl Supervisor {
             hook,
             name,
             exit_reported: false,
+            symbols: Arc::default(),
+            stderr: None,
+            load_base: 0,
         })
     }
     pub fn configure(&mut self, hook: bool, name: OsString) {
@@ -91,16 +98,34 @@ impl Supervisor {
             .current_dir(&self.project)
             .args(&self.args)
             .process_group(0)
+            .stderr(Stdio::piped())
             .env("LD_PRELOAD", &self.library)
             .env("REFRESH_AGENT_SOCKET", &socket)
             .env("REFRESH_HOST_EXE", &executable)
             .env("REFRESH_AFTER_PATCH", if self.hook { "1" } else { "0" });
-        let child = crate::process::spawn(&mut command).context("start application")?;
+        // Rust 1.99 short traces omit instruction addresses even for unknown
+        // frames. Request address-bearing output so patched PCs can be resolved.
+        if std::env::var_os("RUST_BACKTRACE").is_some_and(|v| v == "1") {
+            command.env("RUST_BACKTRACE", "full");
+        }
+        let mut child = crate::process::spawn(&mut command).context("start application")?;
+        let stderr = child
+            .stderr
+            .take()
+            .context("application stderr pipe missing")?;
         self.child = Some(child);
         self.exit_reported = false;
         self.executable = executable;
         self.socket = socket;
         self.run = Some(run);
+        self.symbols = Arc::default();
+        self.stderr = Some(crate::symbolize::StderrPump::start(
+            stderr,
+            self.symbols.clone(),
+        )?);
+        self.load_base = crate::symbolize::load_base(self.pid().unwrap(), &self.executable)?;
+        *self.symbols.write().unwrap() =
+            crate::symbolize::SymbolIndex::baseline(&self.executable, self.load_base)?;
         let deadline = Instant::now() + Duration::from_secs(5);
         loop {
             ensure!(
@@ -118,6 +143,26 @@ impl Supervisor {
             thread::sleep(Duration::from_millis(5));
         }
         Ok(())
+    }
+    /// Stage names before APPLY: its hook can panic before the acknowledgement.
+    /// An explicit refusal removes staged names so reused addresses cannot keep
+    /// stale source lines. Ambiguous transport failure already requires restart.
+    pub fn apply_patch(
+        &mut self,
+        patch: &crate::extractor::PreparedPatch,
+    ) -> Result<crate::agent::Reply> {
+        let mut agent = crate::agent::Client::new(&self.socket);
+        agent.ping()?;
+        let inserted = self.symbols.write().unwrap().add_generation(
+            self.load_base,
+            patch.generation,
+            &patch.symbols,
+        );
+        let reply = agent.apply(&patch.records);
+        if reply.as_ref().is_ok_and(|reply| !reply.ok) {
+            self.symbols.write().unwrap().discard(&inserted);
+        }
+        reply
     }
     pub fn pid(&self) -> Option<u32> {
         self.child.as_ref().map(Child::id)
@@ -138,6 +183,9 @@ impl Supervisor {
     pub fn stop(&mut self) {
         if let Some(mut child) = self.child.take() {
             terminate(&mut child, Duration::from_secs(3));
+        }
+        if let Some(stderr) = self.stderr.take() {
+            stderr.stop();
         }
         self.run = None;
     }
