@@ -145,8 +145,11 @@ fn native_binary(config: &Config) -> Result<PathBuf> {
         .map(|p| p.1)
         .context("captured worker executable missing")
 }
+fn async_certificates_setting(value: Option<&std::ffi::OsStr>) -> bool {
+    value.is_none_or(|value| value == "1")
+}
 fn async_certificates_enabled() -> bool {
-    std::env::var("REFRESH_ASYNC_CERTS").as_deref() == Ok("1")
+    async_certificates_setting(std::env::var_os("REFRESH_ASYNC_CERTS").as_deref())
 }
 fn start_fast(
     config: &Config,
@@ -1125,6 +1128,20 @@ mod tests {
     use super::*;
     use std::io::Write;
 
+    #[test]
+    fn qualified_async_default_keeps_explicit_opt_out_and_unknown_values_closed() {
+        use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
+        assert!(async_certificates_setting(None));
+        assert!(async_certificates_setting(Some(OsStr::new("1"))));
+        for value in [
+            OsStr::new("0"),
+            OsStr::new(""),
+            OsStr::new("true"),
+            OsStr::from_bytes(b"\xff"),
+        ] {
+            assert!(!async_certificates_setting(Some(value)), "{value:?}");
+        }
+    }
     #[test]
     fn promotion_budget_excludes_sparse_reserved_region() {
         let mut file = tempfile::NamedTempFile::new().unwrap();
