@@ -8,7 +8,7 @@ use crate::{
     events::{Phase, SaveEvent, SavePath, monotonic_seconds},
     extractor::ManifestExtractor,
     fallback::{self, Fence},
-    manifest::State,
+    manifest::{AsyncRuntime, State},
     rustd,
     supervisor::Supervisor,
 };
@@ -56,6 +56,8 @@ pub struct Fast {
     client: rustd::Client,
     extractor: ManifestExtractor,
     manifest: State,
+    async_runtime: AsyncRuntime,
+    async_owners: Vec<refresh_guard::ChangedFn>,
     control: PathBuf,
     promotions: u32,
     pressure: bool,
@@ -131,6 +133,12 @@ fn native_binary(config: &Config) -> Result<PathBuf> {
         .map(|p| p.1)
         .context("captured worker executable missing")
 }
+fn async_certificates_setting(value: Option<&std::ffi::OsStr>) -> bool {
+    value.is_none_or(|value| value == "1")
+}
+fn async_certificates_enabled() -> bool {
+    async_certificates_setting(std::env::var_os("REFRESH_ASYNC_CERTS").as_deref())
+}
 fn start_fast(
     config: &Config,
     session_home: &std::path::Path,
@@ -171,6 +179,15 @@ fn start_fast(
     );
     cfg.extra_env
         .insert("RUSTD_PROMOTION_CATALOG".into(), "delta-v1".into());
+    cfg.extra_env.insert(
+        "RUSTD_ASYNC_CERTS".into(),
+        if async_certificates_enabled() {
+            "1"
+        } else {
+            "0"
+        }
+        .into(),
+    );
     cfg.package = Some(config.package.clone());
     cfg.edit = config.edit.clone();
     cfg.features = config.features.clone();
@@ -200,6 +217,8 @@ fn start_fast(
         client,
         extractor,
         manifest: State::default(),
+        async_runtime: AsyncRuntime::default(),
+        async_owners: Vec::new(),
         control,
         promotions: 0,
         pressure: false,
@@ -395,6 +414,10 @@ impl Pipeline {
         );
     }
     fn publish(&mut self, job: &Job, path: SavePath, reason: String, applied: bool) -> Result<()> {
+        if applied && let Some(fast) = self.fast.as_mut() {
+            fast.async_runtime.commit(&fast.async_owners);
+            fast.async_owners.clear();
+        }
         let notice = job.phases.get(&Phase::Notice).copied().unwrap_or(0.0);
         if applied {
             self.epoch_idle_safe = true;
@@ -662,7 +685,12 @@ impl Pipeline {
                 );
             }
         }
-        let class = self.guard.classify(&before, &after);
+        let certificates = async_certificates_enabled();
+        let (class, async_owners) = if certificates {
+            self.guard.classify_with_async_certificates(&before, &after)
+        } else {
+            (self.guard.classify(&before, &after), Vec::new())
+        };
         mark(&mut job.phases, Phase::Classify);
         if !admission_checked && let Some(workspace) = &self.workspace {
             let mut check = Checker::start(&self.config, workspace, self.fence.clone(), self.floor);
@@ -687,7 +715,7 @@ impl Pipeline {
         if self.fast.is_none() {
             return self.stock(&mut job, "compiler is recovering; using Cargo".into());
         }
-        let restart_reason = match class {
+        let mut restart_reason = match class {
             Class::Restart { reason } => Some(reason_text(&reason)),
             Class::Stock { reason } => return self.stock(&mut job, reason_text(&reason)),
             Class::LiveEligible { .. } => {
@@ -701,13 +729,14 @@ impl Pipeline {
             }
         };
         let fast = self.fast.as_mut().unwrap();
+        fast.async_owners = async_owners;
         let promote = restart_reason.is_some()
             && fast.promotions < 10
             && crate::elf::loaded_bytes(&self.runtime.executable)? < 256 * 1024 * 1024
             && executable_bytes(&fast.binary)? < 256 * 1024 * 1024;
         fs::write(&fast.control, if promote { "1" } else { "0" })?;
         mark(&mut job.phases, Phase::BuildStart);
-        let build = fast.client.build();
+        let build = fast.client.build_with_async_certificates(certificates);
         mark(&mut job.phases, Phase::BuildEnd);
         if !self.fence.current() {
             self.event("superseded", "compiler result superseded by a newer save");
@@ -715,6 +744,10 @@ impl Pipeline {
             if let Ok(build) = build {
                 let fast = self.fast.as_mut().unwrap();
                 let _ = fast.manifest.update(&build.manifest);
+                if certificates {
+                    fast.async_runtime
+                        .observe_certificates(fast.manifest.async_certificates.as_deref());
+                }
                 if promote {
                     self.fast = None;
                 }
@@ -751,6 +784,10 @@ impl Pipeline {
                 fast.manifest.update(&build.manifest)?,
                 "stale compiler manifest"
             );
+            if certificates {
+                fast.async_runtime
+                    .observe_certificates(fast.manifest.async_certificates.as_deref());
+            }
             mark(&mut job.phases, Phase::ManifestEnd);
             // SAFETY: worker builds are serialized here. The completed candidate
             // is dropped at the end of this closure, before any next build/reset.
@@ -765,6 +802,14 @@ impl Pipeline {
             Ok(p) => p,
             Err(error) => return self.stock(&mut job, format!("native relink required: {error}")),
         };
+        if certificates && restart_reason.is_none() {
+            let fast = self.fast.as_ref().unwrap();
+            if (!fast.async_owners.is_empty() || fast.async_runtime.has_changes())
+                && let Err(reason) = fast.async_runtime.decide(&fast.async_owners)
+            {
+                restart_reason = Some(reason);
+            }
+        }
         if let Some(reason) = restart_reason {
             if !promote {
                 if crate::elf::loaded_bytes(&build.candidate_path)? >= 256 * 1024 * 1024
@@ -803,6 +848,8 @@ impl Pipeline {
             }
             let fast = self.fast.as_mut().unwrap();
             fast.manifest = State::default();
+            fast.async_runtime = AsyncRuntime::default();
+            fast.async_owners.clear();
             fast.promotions += 1;
             fast.pressure = false;
             self.recovery_restart = false;
@@ -1063,7 +1110,9 @@ impl Pipeline {
     fn promote_idle_epoch(&mut self) -> Result<()> {
         let fast = self.fast.as_mut().context("compiler unavailable")?;
         fs::write(&fast.control, "1")?;
-        let build = fast.client.build();
+        let build = fast
+            .client
+            .build_with_async_certificates(async_certificates_enabled());
         fs::write(&fast.control, "0")?;
         let build = build?;
         ensure!(
@@ -1093,6 +1142,8 @@ impl Pipeline {
         let baseline = unsafe { Image::map_baseline(&self.runtime.executable)? };
         fast.extractor.promote(baseline, &fs::read(catalog)?)?;
         fast.manifest = State::default();
+        fast.async_runtime = AsyncRuntime::default();
+        fast.async_owners.clear();
         // Keep the existing layout-save promotion budget independent of idle
         // maintenance. The absolute executable bound above covers both kinds.
         fast.pressure = false;
@@ -1125,6 +1176,20 @@ mod tests {
     use super::*;
     use std::io::Write;
 
+    #[test]
+    fn qualified_async_default_keeps_explicit_opt_out_and_unknown_values_closed() {
+        use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
+        assert!(async_certificates_setting(None));
+        assert!(async_certificates_setting(Some(OsStr::new("1"))));
+        for value in [
+            OsStr::new("0"),
+            OsStr::new(""),
+            OsStr::new("true"),
+            OsStr::from_bytes(b"\xff"),
+        ] {
+            assert!(!async_certificates_setting(Some(value)), "{value:?}");
+        }
+    }
     #[test]
     fn promotion_budget_excludes_sparse_reserved_region() {
         let mut file = tempfile::NamedTempFile::new().unwrap();

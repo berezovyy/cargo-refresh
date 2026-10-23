@@ -1,0 +1,86 @@
+use refresh_guard::{Class, FileSnapshot, Guard, Reason};
+fn classify(old: &str, new: &str) -> (Class, Vec<refresh_guard::ChangedFn>) {
+    let mut guard = Guard::default();
+    guard.classify_with_async_certificates(
+        &[FileSnapshot::new("src/lib.rs", old)],
+        &[FileSnapshot::new("src/lib.rs", new)],
+    )
+}
+#[test]
+fn strict_string_guard_is_only_deferred_with_complete_owner_list() {
+    let old = "async fn a() { tick().await; println!(\"old\"); } async fn b() { tick().await; println!(\"old\"); }";
+    let new = old.replace("old", "new");
+    assert!(matches!(
+        Guard::default().classify(
+            &[FileSnapshot::new("src/lib.rs", old)],
+            &[FileSnapshot::new("src/lib.rs", new.as_str())]
+        ),
+        Class::Restart {
+            reason: Reason::Async { .. }
+        }
+    ));
+    let (class, owners) = classify(old, &new);
+    assert!(matches!(class, Class::LiveEligible { .. }));
+    assert_eq!(
+        owners.iter().map(|o| o.name.as_str()).collect::<Vec<_>>(),
+        vec!["::a", "::b"]
+    );
+}
+#[test]
+fn certificates_never_relax_structure_signatures_or_nonasync_hazards() {
+    for (old, new) in [
+        ("async fn a() { 1; }", "async fn a(x: u64) { 2; }"),
+        (
+            "struct A(u8); async fn a() { 1; }",
+            "struct A(u64); async fn a() { 2; }",
+        ),
+        (
+            "async fn a() { 1; } fn b() { println!(\"old\"); }",
+            "async fn a() { 2; } fn b() { println!(\"new\"); }",
+        ),
+    ] {
+        assert!(!matches!(classify(old, new).0, Class::LiveEligible { .. }));
+    }
+}
+
+#[test]
+fn unique_async_methods_require_declaration_location_coverage() {
+    let old = "struct Service;\nimpl ExternalTrait for Service {\n #[instrument(skip(self))]\n async fn call(&self) { tick().await; println!(\"old\"); }\n}";
+    let new = old.replace("old", "new");
+    let (class, owners) = classify(old, &new);
+    assert!(matches!(class, Class::LiveEligible { .. }), "{class:?}");
+    assert_eq!(owners.len(), 1);
+    assert_eq!(owners[0].name, "@line:3-4::call");
+    assert!(matches!(
+        Guard::default().classify(
+            &[FileSnapshot::new("src/lib.rs", old)],
+            &[FileSnapshot::new("src/lib.rs", new.as_str())]
+        ),
+        Class::Restart { .. }
+    ));
+}
+#[test]
+fn ambiguous_methods_and_method_header_changes_keep_restart() {
+    let old = "struct A; struct B; impl A { async fn call(&self) { 1; } } impl B { async fn call(&self) { 2; } }";
+    assert!(!matches!(
+        classify(old, &old.replace("1;", "3;")).0,
+        Class::LiveEligible { .. }
+    ));
+    let old = "struct A; impl A { async fn call(&self) { 1; } }";
+    assert!(!matches!(
+        classify(old, &old.replace("&self", "&mut self")).0,
+        Class::LiveEligible { .. }
+    ));
+    assert!(!matches!(
+        classify(old, &old.replace("struct A;", "struct A(u64);")).0,
+        Class::LiveEligible { .. }
+    ));
+}
+
+#[test]
+fn attribute_coverage_is_bounded_by_the_unique_method_header() {
+    let old = "struct A;\nimpl A {\n #[instrument(\n fields(values = [1, 2])\n )]\n pub(crate) async fn call(&self) { 1; }\n}";
+    let (class, owners) = classify(old, &old.replace("1;", "3;"));
+    assert!(matches!(class, Class::LiveEligible { .. }));
+    assert_eq!(owners[0].name, "@line:3-6::call");
+}
