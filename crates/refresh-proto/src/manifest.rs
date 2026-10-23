@@ -1,5 +1,8 @@
-//! RDM09001 manifest, with an optional opaque AC109001 certificate trailer.
+//! Versioned RDM1 and legacy RDM09001 compiler manifests.
 use crate::{Error, Reader, Result};
+pub const V1_MAGIC: &[u8; 4] = b"RDM1";
+pub const VERSION: u16 = 1;
+pub const FLAG_CERTIFICATES: u16 = 1;
 pub const MAGIC: &[u8; 8] = b"RDM09001";
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Segment {
@@ -22,8 +25,32 @@ pub struct Write {
     pub fixups: Vec<u32>,
     pub name: Vec<u8>,
 }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UnwindRegion {
+    /// ELF virtual address; add the runtime load bias for a process address.
+    pub addr: u64,
+    pub len: u64,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Symbol {
+    pub addr: u64,
+    pub size: u64,
+    pub name: String,
+    /// Empty with line zero when compiler debug information is disabled/absent.
+    pub file: String,
+    pub first_line: u32,
+    /// Optional generation-local compact line-table bytes; empty in version 1 writers.
+    pub line_table: Vec<u8>,
+}
 #[derive(Clone, Debug)]
 pub struct Manifest {
+    pub version: u16,
+    pub flags: u16,
+    /// None in v0; Some(empty) in v1 explicitly means no unwind records.
+    pub unwind_regions: Option<Vec<UnwindRegion>>,
+    pub symbols: Vec<Symbol>,
+    pub cumulative_roots: u64,
+    pub retained_bytes: u64,
     pub generation: u64,
     pub segments: Vec<Segment>,
     pub pages: Vec<Page>,
@@ -61,10 +88,32 @@ fn write(r: &mut Reader<'_>, named: bool) -> Result<Write> {
     })
 }
 pub fn parse(bytes: &[u8]) -> Result<Manifest> {
-    let mut r = Reader::new(bytes);
-    if r.take(8)? != MAGIC {
-        return Err(Error("invalid manifest magic"));
-    }
+    let v1 = bytes.starts_with(V1_MAGIC);
+    let body = if v1 {
+        let split = bytes.len().checked_sub(4).ok_or(Error("truncated CRC"))?;
+        let (body, crc) = bytes.split_at(split);
+        if crc32(body) != u32::from_le_bytes(crc.try_into().unwrap()) {
+            return Err(Error("manifest CRC mismatch"));
+        }
+        body
+    } else {
+        bytes
+    };
+    let mut r = Reader::new(body);
+    let (version, flags) = if v1 {
+        r.take(4)?;
+        let version = u16::from_le_bytes(r.take(2)?.try_into().unwrap());
+        let flags = u16::from_le_bytes(r.take(2)?.try_into().unwrap());
+        if version != VERSION || flags & !FLAG_CERTIFICATES != 0 {
+            return Err(Error("unsupported manifest version/flags"));
+        }
+        (version, flags)
+    } else {
+        if r.take(8)? != MAGIC {
+            return Err(Error("invalid manifest magic"));
+        }
+        (0, 0)
+    };
     let generation = r.u64()?;
     if generation == 0 {
         return Err(Error("zero generation"));
@@ -105,13 +154,71 @@ pub fn parse(bytes: &[u8]) -> Result<Manifest> {
         writes.push(write(&mut r, true)?);
     }
     let mut restores = Vec::new();
-    for _ in 0..r.count(20)? {
-        restores.push(write(&mut r, false)?);
-    }
+    let mut symbols = Vec::new();
+    let unwind_regions = if v1 {
+        let mut regions = Vec::new();
+        let mut last_end = 0;
+        for _ in 0..r.count(16)? {
+            let addr = r.u64()?;
+            let len = r.u64()?;
+            range(addr, len)?;
+            if addr < last_end
+                || !segments.iter().any(|s| {
+                    s.prot == 1
+                        && s.addr <= addr
+                        && addr + len
+                            <= (s.addr + s.len)
+                                .checked_add(4095)
+                                .map(|v| v & !4095)
+                                .unwrap_or(0)
+                })
+            {
+                return Err(Error("invalid unwind region"));
+            }
+            last_end = addr + len;
+            regions.push(UnwindRegion { addr, len });
+        }
+        for _ in 0..r.count(32)? {
+            let addr = r.u64()?;
+            let size = r.u64()?;
+            range(addr, size)?;
+            if !segments
+                .iter()
+                .any(|s| s.prot & 4 != 0 && s.addr <= addr && addr + size <= s.addr + s.len)
+            {
+                return Err(Error("symbol outside executable segment"));
+            }
+            let name =
+                String::from_utf8(r.blob()?).map_err(|_| Error("invalid symbol name UTF-8"))?;
+            let file =
+                String::from_utf8(r.blob()?).map_err(|_| Error("invalid symbol file UTF-8"))?;
+            let first_line = r.u32()?;
+            let line_table = r.blob()?;
+            if name.is_empty() {
+                return Err(Error("empty symbol name"));
+            }
+            symbols.push(Symbol {
+                addr,
+                size,
+                name,
+                file,
+                first_line,
+                line_table,
+            });
+        }
+        Some(regions)
+    } else {
+        for _ in 0..r.count(20)? {
+            restores.push(write(&mut r, false)?);
+        }
+        None
+    };
     let compiler_prepare_us = r.u64()?;
     let compiler_scanned_bytes = r.u64()?;
     let compiler_relative_records = r.u64()?;
-    let certificates = if r.remaining() > 0 {
+    let cumulative_roots = if v1 { r.u64()? } else { 0 };
+    let retained_bytes = if v1 { r.u64()? } else { 0 };
+    let certificates = if (!v1 && r.remaining() > 0) || flags & FLAG_CERTIFICATES != 0 {
         if r.take(8)? != b"AC109001" {
             return Err(Error("unknown manifest trailer"));
         }
@@ -121,6 +228,12 @@ pub fn parse(bytes: &[u8]) -> Result<Manifest> {
     };
     r.finish()?;
     Ok(Manifest {
+        version,
+        flags,
+        unwind_regions,
+        symbols,
+        cumulative_roots,
+        retained_bytes,
         generation,
         segments,
         pages,
@@ -132,6 +245,11 @@ pub fn parse(bytes: &[u8]) -> Result<Manifest> {
         certificates,
     })
 }
+/// IEEE CRC32 of the manifest bytes preceding the checksum field.
+pub fn crc32(bytes: &[u8]) -> u32 {
+    crc32fast::hash(bytes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,6 +259,104 @@ mod tests {
         b.extend([0; 16]);
         b.extend([0; 24]);
         b
+    }
+    fn seal(mut b: Vec<u8>) -> Vec<u8> {
+        b.extend(crc32(&b).to_le_bytes());
+        b
+    }
+    fn v1() -> Vec<u8> {
+        let mut b = b"RDM1".to_vec();
+        b.extend(1u16.to_le_bytes());
+        b.extend(0u16.to_le_bytes());
+        b.extend(1u64.to_le_bytes());
+        b.extend(2u32.to_le_bytes());
+        for (addr, prot) in [(0x4000u64, 1u32), (0x8000, 5)] {
+            b.extend(addr.to_le_bytes());
+            b.extend(4096u64.to_le_bytes());
+            b.extend(prot.to_le_bytes());
+        }
+        b.extend(0u32.to_le_bytes()); // pages (parser is generation-local)
+        b.extend(0u32.to_le_bytes()); // writes
+        b.extend(1u32.to_le_bytes());
+        b.extend(0x4000u64.to_le_bytes());
+        b.extend(28u64.to_le_bytes());
+        b.extend(1u32.to_le_bytes());
+        b.extend(0x8000u64.to_le_bytes());
+        b.extend(16u64.to_le_bytes());
+        b.extend(7u32.to_le_bytes());
+        b.extend(b"app::fn");
+        b.extend(11u32.to_le_bytes());
+        b.extend(b"src/main.rs");
+        b.extend(42u32.to_le_bytes());
+        b.extend(0u32.to_le_bytes());
+        for n in [1u64, 8192, 0, 1, 8192] {
+            b.extend(n.to_le_bytes());
+        }
+        seal(b)
+    }
+    #[test]
+    fn crc_standard_vector_and_v1_sections() {
+        assert_eq!(crc32(b"123456789"), 0xcbf43926);
+        let m = parse(&v1()).unwrap();
+        assert_eq!(m.version, 1);
+        assert_eq!(
+            m.unwind_regions.unwrap(),
+            vec![UnwindRegion {
+                addr: 0x4000,
+                len: 28
+            }]
+        );
+        assert_eq!(
+            (
+                m.symbols[0].name.as_str(),
+                m.symbols[0].file.as_str(),
+                m.symbols[0].first_line
+            ),
+            ("app::fn", "src/main.rs", 42)
+        );
+        assert!(m.restores.is_empty());
+        assert_eq!(m.retained_bytes, 8192);
+    }
+    #[test]
+    fn v1_truncation_corruption_flags_and_certificate() {
+        let b = v1();
+        for n in 0..b.len() {
+            assert!(parse(&b[..n]).is_err(), "prefix {n}");
+        }
+        for at in 0..b.len() {
+            let mut changed = b.clone();
+            changed[at] ^= 1;
+            assert!(parse(&changed).is_err(), "corruption {at}");
+        }
+        for (at, value) in [(4, 2), (6, 2), (84, 0xff), (108, 0xff)] {
+            let mut changed = b[..b.len() - 4].to_vec();
+            changed[at] = value;
+            assert!(parse(&seal(changed)).is_err(), "semantic mutation {at}");
+        }
+        let mut cert = b[..b.len() - 4].to_vec();
+        cert[6] = FLAG_CERTIFICATES as u8;
+        assert!(parse(&seal(cert.clone())).is_err());
+        cert.extend(b"AC109001");
+        cert.extend(2u32.to_le_bytes());
+        cert.extend(b"[]");
+        assert_eq!(
+            parse(&seal(cert)).unwrap().certificates,
+            Some(b"[]".to_vec())
+        );
+    }
+    #[test]
+    fn v1_rechecksummed_fuzz_is_bounded_and_never_panics() {
+        let b = v1();
+        let mut seed = 73u64;
+        for n in 0..8192 {
+            let mut changed = b[..b.len() - 4].to_vec();
+            for _ in 0..1 + n % 13 {
+                seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+                let at = (seed >> 32) as usize % changed.len();
+                changed[at] = (seed >> 24) as u8;
+            }
+            let _ = parse(&seal(changed));
+        }
     }
     #[test]
     fn empty_and_certificate() {

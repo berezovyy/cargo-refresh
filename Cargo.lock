@@ -454,6 +454,9 @@ dependencies = [
 [[package]]
 name = "refresh-proto"
 version = "0.1.0"
+dependencies = [
+ "crc32fast",
+]
 
 [[package]]
 name = "rustc_lexer"
