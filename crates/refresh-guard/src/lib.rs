@@ -532,3 +532,41 @@ mod containment_tests {
         ));
     }
 }
+
+/// Token-stringifying macros whose exact expansion remains unqualified.
+/// `assert!` uses rustc's AST expression printer, whereas `stringify!` uses its
+/// token printer. Until the AST printer is ported, even startup code containing
+/// these macros must use stock rustc. Scan token trees, including macro_rules
+/// bodies, so a wrapper cannot hide a use from the controller's baseline fence.
+/// The controller caches this per file; this function never reads the filesystem.
+pub fn requires_stock_stringification(bytes: &[u8]) -> bool {
+    fn scan(tokens: proc_macro2::TokenStream) -> bool {
+        let mut previous = false;
+        for token in tokens {
+            match token {
+                proc_macro2::TokenTree::Group(group) => {
+                    if scan(group.stream()) {
+                        return true;
+                    }
+                    previous = false;
+                }
+                proc_macro2::TokenTree::Ident(ident) => {
+                    let name = ident.to_string();
+                    previous = matches!(name.trim_start_matches("r#"), "assert" | "debug_assert");
+                }
+                proc_macro2::TokenTree::Punct(punct) => {
+                    if previous && punct.as_char() == '!' {
+                        return true;
+                    }
+                    previous = false;
+                }
+                _ => previous = false,
+            }
+        }
+        false
+    }
+    std::str::from_utf8(bytes)
+        .ok()
+        .and_then(|text| text.parse::<proc_macro2::TokenStream>().ok())
+        .is_some_and(scan)
+}

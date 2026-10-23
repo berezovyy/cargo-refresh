@@ -58,3 +58,24 @@ fn raw_macro_import_alias_still_shadows_the_allowlist() {
         Class::Restart { .. }
     ));
 }
+
+#[test]
+fn unqualified_ast_stringification_is_found_through_wrappers() {
+    use refresh_guard::requires_stock_stringification as blocked;
+    for source in [
+        "fn f() { assert!(x+y==0); }",
+        "fn f() { std::assert!(true); }",
+        "fn f() { core::debug_assert!(true); }",
+        "macro_rules! wrap { ($e:expr) => { assert!($e) } }",
+        "fn f() { r#assert!(true); }",
+    ] {
+        assert!(blocked(source.as_bytes()), "{source}");
+    }
+    for source in [
+        "fn f() { stringify!(x+y); dbg!(x+y); assert_eq!(1, 1); }",
+        "fn f() { let _ = \"assert!(x)\"; /* debug_assert!(false) */ }",
+        "fn f() { assert_ne!(1, 2); debug_assert_eq!(1, 1); }",
+    ] {
+        assert!(!blocked(source.as_bytes()), "{source}");
+    }
+}

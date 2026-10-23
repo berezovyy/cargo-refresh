@@ -191,3 +191,15 @@ handles either result with a stock Cargo build and process restart, so an intern
 analysis failure cannot leave a save waiting indefinitely or crash its worker.
 Underscore imports (`use Trait as _`) never shadow a macro name; raw aliases such
 as `r#println` do participate in the conservative shadowing policy.
+
+`requires_stock_stringification` is the controller's temporary qualification
+fence for `assert!` and `debug_assert!`: rustc uses its AST expression printer for
+these messages, which differs from the token printer used by `stringify!` and
+`dbg!`. The controller scans editable files once at startup and updates only the
+changed-file entries after accepted saves. While any such source remains, it
+uses a stock Cargo baseline and stock rebuilds. It also recognizes uses inside
+macro definitions. This is deliberately conservative, including custom macros
+with those names and assertions with explicit messages. The compiler separately
+leaves resolved assertion-bearing roots and instances to rustc, covering macros
+and included/generated bodies beyond the controller's source scan. Remove this
+fence only after the AST printer has its own stock equivalence qualification.
