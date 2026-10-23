@@ -78,6 +78,11 @@ def stop(proc):
 
 
 def main():
+    # Docker forwards SIGTERM to PID 1 only when it has an explicit handler.
+    # Raise through the owned-process finally blocks so the RAM guard cleans up.
+    def interrupted(*unused):
+        raise SystemExit(143)
+    signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--controller', type=Path, required=True)
     parser.add_argument('--archive', type=Path)
@@ -115,8 +120,8 @@ def main():
     env['PATH'] = str(fakebin) + os.pathsep + env['PATH']
     env['REFRESH_RUSTD'] = str(rustd)
     if args.mode == 'unsupported':
-        compiler = subprocess.check_output(['rustup', 'which', '--toolchain', '1.99.0', 'rustc'], text=True).strip()
-        vv = subprocess.check_output([compiler, '-vV'], text=True).replace('b940084d7eb6a299eb4bfeb8e34901bc051e7ac4', '0' * 40)
+        compiler = subprocess.check_output(['rustup', 'which', '--toolchain', '1.99.0', 'rustc'], universal_newlines=True).strip()
+        vv = subprocess.check_output([compiler, '-vV'], universal_newlines=True).replace('b940084d7eb6a299eb4bfeb8e34901bc051e7ac4', '0' * 40)
         fake = fakebin / 'rustc-active'
         import shlex
         fake.write_text('#!/bin/sh\nif [ "$1" = "-vV" ]; then\ncat <<\'VV\'\n' + vv + '\nVV\nelse\nexec ' + shlex.quote(compiler) + ' "$@"\nfi\n')
@@ -147,7 +152,10 @@ def main():
             saved = wait(lambda: next((e for e in events(eventfile) if e['event'] == 'save'), None), proc, log)
             expected = 'live' if args.mode == 'live' else 'stock'
             assert saved['path'] == expected, (saved, log.read_text()[-12000:])
-            after = wait(lambda: (r if (r := probe(number)) and r[0] == 2 else None), proc, log)
+            def edited_probe():
+                response = probe(number)
+                return response if response and response[0] == 2 else None
+            after = wait(edited_probe, proc, log)
             if args.mode == 'live':
                 assert first[1] == after[1] and after[2] > first[2], (first, after)
                 cache = home / '.cache/cargo-refresh/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4'
