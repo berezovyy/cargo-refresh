@@ -1,0 +1,13 @@
+schema = 1
+case = "profile-admission"
+v0_1 = ["works"]
+state_rule = "Profile flags match stock both before and after a live leaf edit."
+base_probes = ["probe=version=1;cfg=false;debug=false;overflow=false", "probe=version=1;cfg=false;debug=false;overflow=false"]
+[[steps]]
+name = "leaf"
+stock_after_restart = ["probe=version=2;cfg=false;debug=false;overflow=false", "probe=version=2;cfg=false;debug=false;overflow=false"]
+live_expected = ["probe=version=2;cfg=false;debug=false;overflow=false", "probe=version=2;cfg=false;debug=false;overflow=false"]
+[[steps.edits]]
+file = "src/main.rs"
+find = "fn version() -> u32 { 1 }"
+replace = "fn version() -> u32 { 2 }"

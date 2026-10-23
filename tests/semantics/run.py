@@ -33,6 +33,30 @@ def memory_guard() -> None:
     raise RuntimeError("MemAvailable missing from /proc/meminfo")
 
 
+def wait_for_session_memory() -> None:
+    """Optional shared-host precondition; never relaxes product memory admission."""
+    minimum = int(os.environ.get("M4_SEMANTICS_MIN_MEMORY_GIB", "0")) * 1024 * 1024
+    if not minimum:
+        return
+    stable_since = None
+    last_notice = 0.0
+    while True:
+        available = next(int(line.split()[1]) for line in Path("/proc/meminfo").read_text().splitlines()
+                         if line.startswith("MemAvailable:"))
+        now = time.monotonic()
+        if available >= minimum:
+            if stable_since is None:
+                stable_since = now
+            if now - stable_since >= 5:
+                return
+        else:
+            stable_since = None
+        if now - last_notice >= 30:
+            print(f"Waiting for session RAM: {available} KiB available; need {minimum} KiB stable for 5 s", flush=True)
+            last_notice = now
+        time.sleep(1)
+
+
 def stop(process: subprocess.Popen) -> None:
     """Every child owns a new process group. Never signal anyone else's group."""
     if process.poll() is None:
@@ -324,6 +348,7 @@ def case_environment(spec: dict) -> dict:
 
 
 def run_refresh(case: Path, work: Path, args, frontier: dict | None = None) -> dict:
+    wait_for_session_memory()
     spec = tomllib.loads((case / "edits.toml").read_text())
     assert_equal(json.loads((case / "expected.json").read_text()), expected_contract(spec),
                  f"{case.name}: recorded expectations vs edits.toml")

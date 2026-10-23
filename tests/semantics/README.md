@@ -171,3 +171,9 @@ Stock build and stderr logs remain in `.work/logs/<case>/`. `--results` emits a 
 JSON summary with stock binary hashes or refresh outcome/probe observations. This is
 correctness evidence, not performance data. To reclaim only suite-created build
 artifacts, remove `tests/semantics/.work/` after the runner has exited.
+
+On a busy shared 31-GiB research host, set `M4_SEMANTICS_MIN_MEMORY_GIB=17`
+to wait for that much available RAM for five seconds before each refresh
+session. This avoids qualifying only stock fallbacks caused by transient
+resource pressure. It does not change the product's admission or safety floor.
+The option is unset by default, including on smaller machines.
