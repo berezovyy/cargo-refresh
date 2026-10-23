@@ -215,6 +215,7 @@ fn start_fast(
         "capture retained a spliced binary; native recapture required"
     );
     let extractor = ManifestExtractor::new(&binary, config.allow_tracing_metadata)?;
+    client.guard_memory()?;
     Ok(Fast {
         client,
         extractor,
@@ -338,7 +339,14 @@ impl Pipeline {
             Err(error) => {
                 self.recovery_restart = true;
                 self.memory_recovery.cooldown(Instant::now());
-                self.event("fast_unavailable", format!("{error:#}"));
+                self.event(
+                    if rustd::memory_stop_reported(&error) {
+                        "memory_degraded"
+                    } else {
+                        "fast_unavailable"
+                    },
+                    format!("{error:#}"),
+                );
                 let result = fallback::build(
                     &self.config,
                     &self.config.workspace_root,
@@ -830,13 +838,18 @@ impl Pipeline {
                 if user_error(&detail) {
                     return self.publish(&job, SavePath::Error, detail, false);
                 }
-                if detail.contains("effective available")
+                if rustd::memory_stop_reported(&error)
+                    || detail.contains("effective available")
                     || detail.contains("effective memory budget")
                 {
                     self.memory_recovery.cooldown(Instant::now());
 
                     self.event(
-                        "fast_unavailable",
+                        if rustd::memory_stop_reported(&error) {
+                            "memory_degraded"
+                        } else {
+                            "fast_unavailable"
+                        },
                         format!("[refresh] {detail}. Retrying when memory recovers."),
                     );
                 }
@@ -1083,7 +1096,11 @@ impl Pipeline {
                     Err(error) => {
                         self.memory_recovery.cooldown(Instant::now());
                         self.event(
-                            "worker_reset_failed",
+                            if rustd::memory_stop_reported(&error) {
+                                "memory_degraded"
+                            } else {
+                                "worker_reset_failed"
+                            },
                             format!("fast path unavailable: {error:#}"),
                         );
                     }
@@ -1178,47 +1195,32 @@ impl Pipeline {
             return;
         }
         self.memory_poll = Instant::now();
-        let sample = match crate::memory::sample() {
-            Ok(sample) => sample,
-            Err(error) => {
-                if self.fast.is_some()
-                    || self
-                        .reset
-                        .as_ref()
-                        .is_some_and(|r| !r.cancel.load(std::sync::atomic::Ordering::SeqCst))
-                {
-                    self.quarantine();
-                    self.recovery_restart = true;
-                    self.memory_recovery.cooldown(Instant::now());
-                    self.event("fast_unavailable", format!("[refresh] Cannot read memory budget: {error}; continuing in cargo mode."));
-                }
-                return;
-            }
-        };
-        if sample.pressured(self.floor) {
-            self.memory_recovery.reset_stability();
-            if self.fast.is_some()
-                || self
-                    .reset
-                    .as_ref()
-                    .is_some_and(|r| !r.cancel.load(std::sync::atomic::Ordering::SeqCst))
-            {
-                self.quarantine();
-                self.recovery_restart = true;
-                self.memory_recovery.cooldown(Instant::now());
-                self.event("fast_unavailable", format!(
-                    "[refresh] Memory pressure: {:.1} GiB effective available (reserve {:.1} GiB); stopped rustd, continuing in cargo mode. Retrying when memory recovers.",
-                    sample.available as f64 / crate::memory::GIB as f64,
-                    self.floor as f64 / crate::memory::GIB as f64));
-            }
+        if let Some(reason) = self
+            .fast
+            .as_ref()
+            .and_then(|fast| fast.client.memory_failure())
+        {
+            self.quarantine();
+            self.recovery_restart = true;
+            self.memory_recovery.cooldown(Instant::now());
+            self.event("memory_degraded", reason);
+            return;
+        }
+        // The client's independent watchdog covers active compilers, including
+        // blocking checks, app startup and extraction. This poll owns recovery.
+        if self.fast.is_some() || self.reset.is_some() {
             return;
         }
         let Some(support) = &self.config.support else {
             return;
         };
-        if self.fast.is_some() || self.reset.is_some() {
-            return;
-        }
+        let sample = match crate::memory::sample() {
+            Ok(sample) => sample,
+            Err(_) => {
+                self.memory_recovery.reset_stability();
+                return;
+            }
+        };
         if self
             .memory_recovery
             .observe(Instant::now(), sample, support.warm_peak_bytes, self.floor)

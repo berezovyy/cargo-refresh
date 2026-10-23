@@ -13,6 +13,7 @@ use std::{
     },
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant, SystemTime},
 };
@@ -116,6 +117,107 @@ fn terminate(child: &mut Child, grace: Duration) {
     }
     let _ = child.wait();
 }
+type Daemon = Arc<Mutex<Option<Child>>>;
+
+fn stop_owned_daemon(config: &Config, home: &Path, daemon: &mut Child, grace: Duration) {
+    if daemon.try_wait().ok().flatten().is_some() {
+        return;
+    }
+    let mut cmd = config.command("cargo");
+    cmd.env("RUSTD_HOME", home)
+        .args(["rustd", "stop"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    if let Ok(mut child) = crate::process::spawn(&mut cmd) {
+        let deadline = Instant::now() + grace;
+        while Instant::now() < deadline {
+            match child.try_wait() {
+                Ok(None) => thread::sleep(Duration::from_millis(10)),
+                Ok(Some(_)) | Err(_) => break,
+            }
+        }
+        terminate(&mut child, Duration::from_millis(100));
+    }
+    terminate(daemon, grace);
+}
+
+#[derive(Debug)]
+struct WatchedMemoryStop(String);
+impl std::fmt::Display for WatchedMemoryStop {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl std::error::Error for WatchedMemoryStop {}
+/// The watchdog already printed the warning, including during blocking checks.
+pub fn memory_stop_reported(error: &anyhow::Error) -> bool {
+    error.is::<WatchedMemoryStop>()
+}
+
+struct MemoryWatch {
+    stop: crossbeam_channel::Sender<()>,
+    task: thread::JoinHandle<()>,
+    reason: Arc<Mutex<Option<String>>>,
+    floor: Arc<std::sync::atomic::AtomicU64>,
+}
+impl MemoryWatch {
+    fn start(config: Config, home: PathBuf, daemon: Daemon) -> Self {
+        Self::with_sampler(config, home, daemon, crate::memory::sample)
+    }
+    fn with_sampler(
+        config: Config,
+        home: PathBuf,
+        daemon: Daemon,
+        mut sample: impl FnMut() -> Result<crate::memory::Sample> + Send + 'static,
+    ) -> Self {
+        let (stop, stopped) = crossbeam_channel::bounded(1);
+        let reason = Arc::new(Mutex::new(None));
+        let recorded = reason.clone();
+        let floor = Arc::new(std::sync::atomic::AtomicU64::new(config.memory_min_bytes));
+        let watched_floor = floor.clone();
+        let task = thread::spawn(move || {
+            use std::io::Write;
+            while matches!(
+                stopped.recv_timeout(crate::memory::INTERVAL),
+                Err(crossbeam_channel::RecvTimeoutError::Timeout)
+            ) {
+                let reserve = watched_floor.load(std::sync::atomic::Ordering::Relaxed);
+                let message = match sample() {
+                    Ok(sample) if sample.pressured(reserve) => format!(
+                        "Memory pressure: {:.1} GiB effective available (reserve {:.1} GiB, full PSI {:.1}%); stopped rustd, continuing in cargo mode. Retrying when memory recovers.",
+                        sample.available as f64 / crate::memory::GIB as f64,
+                        reserve as f64 / crate::memory::GIB as f64,
+                        sample.full_pressure
+                    ),
+                    Ok(_) => continue,
+                    Err(error) => format!(
+                        "Cannot read effective memory budget: {error:#}; stopped rustd, continuing in cargo mode. Retrying when memory recovers."
+                    ),
+                };
+                *recorded.lock().unwrap() = Some(message.clone());
+                let owned = daemon.lock().unwrap().take();
+                if let Some(mut child) = owned {
+                    // Memory is already scarce: request protocol shutdown, then
+                    // promptly terminate only this owned process group if needed.
+                    stop_owned_daemon(&config, &home, &mut child, Duration::from_millis(100));
+                }
+                let _ = writeln!(std::io::stderr(), "[refresh] {message}");
+                break;
+            }
+        });
+        Self {
+            stop,
+            task,
+            reason,
+            floor,
+        }
+    }
+    fn finish(self) {
+        let _ = self.stop.send(());
+        let _ = self.task.join();
+    }
+}
+
 #[derive(Debug)]
 pub struct Build {
     /// A full native link replaces the runtime and all manifest/extractor state.
@@ -171,7 +273,8 @@ struct SocketAlias {
 }
 pub struct Client {
     pub config: Config,
-    daemon: Option<Child>,
+    daemon: Daemon,
+    memory_watch: Option<MemoryWatch>,
     last_manifest: Vec<u8>,
     commands: u64,
     socket_alias: Option<SocketAlias>,
@@ -181,12 +284,18 @@ impl Client {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            daemon: None,
+            daemon: Arc::new(Mutex::new(None)),
+            memory_watch: None,
             last_manifest: vec![],
             commands: 0,
             socket_alias: None,
             memory_checked: None,
         }
+    }
+    pub fn memory_failure(&self) -> Option<String> {
+        self.memory_watch
+            .as_ref()
+            .and_then(|watch| watch.reason.lock().unwrap().clone())
     }
     pub fn guard_memory(&mut self) -> Result<()> {
         ensure!(
@@ -197,6 +306,19 @@ impl Client {
                 .is_some_and(|c| c.load(std::sync::atomic::Ordering::SeqCst)),
             "compiler operation cancelled"
         );
+        if let Some(reason) = self.memory_failure() {
+            self.stop_with_grace(Duration::from_millis(100))?;
+            return Err(WatchedMemoryStop(reason).into());
+        }
+        if let Some(watch) = &self.memory_watch {
+            // The watchdog is the sole active monitor. It also covers waits
+            // where this caller cannot poll, and emits exactly one warning.
+            watch.floor.store(
+                self.config.memory_min_bytes,
+                std::sync::atomic::Ordering::Relaxed,
+            );
+            return Ok(());
+        }
         if self
             .memory_checked
             .is_some_and(|at| at.elapsed() < crate::memory::INTERVAL)
@@ -207,7 +329,7 @@ impl Client {
         let sample = match crate::memory::sample() {
             Ok(sample) => sample,
             Err(error) => {
-                self.stop()?;
+                self.stop_with_grace(Duration::from_millis(100))?;
                 return Err(
                     error.context("cannot read effective memory budget; continuing in cargo mode")
                 );
@@ -215,7 +337,7 @@ impl Client {
         };
         let available = sample.available;
         if sample.pressured(self.config.memory_min_bytes) {
-            self.stop()?;
+            self.stop_with_grace(Duration::from_millis(100))?;
             bail!(
                 "rustd stopped: effective available {available} bytes, reserve {} bytes (or sustained memory pressure); continuing in cargo mode",
                 self.config.memory_min_bytes
@@ -224,7 +346,10 @@ impl Client {
         Ok(())
     }
     pub fn start(&mut self) -> Result<()> {
-        ensure!(self.daemon.is_none(), "daemon already started");
+        ensure!(
+            self.daemon.lock().unwrap().is_none(),
+            "daemon already started"
+        );
         self.memory_checked = None;
         self.guard_memory()?;
         ensure!(
@@ -259,7 +384,13 @@ impl Client {
             let log = File::create(self.config.home.join("daemon.log"))?;
             let mut cmd = self.command(&self.config.rustd);
             cmd.arg("daemon").stdout(log.try_clone()?).stderr(log);
-            self.daemon = Some(crate::process::spawn(&mut cmd).context("start rustd daemon")?);
+            *self.daemon.lock().unwrap() =
+                Some(crate::process::spawn(&mut cmd).context("start rustd daemon")?);
+            self.memory_watch = Some(MemoryWatch::start(
+                self.config.clone(),
+                self.transport_home(),
+                self.daemon.clone(),
+            ));
             self.initialize()?;
             if let Ok(path) = newest_manifest(&self.config.project) {
                 self.last_manifest = fs::read(path)?;
@@ -359,7 +490,11 @@ impl Client {
         bail!("rustd worker readiness timeout")
     }
     fn check_daemon(&mut self) -> Result<()> {
-        let child = self.daemon.as_mut().context("rustd not started")?;
+        if let Some(reason) = self.memory_failure() {
+            return Err(WatchedMemoryStop(reason).into());
+        }
+        let mut slot = self.daemon.lock().unwrap();
+        let child = slot.as_mut().context("rustd not started")?;
         ensure!(child.try_wait()?.is_none(), "rustd daemon exited");
         Ok(())
     }
@@ -377,6 +512,7 @@ impl Client {
         let result = (|| -> Result<_> {
             loop {
                 if let Some(status) = child.try_wait()? {
+                    self.guard_memory()?;
                     let text = fs::read_to_string(&path).unwrap_or_default();
                     ensure!(status.success(), "rustd command {status}: {text}");
                     return Ok(text);
@@ -430,6 +566,7 @@ impl Client {
             "no fresh compiler manifest; restart required"
         );
         refresh_proto::manifest::parse(&manifest)?;
+        self.guard_memory()?;
         self.last_manifest = manifest.clone();
         let candidate_path = manifest_path.with_file_name("bin");
         ensure!(
@@ -444,25 +581,17 @@ impl Client {
         })
     }
     pub fn stop(&mut self) -> Result<()> {
-        let Some(mut daemon) = self.daemon.take() else {
-            self.socket_alias = None;
-            return Ok(());
-        };
-        let mut cmd = self.command("cargo");
-        cmd.args(["rustd", "stop"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
-        if let Ok(mut child) = crate::process::spawn(&mut cmd) {
-            let deadline = Instant::now() + Duration::from_secs(5);
-            while Instant::now() < deadline {
-                match child.try_wait() {
-                    Ok(None) => thread::sleep(Duration::from_millis(25)),
-                    Ok(Some(_)) | Err(_) => break,
-                }
-            }
-            terminate(&mut child, Duration::from_millis(100));
+        self.stop_with_grace(Duration::from_secs(5))
+    }
+    fn stop_with_grace(&mut self, grace: Duration) -> Result<()> {
+        // Join before removing the alias used by the watchdog's stop request.
+        if let Some(watch) = self.memory_watch.take() {
+            watch.finish();
         }
-        terminate(&mut daemon, Duration::from_secs(5));
+        let owned = self.daemon.lock().unwrap().take();
+        if let Some(mut daemon) = owned {
+            stop_owned_daemon(&self.config, &self.transport_home(), &mut daemon, grace);
+        }
         self.socket_alias = None;
         Ok(())
     }
@@ -693,7 +822,7 @@ else:raise Exception(sys.argv)
         cfg.ready_timeout = Duration::from_secs(5);
         let mut c = Client::new(cfg);
         c.start().unwrap();
-        let pid = c.daemon.as_ref().unwrap().id();
+        let pid = c.daemon.lock().unwrap().as_ref().unwrap().id();
         let transport = c.transport_home();
         assert!(transport.as_os_str().len() < 64);
         assert!(
@@ -719,19 +848,62 @@ else:raise Exception(sys.argv)
         );
         assert!(c.build().unwrap_err().to_string().contains("no fresh"));
         c.config.memory_min_bytes = u64::MAX;
-        c.memory_checked = None;
+        c.guard_memory().unwrap(); // publish the new research floor to the watcher
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while c.memory_failure().is_none() && Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(10));
+        }
         assert!(
             c.guard_memory()
                 .unwrap_err()
                 .to_string()
                 .contains("effective available")
         );
-        assert!(c.daemon.is_none());
+        assert!(c.daemon.lock().unwrap().is_none());
         assert!(!transport.exists(), "owned socket alias must be removed");
         assert_eq!(
             fs::read(c.config.home.join("retain")).unwrap(),
             b"persistent"
         );
         assert!(!Path::new(&format!("/proc/{pid}")).exists());
+
+        // Simulate the caller blocking in cargo check: never call guard_memory
+        // after lowering the injected budget. The watchdog must stop the child.
+        let mut config = c.config.clone();
+        config.home = tmp.path().join("watch");
+        config.memory_min_bytes = 0;
+        let mut idle = Client::new(config);
+        idle.start().unwrap();
+        let pid = idle.daemon.lock().unwrap().as_ref().unwrap().id();
+        idle.memory_watch.take().unwrap().finish();
+        idle.config.memory_min_bytes = crate::memory::RESERVE;
+        let low = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let budget = low.clone();
+        idle.memory_watch = Some(MemoryWatch::with_sampler(
+            idle.config.clone(),
+            idle.transport_home(),
+            idle.daemon.clone(),
+            move || {
+                Ok(crate::memory::Sample {
+                    available: if budget.load(std::sync::atomic::Ordering::SeqCst) {
+                        0
+                    } else {
+                        u64::MAX
+                    },
+                    full_pressure: 0.0,
+                })
+            },
+        ));
+        low.store(true, std::sync::atomic::Ordering::SeqCst);
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !idle.memory_watch.as_ref().unwrap().task.is_finished() && Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(10));
+        }
+        assert!(idle.memory_watch.as_ref().unwrap().task.is_finished());
+        assert!(idle.memory_failure().unwrap().contains("Memory pressure"));
+        assert!(idle.daemon.lock().unwrap().is_none());
+        assert!(!Path::new(&format!("/proc/{pid}")).exists());
+        let error = idle.guard_memory().unwrap_err();
+        assert!(memory_stop_reported(&error));
     }
 }
