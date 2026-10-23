@@ -8,6 +8,8 @@ description = "Fast Refresh for Rust: development controller"
 
 [dependencies]
 anyhow.workspace = true
+refresh-proto = { path = "../refresh-proto" }
+object = { version = "0.39.1", default-features = false, features = ["read", "elf", "std"] }
 blake3.workspace = true
 clap.workspace = true
 crossbeam-channel.workspace = true
@@ -16,6 +18,7 @@ notify.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 walkdir.workspace = true
+tempfile.workspace = true
 
 [dev-dependencies]
-tempfile.workspace = true
+flate2 = "1"

@@ -1,0 +1,648 @@
+//! Stateful manifest → v0 records. Commit only after a successful agent ACK.
+use crate::{
+    data_policy::{self, Memory},
+    elf::{Image, Section, Symbol, u64_at},
+    manifest::State,
+    unwind,
+};
+use anyhow::{Context, Result, ensure};
+use refresh_proto::wire::{self, Record};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+    sync::Arc,
+};
+
+struct SparseImage<'a> {
+    base: &'a Image,
+    state: &'a State,
+}
+impl Memory for SparseImage<'_> {
+    fn read(&self, addr: u64, n: usize) -> Result<Vec<u8>> {
+        let end = addr
+            .checked_add(n as u64)
+            .context("constant range overflow")?;
+        if self
+            .state
+            .segments
+            .iter()
+            .any(|s| s.addr <= addr && end <= s.addr + s.len)
+        {
+            let mut at = addr;
+            let mut out = Vec::with_capacity(n);
+            while at < end {
+                let page = at & !4095;
+                let offset = (at - page) as usize;
+                let take = ((end - at) as usize).min(4096 - offset);
+                let bytes = &self
+                    .state
+                    .pages
+                    .get(&page)
+                    .context("missing sparse page")?
+                    .payload;
+                out.extend_from_slice(&bytes[offset..offset + take]);
+                at += take as u64;
+            }
+            return Ok(out);
+        }
+        let mut out = self.base.read(addr, n)?;
+        for (&a, w) in self.state.writes.range(..end) {
+            let lo = addr.max(a);
+            let hi = end.min(a + w.payload.len() as u64);
+            if lo < hi {
+                out[(lo - addr) as usize..(hi - addr) as usize]
+                    .copy_from_slice(&w.payload[(lo - a) as usize..(hi - a) as usize]);
+            }
+        }
+        Ok(out)
+    }
+}
+#[derive(Default)]
+struct Applied {
+    pages: BTreeMap<u64, Arc<Record>>,
+    jumps: BTreeSet<u64>,
+    data: BTreeMap<u64, Vec<u8>>,
+}
+pub struct PreparedPatch {
+    pub records: Vec<Record>,
+    pub generation: u64,
+    serial: u64,
+    next: Applied,
+}
+impl PreparedPatch {
+    pub fn encode(&self) -> Result<Vec<u8>> {
+        Ok(wire::encode(&self.records)?)
+    }
+}
+pub struct ManifestExtractor {
+    pub base: Image,
+    functions: BTreeSet<u64>,
+    objects: BTreeMap<u64, Vec<Symbol>>,
+    sections: BTreeMap<usize, Section>,
+    original_loads: BTreeSet<(u64, u64, u32)>,
+    allow_tracing: bool,
+    applied: Applied,
+    serial: u64,
+    last_generation: u64,
+}
+impl ManifestExtractor {
+    pub fn new(baseline: impl AsRef<Path>, allow_tracing: bool) -> Result<Self> {
+        Self::from_bytes(std::fs::read(baseline)?, allow_tracing)
+    }
+    pub fn from_bytes(bytes: Vec<u8>, allow_tracing: bool) -> Result<Self> {
+        let base = Image::parse(bytes, true)?;
+        let (functions, objects, sections) = base.index()?;
+        let original_loads = base.loads().map(|p| p.identity()).collect();
+        Ok(Self {
+            base,
+            functions,
+            objects,
+            sections,
+            original_loads,
+            allow_tracing,
+            applied: Applied::default(),
+            serial: 0,
+            last_generation: 0,
+        })
+    }
+    /// Promotion catalogs can add entry symbols absent from retained ELF sections.
+    pub fn add_function(&mut self, addr: u64) {
+        self.functions.insert(addr);
+    }
+    pub fn extract(&self, state: &State, candidate: &Image) -> Result<PreparedPatch> {
+        ensure!(state.generation > 0, "compiler manifest missing");
+        ensure!(
+            state.generation > self.last_generation,
+            "stale manifest already applied or older"
+        );
+        self.validate_candidate(state, candidate)?;
+        let new = SparseImage {
+            base: &self.base,
+            state,
+        };
+        let mut jumps = BTreeMap::new();
+        let mut data = BTreeMap::new();
+        for (&addr, w) in &state.writes {
+            if w.kind == 1 {
+                ensure!(
+                    self.functions.contains(&addr) && w.payload.len() == 5 && w.payload[0] == 0xe9,
+                    "invalid original entry jump {addr:x}"
+                );
+                let delta = i32::from_le_bytes(w.payload[1..5].try_into()?);
+                let target = addr
+                    .checked_add(5)
+                    .and_then(|a| a.checked_add_signed(delta as i64))
+                    .context("entry target overflow")?;
+                ensure!(
+                    state
+                        .segments
+                        .iter()
+                        .any(|s| s.prot & 4 != 0 && s.addr <= target && target < s.addr + s.len),
+                    "jump target outside appended executable memory"
+                );
+                if w.payload != self.base.read(addr, 5)? {
+                    jumps.insert(addr, w.payload.clone());
+                }
+            } else {
+                let off = self.base.offset(addr, w.payload.len() as u64)?;
+                let owners = self
+                    .objects
+                    .get(&off)
+                    .context("manifest unknown original data")?;
+                let mut owners = owners
+                    .iter()
+                    .filter(|s| s.offset <= off && off < s.offset + s.size);
+                let sym = owners.next().context("manifest unknown original data")?;
+                ensure!(
+                    owners.next().is_none(),
+                    "manifest ambiguous original data {addr:x}"
+                );
+                ensure!(
+                    w.payload.len() as u64 == sym.size,
+                    "partial original data write"
+                );
+                if w.payload == self.base.read(addr, w.payload.len())? {
+                    continue;
+                }
+                let section = self
+                    .sections
+                    .get(&sym.section)
+                    .context("missing symbol section")?;
+                let (payload, _) = data_policy::classify_record(
+                    &self.base,
+                    &new,
+                    sym,
+                    section,
+                    self.allow_tracing,
+                )?;
+                data.insert(addr, payload);
+            }
+        }
+        let mut records = Vec::new();
+        let mut pages = BTreeMap::new();
+        for s in &state.segments {
+            let mut page = s.addr;
+            while page < s.addr + s.len {
+                let p = state.pages.get(&page).context("missing manifest page")?;
+                let prior = self.applied.pages.get(&page);
+                let same = prior.is_some_and(|r| {
+                    r.prot == s.prot && r.payload == p.payload && r.fixups == p.fixups
+                });
+                let record = if same {
+                    Arc::clone(prior.unwrap())
+                } else {
+                    Arc::new(Record {
+                        addr: page,
+                        prot: s.prot,
+                        kind: 0,
+                        payload: p.payload.clone(),
+                        fixups: p.fixups.clone(),
+                    })
+                };
+                if !same {
+                    records.push((*record).clone());
+                }
+                pages.insert(page, record);
+                page += 4096;
+            }
+        }
+        let current_jumps: BTreeSet<_> = jumps.keys().copied().collect();
+        for &addr in self.applied.jumps.union(&current_jumps) {
+            let payload = match jumps.get(&addr) {
+                Some(b) => b.clone(),
+                None => self.base.read(addr, 5)?,
+            };
+            records.push(Record {
+                addr,
+                prot: 5,
+                kind: 1,
+                payload,
+                fixups: vec![],
+            });
+        }
+        let data_addrs: BTreeSet<_> = self
+            .applied
+            .data
+            .keys()
+            .chain(data.keys())
+            .copied()
+            .collect();
+        for addr in data_addrs {
+            let size = data
+                .get(&addr)
+                .or_else(|| self.applied.data.get(&addr))
+                .unwrap()
+                .len();
+            let payload = match data.get(&addr) {
+                Some(b) => b.clone(),
+                None => self.base.read(addr, size)?,
+            };
+            let fixups = if size >= 8 {
+                self.base
+                    .relatives
+                    .range(addr..=addr + size as u64 - 8)
+                    .map(|(&at, _)| (at - addr) as u32)
+                    .collect()
+            } else {
+                vec![]
+            };
+            records.push(Record {
+                addr,
+                prot: 1,
+                kind: 2,
+                payload,
+                fixups,
+            });
+        }
+        records.extend(unwind::descriptors(candidate, &self.original_loads)?);
+        ensure!(records.len() <= wire::MAX_RECORDS, "too many agent records");
+        for r in &records {
+            r.validate()?;
+        }
+        Ok(PreparedPatch {
+            records,
+            generation: state.generation,
+            serial: self.serial,
+            next: Applied {
+                pages,
+                jumps: current_jumps,
+                data,
+            },
+        })
+    }
+    pub fn commit(&mut self, patch: PreparedPatch) -> Result<()> {
+        ensure!(patch.serial == self.serial, "superseded prepared patch");
+        self.applied = patch.next;
+        self.last_generation = patch.generation;
+        self.serial += 1;
+        Ok(())
+    }
+    fn validate_candidate(&self, state: &State, new: &Image) -> Result<()> {
+        ensure!(new.typ == self.base.typ, "ELF type changed");
+        let filter = |image: &Image| {
+            image
+                .dynamic
+                .iter()
+                .filter(|(k, _)| !matches!(k, 7 | 8))
+                .copied()
+                .collect::<Vec<_>>()
+        };
+        ensure!(
+            filter(&self.base) == filter(new),
+            "unexpected dynamic table change"
+        );
+        ensure!(
+            self.base.loads().all(|p| new.loads().any(|q| p == q)),
+            "original loaded mappings changed"
+        );
+        ensure!(
+            self.base
+                .headers
+                .iter()
+                .filter(|p| p.typ == 7)
+                .eq(new.headers.iter().filter(|p| p.typ == 7)),
+            "TLS mapping changed"
+        );
+        let appended: Vec<_> = new
+            .loads()
+            .filter(|p| !self.original_loads.contains(&p.identity()) && p.offset != new.phoff)
+            .collect();
+        for s in &state.segments {
+            ensure!(
+                appended.iter().any(|p| p.contains(s.addr, s.len, false)
+                    && s.prot == (((p.flags & 4) >> 2) | (p.flags & 2) | ((p.flags & 1) << 2))),
+                "manifest segment not in candidate LOAD"
+            );
+        }
+        // The manifest writer normalizes payloads. Validate appended relocations
+        // against the candidate table without scanning original loaded bytes.
+        if let Some(table) = new.relocation_table()? {
+            for r in table.as_chunks::<24>().0 {
+                let at = u64_at(r, 0)?;
+                let info = u64_at(r, 8)?;
+                if appended.iter().any(|p| p.contains(at, 1, false)) {
+                    ensure!(info == 8, "unsupported appended dynamic relocation");
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        manifest::{Page, Segment, Write},
+        test_images::{candidate, image, put},
+    };
+    fn setup() -> (ManifestExtractor, State, Image) {
+        let mut base = image();
+        put(&mut base, 0x1100, &[0x55, 0x48, 0x89, 0xe5, 0x90]);
+        let mut x = ManifestExtractor {
+            base,
+            functions: BTreeSet::from([0x1100]),
+            objects: BTreeMap::new(),
+            sections: BTreeMap::new(),
+            original_loads: BTreeSet::from([(0x1000, 0x1000, 4)]),
+            allow_tracing: false,
+            applied: Applied::default(),
+            serial: 0,
+            last_generation: 0,
+        };
+        // A Location record in original immutable memory.
+        put(&mut x.base, 0x1500, b"src/lib.rs");
+        put(&mut x.base, 0x1200, &0x1500_u64.to_le_bytes());
+        put(&mut x.base, 0x1208, &10_u64.to_le_bytes());
+        put(&mut x.base, 0x1210, &10_u32.to_le_bytes());
+        put(&mut x.base, 0x1214, &2_u32.to_le_bytes());
+        x.base.relatives.insert(0x1200, 0x1500);
+        x.objects.insert(
+            0x200,
+            vec![Symbol {
+                name: "rustd::static::location".into(),
+                addr: 0x1200,
+                size: 24,
+                typ: 1,
+                section: 1,
+                offset: 0x200,
+            }],
+        );
+        x.sections.insert(
+            1,
+            Section {
+                name: ".rodata".into(),
+                flags: 2,
+            },
+        );
+        let mut s = State::default();
+        s.generation = 1;
+        s.segments = vec![
+            Segment {
+                addr: 0x4000,
+                len: 0x1000,
+                prot: 1,
+            },
+            Segment {
+                addr: 0x8000,
+                len: 0x1000,
+                prot: 5,
+            },
+        ];
+        let c = candidate();
+        for seg in &s.segments {
+            s.pages.insert(
+                seg.addr,
+                Arc::new(Page {
+                    addr: seg.addr,
+                    prot: seg.prot,
+                    payload: c.read(seg.addr, 4096).unwrap(),
+                    fixups: vec![],
+                }),
+            );
+        }
+        let mut jump = vec![0xe9];
+        jump.extend((0x8000_i32 - 0x1100 - 5).to_le_bytes());
+        s.writes.insert(
+            0x1100,
+            Write {
+                addr: 0x1100,
+                kind: 1,
+                payload: jump,
+                fixups: vec![],
+                name: vec![],
+            },
+        );
+        (x, s, c)
+    }
+    #[test]
+    fn page_deltas_entry_and_data_restores_only_commit_after_ack() {
+        let (mut x, mut s, c) = setup();
+        let mut loc = x.base.read(0x1200, 24).unwrap();
+        loc[16..20].copy_from_slice(&11_u32.to_le_bytes());
+        s.writes.insert(
+            0x1200,
+            Write {
+                addr: 0x1200,
+                kind: 2,
+                payload: loc,
+                fixups: vec![0],
+                name: vec![],
+            },
+        );
+        let first = x.extract(&s, &c).unwrap();
+        assert_eq!(
+            first.records.iter().map(|r| r.kind).collect::<Vec<_>>(),
+            vec![0, 0, 1, 2, 3]
+        );
+        assert_eq!(first.records[3].fixups, vec![0]);
+        // A failed agent send drops PreparedPatch. Retrying must send identical bytes.
+        assert_eq!(
+            first.encode().unwrap(),
+            x.extract(&s, &c).unwrap().encode().unwrap()
+        );
+        x.commit(first).unwrap();
+        assert!(x.extract(&s, &c).is_err());
+        s.generation = 2;
+        s.writes.clear();
+        let second = x.extract(&s, &c).unwrap();
+        assert_eq!(
+            second.records.iter().map(|r| r.kind).collect::<Vec<_>>(),
+            vec![1, 2, 3]
+        );
+        assert_eq!(second.records[0].payload, x.base.read(0x1100, 5).unwrap());
+        assert_eq!(second.records[1].payload, x.base.read(0x1200, 24).unwrap());
+        assert_eq!(second.records[1].fixups, vec![0]);
+        x.commit(second).unwrap();
+        s.generation = 3;
+        let third = x.extract(&s, &c).unwrap();
+        assert_eq!(third.records.len(), 1);
+        assert_eq!(third.records[0].kind, 3);
+        x.commit(third).unwrap();
+        s.generation = 4;
+        Arc::make_mut(s.pages.get_mut(&0x8000).unwrap())
+            .fixups
+            .push(8);
+        let fourth = x.extract(&s, &c).unwrap();
+        assert_eq!(
+            fourth.records.iter().map(|r| r.kind).collect::<Vec<_>>(),
+            vec![0, 3]
+        );
+    }
+    #[test]
+    fn invalid_candidate_and_writes_fail_closed() {
+        let (x, s, mut c) = setup();
+        c.headers[0].flags = 6;
+        assert!(x.extract(&s, &c).is_err());
+        let (x, s, mut c) = setup();
+        c.dynamic.push((36, 1)); // Image::parse rejects DT_RELR before extraction.
+        assert!(x.extract(&s, &c).is_err());
+        let (x, mut s, c) = setup();
+        s.writes.get_mut(&0x1100).unwrap().payload[0] = 0x90;
+        assert!(x.extract(&s, &c).is_err());
+        let (x, mut s, c) = setup();
+        s.writes.get_mut(&0x1100).unwrap().payload[1..5].copy_from_slice(&1_i32.to_le_bytes());
+        assert!(x.extract(&s, &c).is_err());
+        let (mut x, mut s, c) = setup();
+        let w = Write {
+            addr: 0x1200,
+            kind: 2,
+            payload: vec![1; 24],
+            fixups: vec![],
+            name: vec![],
+        };
+        s.writes.insert(w.addr, w);
+        let duplicate = x.objects[&0x200][0].clone();
+        x.objects.get_mut(&0x200).unwrap().push(duplicate);
+        assert!(x.extract(&s, &c).is_err());
+    }
+    #[test]
+    fn prepared_patch_is_fenced() {
+        let (mut x, mut s, c) = setup();
+        let a = x.extract(&s, &c).unwrap();
+        let b = x.extract(&s, &c).unwrap();
+        x.commit(a).unwrap();
+        assert!(x.commit(b).is_err());
+        s.generation = 2;
+        assert!(x.extract(&s, &c).is_ok());
+    }
+
+    fn gunzip(path: &Path) -> Vec<u8> {
+        use std::io::Read;
+        let mut bytes = Vec::new();
+        flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap())
+            .read_to_end(&mut bytes)
+            .unwrap();
+        bytes
+    }
+    fn hex(text: &str) -> Vec<u8> {
+        assert!(text.len().is_multiple_of(2));
+        text.as_bytes()
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+            .collect()
+    }
+    /// Run with REFRESH_GOLDENS=/.../work/m2-t3/goldens cargo test ... --ignored.
+    /// Goldens are external because real ELF captures are too large for source git.
+    #[test]
+    #[ignore = "requires captured Python web-session goldens"]
+    fn python_goldens() {
+        use std::time::Instant;
+        let root = std::path::PathBuf::from(
+            std::env::var_os("REFRESH_GOLDENS").expect("set REFRESH_GOLDENS"),
+        );
+        let mut dirs: Vec<_> = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.join("result.json").is_file())
+            .collect();
+        dirs.sort();
+        assert!(
+            dirs.len() >= 15,
+            "capture at least 15 acknowledged live saves"
+        );
+        let timing = std::env::var_os("REFRESH_TIMINGS").is_some();
+        let mut times = Vec::new();
+        for dir in &dirs {
+            let input: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
+            let mut x = ManifestExtractor::from_bytes(
+                gunzip(&root.join(input["baseline"].as_str().unwrap())),
+                input["allow_tracing"].as_bool().unwrap(),
+            )
+            .unwrap();
+            for addr in input["functions"].as_array().unwrap() {
+                x.add_function(addr.as_u64().unwrap());
+            }
+            for a in input["previous"].as_array().unwrap() {
+                x.applied.jumps.insert(a.as_u64().unwrap());
+            }
+            for (a, b) in input["previous_data"].as_object().unwrap() {
+                x.applied
+                    .data
+                    .insert(a.parse().unwrap(), hex(b.as_str().unwrap()));
+            }
+            for (a, p) in input["applied_pages"].as_object().unwrap() {
+                let addr = a.parse().unwrap();
+                x.applied.pages.insert(
+                    addr,
+                    Arc::new(Record {
+                        addr,
+                        prot: p[0].as_u64().unwrap() as u32,
+                        kind: p[1].as_u64().unwrap() as u32,
+                        payload: hex(p[2].as_str().unwrap()),
+                        fixups: p[3]
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|v| v.as_u64().unwrap() as u32)
+                            .collect(),
+                    }),
+                );
+            }
+            let mut paths: Vec<_> = std::fs::read_dir(dir)
+                .unwrap()
+                .map(|e| e.unwrap().path())
+                .filter(|p| p.to_string_lossy().ends_with(".manifest.gz"))
+                .collect();
+            paths.sort();
+            let mut state = State::default();
+            let last_path = paths.pop().unwrap();
+            for p in paths {
+                state.update(&gunzip(&p)).unwrap();
+            }
+            let last = gunzip(&last_path);
+            let candidate_bytes = gunzip(&dir.join("candidate.elf.gz"));
+            let start = Instant::now();
+            // Include latest manifest parsing/state update, candidate parsing,
+            // extraction/unwind and wire encoding. Baseline index is session setup.
+            state.update(&last).unwrap();
+            let candidate = Image::parse(candidate_bytes, false).unwrap();
+            let patch = x
+                .extract(&state, &candidate)
+                .unwrap_or_else(|e| panic!("{}: {e:#}", dir.display()));
+            let wire = patch.encode().unwrap();
+            let elapsed = start.elapsed().as_secs_f64() * 1000.0;
+            let expected = std::fs::read(dir.join("expected.wire")).unwrap();
+            if wire != expected {
+                let at = wire
+                    .iter()
+                    .zip(&expected)
+                    .position(|(a, b)| a != b)
+                    .unwrap_or(wire.len().min(expected.len()));
+                panic!(
+                    "{}: wire differs at byte {at}; actual={} expected={}",
+                    dir.display(),
+                    wire.len(),
+                    expected.len()
+                );
+            }
+            x.commit(patch).unwrap();
+            if timing {
+                println!(
+                    "GOLDEN {} identical bytes={} extract_ms={elapsed:.6}",
+                    dir.file_name().unwrap().to_string_lossy(),
+                    wire.len()
+                );
+                times.push(elapsed);
+            }
+        }
+        if timing {
+            times.sort_by(f64::total_cmp);
+            println!(
+                "EXTRACTION n={} median_ms={:.6} min_ms={:.6} max_ms={:.6}",
+                times.len(),
+                (times[(times.len() - 1) / 2] + times[times.len() / 2]) / 2.0,
+                times[0],
+                times[times.len() - 1]
+            );
+        }
+        println!(
+            "{} / {} Python golden wires byte-identical",
+            dirs.len(),
+            dirs.len()
+        );
+    }
+}
