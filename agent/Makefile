@@ -30,12 +30,13 @@ $(BUILD)/test-protocol: tests/test_protocol.c src/protocol.c $(HEADERS) | $(BUIL
 $(BUILD)/test-near: tests/test_near.c src/unwind.c $(HEADERS) | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/test_near.c src/unwind.c -o $@ -ldl
 
-test: $(BUILD)/test-near all $(BUILD)/librefresh-testing.so $(BUILD)/host $(BUILD)/host-pie $(BUILD)/oracle-after $(BUILD)/test-unwind $(BUILD)/test-protocol
+test: $(BUILD)/block-region.so $(BUILD)/test-near all $(BUILD)/librefresh-testing.so $(BUILD)/host $(BUILD)/host-pie $(BUILD)/oracle-after $(BUILD)/test-unwind $(BUILD)/test-protocol
 	./$(BUILD)/test-unwind
 	./$(BUILD)/test-near
 	./$(BUILD)/test-protocol
 	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/integration.py $(BUILD)/librefresh.so --testing $(BUILD)/librefresh-testing.so
 	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/inherited.py $(BUILD)/librefresh.so
+	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/region.py $(BUILD)/librefresh.so
 test-equivalence: all $(BUILD)/librefresh-testing.so $(BUILD)/librefresh-legacy.so $(BUILD)/host $(BUILD)/test-unwind
 	./$(BUILD)/test-unwind
 	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/integration.py --equivalence $(BUILD)/librefresh-legacy.so $(BUILD)/librefresh.so $(BUILD)/librefresh-testing.so
@@ -69,3 +70,9 @@ test-panic: all $(BUILD)/host-panic
 .PHONY: test-pressure
 test-pressure: all $(BUILD)/host $(BUILD)/host-pie
 	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/pressure.py $(BUILD)/librefresh.so
+
+$(BUILD)/block-region.so: tests/block_region.c | $(BUILD)
+	$(CC) $(CFLAGS) -shared -fPIC $< -o $@ -ldl
+.PHONY: test-region
+test-region: all $(BUILD)/block-region.so $(BUILD)/host $(BUILD)/host-pie
+	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/region.py $(BUILD)/librefresh.so

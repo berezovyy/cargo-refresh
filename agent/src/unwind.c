@@ -81,7 +81,8 @@ enum refresh_code prepare_frames(char error[160]) {
         void *buf = MAP_FAILED;
         int invalid = 0;
         /* PIE: stay below the image, opposite rustd's append-only growth.
-         * ET_EXEC: search the high end of the rel32 window instead of +256 MiB.
+         * ET_EXEC: use 64 KiB slots in the top 32 MiB of the rel32 window,
+         * above every allowed code reservation (base end <=700 MiB).
          * NOREPLACE is authoritative if another thread maps a candidate meanwhile.
          * Rebase each candidate: proximity to the descriptor alone does not prove
          * all personality/LSDA/PC signed displacements are representable. */
@@ -89,7 +90,7 @@ enum refresh_code prepare_frames(char error[160]) {
             unsigned k = (near_cursor + step) % REFRESH_NEAR_SLOTS;
             uintptr_t distance = (uintptr_t)(k + 1) * 0x200000;
             uintptr_t hint = load_base > 0x40000000ULL ? load_base - distance :
-                             0x80000000ULL - distance;
+                             0x80000000ULL - (uintptr_t)(k + 1) * 0x10000;
             uintptr_t delta = hint > a ? hint - a : a - hint;
             if (delta > INT32_MAX - size) continue;
             buf = mmap((void *)hint, size, PROT_READ | PROT_WRITE,

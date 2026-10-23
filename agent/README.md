@@ -60,3 +60,10 @@ controlled leaf collector's page-index/unwind-counter bookkeeping. Its fixture
 promises no escaping old-generation pointers. This is not production collection;
 conservative false positives can retain pages. Do not run this full writable-root
 scan under ASan, whose shadow mappings are also writable roots.
+
+M3-T3 reserves a 1 GiB code region before allocating and accepts new generation
+pages only inside it. Replies include region availability, bounds and retained
+bytes. Sparse splice ELF notes preserve the base region across restarts; inherited
+PT_LOADs are adopted automatically. See [PROTOCOL.md](PROTOCOL.md#reserved-code-region-m3-t3--exp-122-exp-126).
+Run `make test-region` for reservation, 320 MiB heap allocation, ownership/bounds,
+and occupied-startup refusal tests; it is also included in `make test`/`test-asan`.

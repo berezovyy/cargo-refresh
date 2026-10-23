@@ -303,9 +303,9 @@ def rollback_suite(library):
                 assert reply['code'] == 'ROLLED_BACK' and not reply['ok'], reply
                 assert reply['generation'] == 0 and reply['pages'] == 0 and reply['unwind_active'] == 0, reply
                 assert (h.value(), ro_value(h)) == before
-                assert mapping_permissions(h, [0x20000000, h.entry, h.ro]) == [None, 'r-xp', 'r--p']
+                assert mapping_permissions(h, [0x20000000, h.entry, h.ro]) == ['---p', 'r-xp', 'r--p']
                 assert h.command('c') == 'cleared'
-                # Reuse the very same staged address: rollback must have unmapped it.
+                # Reuse the very same staged address: rollback must have restored its reservation.
                 reply = h.request(v1(*patch_records(h)))
                 assert reply['ok'] and reply['generation'] == 1 and reply['pages'] == 1, reply
                 assert (h.value(), ro_value(h)) == after
