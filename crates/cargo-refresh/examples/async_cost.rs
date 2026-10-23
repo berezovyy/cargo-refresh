@@ -29,10 +29,11 @@ fn main() -> Result<()> {
         "CARGO_BUILD_TARGET".into(),
         "x86_64-unknown-linux-gnu".into(),
     );
-    let source = cfg.project.join("crates/api/src/async_cases.rs");
+    let source = cfg.project.join("crates/api/src/handlers.rs");
     let original = fs::read(&source)?;
     let text = String::from_utf8(original.clone())?;
-    ensure!(text.contains("\"before-v1\""), "missing before marker");
+    let needle = "weighted_total: total.saturating_mul(priority_weight(0) as usize),";
+    ensure!(text.contains(needle), "missing summary arithmetic marker");
     let mut client = Client::new(cfg);
     client.start()?;
     let restore = Restore(source, original);
@@ -52,8 +53,11 @@ fn main() -> Result<()> {
             let mut proof_rows = Vec::new();
             let before = resources()?;
             for enabled in [false, true] {
-                let marker = format!("\"before-{}-{pair:03}\"", if enabled { 'b' } else { 'a' });
-                fs::write(&restore.0, text.replacen("\"before-v1\"", &marker, 1))?;
+                let value = pair * 2 + usize::from(enabled);
+                let replacement = format!(
+                    "weighted_total: total.saturating_mul(priority_weight(0) as usize).saturating_add({value:06}),"
+                );
+                fs::write(&restore.0, text.replacen(needle, &replacement, 1))?;
                 let start = Instant::now();
                 let build = client.build_with_async_certificates(enabled)?;
                 times.push(start.elapsed().as_secs_f64() * 1000.0);
