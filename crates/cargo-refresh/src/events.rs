@@ -29,6 +29,8 @@ pub enum Phase {
     Classify,
     BuildStart,
     BuildEnd,
+    StockStart,
+    StockEnd,
     ExtractStart,
     ExtractEnd,
     PatchSent,
@@ -79,6 +81,15 @@ impl EventLog {
 
     pub fn save(&mut self, generation: u64, save: &SaveEvent) -> io::Result<()> {
         self.write("save", generation, save)
+    }
+
+    pub fn detail<T: Serialize>(
+        &mut self,
+        event: &str,
+        generation: u64,
+        fields: T,
+    ) -> io::Result<()> {
+        self.write(event, generation, fields)
     }
 
     fn write<T: Serialize>(&mut self, event: &str, generation: u64, fields: T) -> io::Result<()> {

@@ -26,7 +26,7 @@ pub fn normalize_args(args: impl IntoIterator<Item = OsString>) -> Vec<OsString>
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Resolve configuration and watch source changes (compiler integration pending).
+    /// Run your program and refresh saved source changes.
     Run(RunArgs),
     /// Show controller state.
     Status,
@@ -34,7 +34,7 @@ pub enum Command {
     Stop,
 }
 
-#[derive(Debug, Default, Args)]
+#[derive(Debug, Clone, Default, Args)]
 pub struct RunArgs {
     #[arg(long)]
     pub bin: Option<String>,
