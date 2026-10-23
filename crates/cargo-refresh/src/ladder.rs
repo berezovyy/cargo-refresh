@@ -131,8 +131,6 @@ fn start_fast(
         crate::install::memory_allows(rustd::memory_available()?, support.warm_peak_bytes),
         "insufficient memory for compiler warm-up"
     );
-    let started = std::time::Instant::now();
-    eprintln!("[refresh] base build (normal cargo, first run only) + warming compiler…");
     let control = session_home.join(format!("promote-{seq}"));
     fs::create_dir_all(control.parent().unwrap())?;
     fs::write(&control, "0")?;
@@ -161,8 +159,7 @@ fn start_fast(
     let mut client = rustd::Client::new(cfg);
     client.start()?;
     eprintln!(
-        "[refresh] compiler ready in {:.2} s (editing: {}{})",
-        started.elapsed().as_secs_f64(),
+        "[refresh] compiler ready (editing: {}{})",
         config.package,
         if config.edit.is_empty() {
             String::new()

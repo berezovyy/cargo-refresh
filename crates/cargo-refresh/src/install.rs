@@ -496,6 +496,10 @@ pub fn prepare(config: &mut Config) {
     };
     let selected = (|| -> Result<Support> {
         ensure!(toolchain.qualified(), "unsupported toolchain");
+        eprintln!(
+            "[refresh] rustc {} ({:.9}…) — supported",
+            toolchain.release, toolchain.commit
+        );
         default_environment(config)?;
         let available = crate::rustd::memory_available()?;
         // Optional measured project estimate, in bytes. Never accept an invalid estimate.
@@ -562,10 +566,6 @@ pub fn prepare(config: &mut Config) {
     })();
     match selected {
         Ok(support) => {
-            eprintln!(
-                "[refresh] rustc {} ({:.9}…) — supported",
-                toolchain.release, toolchain.commit
-            );
             eprintln!("[refresh] toolchain support: {}", support.root.display());
             config.support = Some(Arc::new(support));
         }

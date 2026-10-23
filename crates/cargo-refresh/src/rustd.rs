@@ -266,7 +266,15 @@ impl Client {
                 capture.args(["--edit", edit]);
             }
         }
+        let base_started = Instant::now();
+        eprintln!("[refresh] base build (normal cargo, first run only)…");
         self.run(capture, self.config.command_timeout)?;
+        eprintln!(
+            "[refresh] base build done in {:.2} s",
+            base_started.elapsed().as_secs_f64()
+        );
+        let warm_started = Instant::now();
+        eprintln!("[refresh] warming compiler…");
         while Instant::now() < deadline {
             self.check_daemon()?;
             self.guard_memory()?;
@@ -285,6 +293,10 @@ impl Client {
             if lines.iter().any(|l| l.contains(": ready"))
                 && !lines.iter().any(|l| l.contains("loading for"))
             {
+                eprintln!(
+                    "[refresh] warming compiler… ready in {:.2} s",
+                    warm_started.elapsed().as_secs_f64()
+                );
                 return Ok(());
             }
             thread::sleep(Duration::from_millis(100));
