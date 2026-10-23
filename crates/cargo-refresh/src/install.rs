@@ -389,6 +389,11 @@ pub fn memory_allows(available: u64, peak: u64) -> bool {
     peak.checked_add(2 * GIB)
         .is_some_and(|required| available >= required)
 }
+fn default_profile(text: &str) -> Result<bool> {
+    let manifest: toml::Value = toml::from_str(text)?;
+    Ok(manifest.get("profile").and_then(|p| p.get("dev")).is_none())
+}
+
 fn default_environment(config: &Config) -> Result<()> {
     // No compiler/target/CPU overrides have been qualified. Cargo config may
     // hide these too; conservatively choose stock for any nonempty config.
@@ -419,6 +424,19 @@ fn default_environment(config: &Config) -> Result<()> {
                 || (key.starts_with("CARGO_BUILD_") && key != "CARGO_BUILD_JOBS")),
             "unqualified Cargo override {key}"
         );
+    }
+    for manifest in config
+        .input_files
+        .iter()
+        .filter(|p| p.file_name().is_some_and(|n| n == "Cargo.toml"))
+    {
+        if manifest.is_file() {
+            ensure!(
+                default_profile(&fs::read_to_string(manifest)?)?,
+                "custom Cargo dev profile is not qualified: {}",
+                manifest.display()
+            );
+        }
     }
     let mut configs: Vec<_> = config
         .input_files
@@ -678,6 +696,20 @@ mod tests {
         unknown.release = "1.100.0".into();
         assert!(!unknown.qualified());
     }
+    #[test]
+    fn dev_profile_flags_are_refused_in_all_toml_spellings() {
+        for manifest in [
+            "[profile.dev]\npanic = 'abort'",
+            "[profile.\"dev\"]\nopt-level = 3",
+            "profile = { dev = { debug = 0 } }",
+        ] {
+            assert!(!default_profile(manifest).unwrap());
+        }
+        assert!(default_profile("[package]\nname = 'tiny'").unwrap());
+        assert!(default_profile("[profile.release]\nlto = true").unwrap());
+        assert!(default_profile("[invalid").is_err());
+    }
+
     #[test]
     fn memory_boundary_includes_reserve_and_cannot_overflow() {
         assert!(memory_allows(15 * GIB, DEFAULT_WARM_PEAK));
