@@ -21,14 +21,31 @@ deprecation line per active process, rather than one line per variable.
 | `REFRESH_HOST_EXE` | `E106_HOST_EXE` | Exact absolute `/proc/self/exe` path. Required when using the new socket variable, preventing activation in inherited child executables. |
 | `REFRESH_AFTER_PATCH` | `E099_AUTO_HOOK` | `1` calls `fast_refresh_after_patch` after a successful APPLY. |
 | `REFRESH_DEBUG` | `E121_DEBUG` | Nonzero enables the prototype ptrace diagnostics. |
-| `REFRESH_INHERITED` | `E106_INHERITED_SEGMENTS` | Rename recognized; adopting these segments remains M3 §3.5 work. Existing mappings are still protected by MAP_FIXED_NOREPLACE. |
+| `REFRESH_INHERITED` | `E106_INHERITED_SEGMENTS` | Semicolon-separated `addr:memsz:prot` hexadecimal triples for inherited patch PT_LOADs. Each must exactly match the main ELF; adopted pages return OVERLAP on a later fresh write. Malformed specifications disable agent startup with a diagnostic. |
 | `REFRESH_PARK_SIGNAL` | none | Decimal signal number, default `SIGRTMIN+7`. Invalid/unusable signals disable agent startup; an existing handler is warned about. |
 
 Release uses hybrid IP/frame-pointer/conservative-stack checks. `E084_MODE`,
 `E054_SAFEPOINT`, `E121_DISABLE_UNWIND`, all `E123_*` controls and failure
 injection are confined to `REFRESH_TESTING` builds. The exported
-`e054_tick_enter/leave` compatibility functions remain available. Thread-creation
-races, second task enumeration and EINTR qualification remain M3 §3.4 work.
+`e054_tick_enter/leave` compatibility functions remain available. Thread creation
+is serialized with parking by a private writer-preferred rwlock. The parent waits for the child's
+stack-registration handshake before leaving its read side. The child then
+passes a read barrier before user code; it does not recursively lock before
+acknowledging its parent, so a queued writer cannot deadlock that handshake. The agent acquires
+the write side before its first task listing and holds it through release.
+A second raw getdents64 listing detects raw-clone races; after three such races
+APPLY returns PARK_TIMEOUT. A parked unregistered thread is reported separately
+and refused immediately. A thread in libc's exit trampoline can also cause that
+safe refusal; successful patches never ignore an unknown stack. A target that
+exits after successful tgkill but before entering its handler is removed from
+the acknowledgement count only after tgkill(signal=0) returns ESRCH. This avoids
+waiting for an acknowledgement from a dead thread during creation/exit storms.
+
+SA_RESTART is installed, but epoll_wait/nanosleep and other non-restartable
+syscalls can return EINTR. Applications must retry those calls. The C storm
+suite verifies retry/progress during 1,000 patches. An in-flight handler is
+counted before reading the gate, so a timeout cannot race cleanup/reuse of its
+saved context. Lock acquisition and signal delivery each have a 100 ms timeout.
 
 ## Header
 
@@ -83,18 +100,28 @@ and fixup addition overflows are refused. Length must be nonzero and at most
 Kind 4 is reserved for the M3 §4 symbol-blob implementation and currently
 returns BAD_PROTOCOL; the controller must omit it until that work lands.
 The generation owns its pages permanently after commit. Limits are 65536
-retained pages (256 MiB), 8192 retained unwind copies and 512 possible near-copy
-locations, spaced 2 MiB apart at load_base+256 MiB. No session reclamation or
-inherited-segment adoption is provided by this task.
+retained pages (256 MiB), an 8192-descriptor arena, and 512 retained near-copy
+locations/registry objects. Near slots are spaced 2 MiB apart **below** a PIE
+image, away from positive append-only code growth. ET_EXEC searches the upper
+rel32 window `[1 GiB, 2 GiB)`. All mappings use NOREPLACE, retry occupied slots,
+and validate rebased displacements; failure leaves existing mappings intact.
+The rotating cursor avoids scanning earlier retained copies on each save. The
+512-copy limit is the binding unwind limit and returns UNWIND_LIMIT. Production
+pages/copies remain append-only; session reclamation/epoch scheduling belongs
+to the controller. See [collision diagnosis](docs/COLLISION.md) for the distinct
+compiler/application-map collision and proposed compiler placement support.
 
 ## Transaction semantics
 
 Before parking, the agent validates original mapping permissions, allocates the
 undo log, maps/fills/fixes up all kind-0 pages and applies their final protections.
 It creates and registers private unwind copies while new code is unreachable.
-Registration can allocate or lock, so it occurs **before** parking. Refused
-copies are deregistered **after** releasing threads. This also avoids publishing
-entry jumps before their unwind coverage exists.
+Production uses `__register_frame_info` with fixed, aligned, agent-owned object
+storage and a free list; rollback/refusal returns objects for reuse. libgcc can
+still lock, so registration occurs **before** parking. Refused copies are
+deregistered **after** releasing threads. This avoids publishing entry jumps
+before their unwind coverage exists and avoids libgcc calls while app threads
+are stopped. Missing frame-info entry points produce UNWIND_UNAVAILABLE.
 
 While parked, only kind-1/2 bytes are saved to the preallocated undo log and
 modified. Original page protections are restored after each write. A commit
@@ -145,8 +172,22 @@ Example:
 | `INTERNAL` | Allocation/map inspection failure or requested hook is absent. |
 
 The controller may retry STACK_COLLISION/PARK_TIMEOUT once after 50 ms, then
-restart; other errors select restart. Pressure metrics/epoch policy are deferred
-to M3 §3.6. Escaping covers quotes, backslashes, control bytes and non-ASCII bytes
+restart; other errors select restart. Every reply also reports:
+
+- `retained_bytes`: retained patch pages (including adopted ones) plus allocated
+  unwind-copy pages; refused staging is excluded.
+- `unwind_copies` / `near_slots_used`: retained registered-copy count (currently
+  one slot per copy).
+- `pressure`: true above 75% of the retained-page, descriptor, or near-slot limit.
+  The controller decides when to schedule an epoch restart; the agent only reports.
+- `unregistered_threads`: count from the last APPLY attempt; PING/HOOK preserve
+  the last attempt's counters, matching the existing attempts/hazard counters.
+- `conflict_address`, `conflict_start`, `conflict_end`: absolute conflicting page
+  and observed VMA bounds (or one retained page for OVERLAP). Zero without a
+  conflict in this request; bounds can be zero if map inspection failed. A
+  fresh mapping conflict retains MMAP_FAILED and includes its owner in message.
+
+Escaping covers quotes, backslashes, control bytes and non-ASCII bytes
 (the latter as `\u00xx`), keeping every reply valid JSON. Numeric formatting uses a thread-local C numeric
 locale only during reply formatting, preserving the application's locale.
 
@@ -168,3 +209,14 @@ after their write/protection restore. `REFRESH_TESTING_FAIL_PHASE=write|restore`
 additionally exercises the before-write and before-final-protection failure
 branches for existing writes. The integration host can clear these variables
 and prove a later good patch succeeds. Release ignores all injection variables.
+
+
+`REFRESH_TESTING_HANDLER_DELAY_US=1..200000` delays one gated handler once,
+exercising release after a park timeout. It is absent from release builds. The
+integration suite verifies that a 150 ms delay causes a safe timeout, drains the
+handler, and allows the next identical-address transaction to succeed.
+
+`REFRESH_TESTING_TASK_RACE=1` enables a host callback resolved at initialization
+and invoked after the first task listing, before gate=1. The raw-clone fixture
+uses it to prove that the second listing detects a newly born thread. This hook
+and environment name are absent from release builds.

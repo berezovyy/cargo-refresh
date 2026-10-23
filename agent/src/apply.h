@@ -3,6 +3,9 @@
 #include "protocol.h"
 enum refresh_code apply(char error[160], int *threads);
 int owned(uintptr_t page);
+int adopt_inherited(const char *spec);
+struct refresh_conflict { uintptr_t address, start, end; };
+extern struct refresh_conflict apply_conflict;
 /* Compatibility diagnostics are zero in release, populated only by test scans. */
 struct refresh_scan_stats {
     uint64_t first_root, bytes, hits;

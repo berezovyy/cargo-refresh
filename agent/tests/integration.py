@@ -38,7 +38,8 @@ class Host:
         self.path = self.tmp.name + '/agent.sock'
         host = str(BUILD/host_name)
         prefix = os.environ.get('REFRESH_TEST_ASAN_LIBRARY', '')
-        preload = (prefix + ':' if prefix else '') + str(Path(library).resolve())
+        preload = (str(Path(library).resolve())+':'+prefix if prefix and os.environ.get('REFRESH_TEST_AGENT_FIRST') else
+                   (prefix + ':' if prefix else '') + str(Path(library).resolve()))
         environ = dict(os.environ, LD_PRELOAD=preload)
         for key in list(environ):
             if key.startswith(('REFRESH_', 'E077_', 'E106_', 'E084_', 'E054_', 'E099_', 'E121_', 'E123_')):
@@ -382,6 +383,19 @@ def server_suite(library):
     finally:
         h.close()
 
+def late_handler_suite(library):
+    h = Host(library, env={'REFRESH_TESTING_HANDLER_DELAY_US': '150000'})
+    try:
+        message = v1(*patch_records(h))
+        reply = h.request(message)
+        assert reply['code'] == 'PARK_TIMEOUT' and reply['pages'] == 0, reply
+        assert reply['generation'] == 0 and h.value() == 1, reply
+        reply = h.request(message)
+        assert reply['ok'] and h.value() == 2, reply
+        print('parking: handler delayed past timeout, release drains in-flight handler, same-address retry succeeds PASS')
+    finally:
+        h.close()
+
 def threaded_suite(library):
     h = Host(library, threads=4)
     refusals = 0
@@ -415,6 +429,8 @@ if __name__ == '__main__':
         v1_suite(library)
         locale_suite(library)
         pie_suite(library)
-        if args.testing: rollback_suite(args.testing)
+        if args.testing:
+            rollback_suite(args.testing)
+            late_handler_suite(args.testing)
         server_suite(library)
         threaded_suite(library)

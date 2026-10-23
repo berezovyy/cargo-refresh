@@ -10,30 +10,43 @@ int frame_generation123[MAX_RECORDS];
 uint64_t frame_registrations, frame_deregistrations;
 static int staged_registered;
 static size_t retained_unwind_bytes;
+static unsigned near_cursor;
 #include "unwind-copy.h"
 
-#if defined(REFRESH_TESTING) && defined(E123_OWN_REGISTRY)
-static void (*register_info123)(void *, void *);
-static unsigned char registry_info123[MAX_RECORDS][512] __attribute__((aligned(16)));
-static int registry_cursor123;
-static void register_owned123(void *f) {
-    if (registry_cursor123 == MAX_RECORDS) abort();
-    register_info123(f, registry_info123[registry_cursor123++]);
+/* Linux/x86-64 libgcc's opaque object fits in this conservative, 16-byte
+ * aligned storage (same contract as the EXP-123 own-registry prototype).
+ * The object must never move while registered. Refusals return it to a free
+ * list; successful append-only generations retain it for their lifetime. */
+static void (*register_info)(void *, void *);
+static void *(*deregister_info)(void *);
+struct registry_object { unsigned char bytes[512]; } __attribute__((aligned(16)));
+static struct registry_object registry_objects[REFRESH_NEAR_SLOTS];
+static unsigned free_objects[REFRESH_NEAR_SLOTS], free_count;
+static void register_owned(void *frame) {
+    /* prepare_frames reserves capacity before any registration. */
+    unsigned slot = free_objects[--free_count];
+    memset(&registry_objects[slot], 0, sizeof(registry_objects[slot]));
+    register_info(frame, &registry_objects[slot]);
 }
-#endif
-
+static void deregister_owned(void *frame) {
+    void *object = deregister_info(frame);
+    uintptr_t a = (uintptr_t)object, start = (uintptr_t)registry_objects;
+    if (a >= start && a - start < sizeof(registry_objects) &&
+        !((a - start) % sizeof(struct registry_object)) && free_count < REFRESH_NEAR_SLOTS)
+        free_objects[free_count++] = (unsigned)((a - start) / sizeof(struct registry_object));
+    /* An unexpected libgcc return is never reused; next preflight fails closed
+     * on capacity, rather than corrupting another live registration. */
+}
 void unwind_init(void) {
     void *gcc = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_LOCAL);
     if (!gcc) return;
-    register_frame = dlsym(gcc, "__register_frame");
-    deregister_frame = dlsym(gcc, "__deregister_frame");
-#if defined(REFRESH_TESTING) && defined(E123_OWN_REGISTRY)
-    register_info123 = dlsym(gcc, "__register_frame_info");
-    if (register_info123) {
-        register_frame = register_owned123;
-        deregister_frame = dlsym(gcc, "__deregister_frame_info");
-    }
-#endif
+    register_info = dlsym(gcc, "__register_frame_info");
+    deregister_info = dlsym(gcc, "__deregister_frame_info");
+    if (!register_info || !deregister_info) return;
+    for (unsigned i = 0; i < REFRESH_NEAR_SLOTS; ++i) free_objects[i] = i;
+    free_count = REFRESH_NEAR_SLOTS;
+    register_frame = register_owned;
+    deregister_frame = deregister_owned;
 }
 size_t unwind_bytes122(void) { return retained_unwind_bytes; }
 void discard_staged(void) {
@@ -54,7 +67,7 @@ enum refresh_code prepare_frames(char error[160]) {
     for (int i = 0; i < nrec; ++i) if (recs[i].kind == 3) {
         if (!register_frame || !deregister_frame)
             return unwind_error(error, REFRESH_UNWIND_UNAVAILABLE, "libgcc frame registration unavailable");
-        if (nframes + nstaged == MAX_RECORDS)
+        if (nframes + nstaged >= REFRESH_NEAR_SLOTS || (unsigned)nstaged >= free_count)
             return unwind_error(error, REFRESH_UNWIND_LIMIT, "retained unwind limit");
         uint64_t span;
         memcpy(&span, recs[i].bytes, 8);
@@ -66,20 +79,38 @@ enum refresh_code prepare_frames(char error[160]) {
                 return unwind_error(error, REFRESH_UNWIND_INVALID, "unwind region outside patch pages");
         size_t size = (span + 4 + 4095) & ~4095ULL;
         void *buf = MAP_FAILED;
-        for (int k = 0; k < 512; ++k) {
-            uintptr_t hint = load_base + 0x10000000ULL + (uintptr_t)k * 0x200000;
+        int invalid = 0;
+        /* PIE: stay below the image, opposite rustd's append-only growth.
+         * ET_EXEC: search the high end of the rel32 window instead of +256 MiB.
+         * NOREPLACE is authoritative if another thread maps a candidate meanwhile.
+         * Rebase each candidate: proximity to the descriptor alone does not prove
+         * all personality/LSDA/PC signed displacements are representable. */
+        for (unsigned step = 0; step < REFRESH_NEAR_SLOTS; ++step) {
+            unsigned k = (near_cursor + step) % REFRESH_NEAR_SLOTS;
+            uintptr_t distance = (uintptr_t)(k + 1) * 0x200000;
+            uintptr_t hint = load_base > 0x40000000ULL ? load_base - distance :
+                             0x80000000ULL - distance;
+            uintptr_t delta = hint > a ? hint - a : a - hint;
+            if (delta > INT32_MAX - size) continue;
             buf = mmap((void *)hint, size, PROT_READ | PROT_WRITE,
                        MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE, -1, 0);
-            if (buf != MAP_FAILED) break;
+            if (buf == MAP_FAILED) continue;
+            /* Fail closed on kernels that do not implement NOREPLACE. */
+            if ((uintptr_t)buf != hint) { munmap(buf, size); buf = MAP_FAILED; continue; }
+            memcpy(buf, (void *)a, span);
+            if (!rebase121(buf, span, (intptr_t)buf - (intptr_t)a)) {
+                near_cursor = (k + 1) % REFRESH_NEAR_SLOTS;
+                break;
+            }
+            invalid = 1;
+            munmap(buf, size); buf = MAP_FAILED;
         }
         if (buf == MAP_FAILED)
-            return unwind_error(error, REFRESH_MMAP_FAILED, "near unwind mapping unavailable");
+            return unwind_error(error, invalid ? REFRESH_UNWIND_INVALID : REFRESH_MMAP_FAILED,
+                                invalid ? "unwind encoding or signed displacement invalid" :
+                                          "near unwind mapping unavailable");
         staged_frames[nstaged] = (uintptr_t)buf;
         staged_sizes[nstaged++] = size;
-        /* kind-0 payloads and fixups are already present in final-protected pages. */
-        memcpy(buf, (void *)a, span);
-        if (rebase121(buf, span, (intptr_t)buf - (intptr_t)a))
-            return unwind_error(error, REFRESH_UNWIND_INVALID, "unsupported unwind-copy encoding");
         if (mprotect(buf, size, PROT_READ))
             return unwind_error(error, REFRESH_MPROTECT_FAILED, "unwind-copy mprotect failed");
     }
@@ -87,7 +118,9 @@ enum refresh_code prepare_frames(char error[160]) {
 }
 void register_staged(void) {
     if (disable_unwind) return;
-    /* Unreachable staged code: libgcc may allocate/lock here, before parking. */
+    /* Own object storage avoids registration allocation. libgcc may still lock:
+     * register before parking while new code is unreachable, with no exposure
+     * gap between publishing entry jumps and installing unwind coverage. */
     for (int i = 0; i < nstaged; ++i) {
 #if defined(REFRESH_TESTING) && defined(E123_TRACK_REGISTRY)
         registry_scope123(1);
