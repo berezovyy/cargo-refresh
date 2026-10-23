@@ -37,3 +37,9 @@ Deferred: M3 §3.4 thread-creation/parking robustness and EINTR tests, §3.5 inh
 segment adoption, §3.6 pressure/epochs, §3.7 full panic/unwind stress qualification,
 and §4 symbol blobs/backtraces. Unwind registration was moved to unreachable
 staging before parking in this task to satisfy the allocation audit.
+
+`make test-controlled-gc` is a separate optional smoke for the preserved E123
+controlled leaf collector's page-index/unwind-counter bookkeeping. Its fixture
+promises no escaping old-generation pointers. This is not production collection;
+conservative false positives can retain pages. Do not run this full writable-root
+scan under ASan, whose shadow mappings are also writable roots.

@@ -38,3 +38,11 @@ test-asan:
 	REFRESH_TEST_ASAN_LIBRARY='$(shell $(CC) -print-file-name=libasan.so)' ASAN_OPTIONS=abort_on_error=1:detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $(MAKE) BUILD=build-asan CFLAGS='$(ASAN_FLAGS)' test
 clean:
 	rm -rf build build-asan
+
+# Separate research diagnostic: full writable-root scans include ASan's shadow
+# mappings, so the production/test-asan suites intentionally do not invoke this.
+$(BUILD)/librefresh-gc-testing.so: $(SOURCES) $(HEADERS) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DREFRESH_TESTING -DE123_CONTROLLED_LEAF_GC -DE123_TRACK_REGISTRY -DE123_OWN_REGISTRY -fvisibility=hidden -shared -fPIC $(SOURCES) -o $@ $(LDLIBS)
+.PHONY: test-controlled-gc
+test-controlled-gc: $(BUILD)/librefresh-gc-testing.so $(BUILD)/host $(BUILD)/oracle-after
+	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/controlled_gc.py $(BUILD)/librefresh-gc-testing.so

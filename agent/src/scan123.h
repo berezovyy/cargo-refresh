@@ -96,13 +96,12 @@ static void scan123(void){
         for(int g=0;g<ng123-1;g++)if(!marked123[g] && !freed123[g]){
             for(int f=0;f<nframes;){
                 if(frame_generation123[f]==g){
-                    deregister_frame((void*)active_frames[f]);frame_deregistrations++;
-                    munmap((void*)active_frames[f],active_sizes[f]);
-                    nframes--;active_frames[f]=active_frames[nframes];active_sizes[f]=active_sizes[nframes];frame_generation123[f]=frame_generation123[nframes];
+                    forget_active_frame123(f);
                 }else f++;
             }
             for(int p=0;p<npages;){
                 if(pages[p]>=generations123[g].a && pages[p]<generations123[g].b){
+                    remove_page(pages[p]);
                     munmap((void*)pages[p],4096);pages[p]=pages[--npages];
                 }else p++;
             }

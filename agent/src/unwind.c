@@ -110,3 +110,16 @@ void retain_staged(void) {
     }
     nstaged = staged_registered = 0;
 }
+
+#ifdef REFRESH_TESTING
+void forget_active_frame123(int index) {
+    deregister_frame((void *)active_frames[index]);
+    ++frame_deregistrations;
+    retained_unwind_bytes -= active_sizes[index];
+    munmap((void *)active_frames[index], active_sizes[index]);
+    --nframes;
+    active_frames[index] = active_frames[nframes];
+    active_sizes[index] = active_sizes[nframes];
+    frame_generation123[index] = frame_generation123[nframes];
+}
+#endif
