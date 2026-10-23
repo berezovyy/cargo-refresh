@@ -24,4 +24,5 @@ pub mod supervisor;
 pub mod triggers;
 pub mod ui;
 
+pub mod install;
 pub mod symbolize;

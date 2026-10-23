@@ -19,7 +19,7 @@ pub struct Supervisor {
     pub socket: PathBuf,
     project: PathBuf,
     args: Vec<OsString>,
-    library: PathBuf,
+    library: Option<PathBuf>,
     hook: bool,
     name: OsString,
     exit_reported: bool,
@@ -70,7 +70,7 @@ impl Supervisor {
             socket: PathBuf::new(),
             project: project.into(),
             args,
-            library: library.canonicalize()?,
+            library: Some(library.canonicalize()?),
             hook,
             name,
             exit_reported: false,
@@ -78,6 +78,10 @@ impl Supervisor {
             stderr: None,
             load_base: 0,
         })
+    }
+    /// Use only the validated release agent, or no injection in stock mode.
+    pub fn configure_agent(&mut self, library: Option<&Path>) {
+        self.library = library.map(Path::to_path_buf);
     }
     pub fn configure(&mut self, hook: bool, name: OsString) {
         self.hook = hook;
@@ -98,11 +102,23 @@ impl Supervisor {
             .current_dir(&self.project)
             .args(&self.args)
             .process_group(0)
-            .stderr(Stdio::piped())
-            .env("LD_PRELOAD", &self.library)
-            .env("REFRESH_AGENT_SOCKET", &socket)
-            .env("REFRESH_HOST_EXE", &executable)
-            .env("REFRESH_AFTER_PATCH", if self.hook { "1" } else { "0" });
+            .stderr(Stdio::piped());
+        if let Some(library) = &self.library {
+            command
+                .env("LD_PRELOAD", library)
+                .env("REFRESH_AGENT_SOCKET", &socket)
+                .env("REFRESH_HOST_EXE", &executable)
+                .env("REFRESH_AFTER_PATCH", if self.hook { "1" } else { "0" });
+        } else {
+            for name in [
+                "LD_PRELOAD",
+                "REFRESH_AGENT_SOCKET",
+                "REFRESH_HOST_EXE",
+                "REFRESH_AFTER_PATCH",
+            ] {
+                command.env_remove(name);
+            }
+        }
         // Rust 1.99 short traces omit instruction addresses even for unknown
         // frames. Request address-bearing output so patched PCs can be resolved.
         if std::env::var_os("RUST_BACKTRACE").is_some_and(|v| v == "1") {
@@ -123,6 +139,10 @@ impl Supervisor {
             stderr,
             self.symbols.clone(),
         )?);
+        self.load_base = 0;
+        if self.library.is_none() {
+            return Ok(());
+        }
         self.load_base = crate::symbolize::load_base(self.pid().unwrap(), &self.executable)?;
         *self.symbols.write().unwrap() =
             crate::symbolize::SymbolIndex::baseline(&self.executable, self.load_base)?;
@@ -242,6 +262,31 @@ mod tests {
         supervisor.stop();
         assert!(!Path::new(&format!("/proc/{pid}")).exists());
     }
+    #[test]
+    fn stock_mode_runs_without_an_agent_and_resets_symbols() {
+        let storage = tempfile::tempdir().unwrap();
+        let script = storage.path().join("stock-script");
+        // Stock mode must neither wait for an agent nor require an ELF symbol table.
+        fs::write(&script, "#!/bin/sh\necho stock-stderr >&2\nsleep 30\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o700)).unwrap();
+        let mut supervisor = Supervisor::new(
+            storage.path(),
+            storage.path(),
+            vec![],
+            false,
+            "stock-script".into(),
+        )
+        .unwrap();
+        supervisor.configure_agent(None);
+        let old_symbols = supervisor.symbols.clone();
+        supervisor.start(&script).unwrap();
+        assert!(supervisor.stderr.is_some());
+        assert!(!Arc::ptr_eq(&old_symbols, &supervisor.symbols));
+        assert!(!supervisor.socket.exists());
+        assert!(supervisor.poll_exit().unwrap().is_none());
+        supervisor.stop();
+    }
+
     #[test]
     fn unexpected_exit_is_observed_once() {
         let storage = tempfile::tempdir().unwrap();

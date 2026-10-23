@@ -22,6 +22,10 @@ walkdir.workspace = true
 tempfile.workspace = true
 memmap2 = "0.9.11"
 rustc-demangle = "0.1"
+sha2 = "0.10"
+tar = "0.4"
+zstd = "0.13"
+toml = "1"
 
 [dev-dependencies]
 flate2 = "1"

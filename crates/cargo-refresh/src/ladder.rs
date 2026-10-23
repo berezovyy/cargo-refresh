@@ -104,18 +104,6 @@ fn executable_bytes(path: &std::path::Path) -> Result<u64> {
         .checked_mul(512)
         .context("executable allocation overflow")
 }
-fn compiler_path() -> Result<PathBuf> {
-    if let Some(path) = std::env::var_os("REFRESH_RUSTD") {
-        return Ok(path.into());
-    }
-    for dir in std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()) {
-        let path = dir.join("rustd");
-        if path.is_file() {
-            return Ok(path);
-        }
-    }
-    anyhow::bail!("rustd is not installed; set REFRESH_RUSTD or put rustd on PATH")
-}
 fn native_binary(config: &Config) -> Result<PathBuf> {
     // Cargo's published executable can still be its rustc fallback. Direct sync
     // updates the worker's Plan.binary, so the baseline must be that exact image.
@@ -150,10 +138,22 @@ fn start_fast(
     floor: u64,
     cancel: Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<Fast> {
+    let support = config
+        .support
+        .as_ref()
+        .context("live patching disabled; using stock Cargo")?;
+    ensure!(
+        crate::install::memory_allows(rustd::memory_available()?, support.warm_peak_bytes),
+        "insufficient memory for compiler warm-up"
+    );
     let control = session_home.join(format!("promote-{seq}"));
     fs::create_dir_all(control.parent().unwrap())?;
     fs::write(&control, "0")?;
-    let mut cfg = rustd::Config::new(&config.workspace_root, compiler_path()?, &config.bin)?;
+    let mut cfg = rustd::Config::new(
+        &config.workspace_root,
+        support.root.join("rustd"),
+        &config.bin,
+    )?;
     cfg.home = session_home.join(format!("d-{seq}"));
     cfg.memory_min_bytes = floor;
     cfg.cancel = Some(cancel);
@@ -161,6 +161,10 @@ fn start_fast(
         let env: BTreeMap<String, String> = serde_json::from_str(&value.to_string_lossy())?;
         cfg.extra_env = env.into_iter().map(|(k, v)| (k.into(), v.into())).collect();
     }
+    cfg.extra_env.insert(
+        "RUSTD_ABI_FACTS_DIR".into(),
+        support.bundle_dir().as_os_str().to_owned(),
+    );
     cfg.extra_env.insert(
         "RUSTD_PROMOTE_CONTROL".into(),
         control.as_os_str().to_owned(),
@@ -170,6 +174,19 @@ fn start_fast(
     cfg.features = config.features.clone();
     let mut client = rustd::Client::new(cfg);
     client.start()?;
+    eprintln!(
+        "[refresh] compiler ready (editing: {}{})",
+        config.package,
+        if config.edit.is_empty() {
+            String::new()
+        } else {
+            format!(", {}", config.edit.join(", "))
+        }
+    );
+    eprintln!(
+        "[refresh] tip: live patches apply to {}; edits to other crates use cargo. Add more with --edit <crate>.",
+        config.package
+    );
     let binary = native_binary(config)?;
     // Fresh reset capture must be a native baseline, never a stale splice from a prior daemon.
     ensure!(
@@ -218,18 +235,25 @@ impl Pipeline {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(2 * 1024 * 1024 * 1024);
-        let runtime = Supervisor::new(
+        let mut runtime = Supervisor::new(
             &config.workspace_root,
             &config.target_directory.join("refresh"),
             config.args.clone(),
             config.after_patch_hook,
             config.bin.clone().into(),
         )?;
+        runtime.configure_agent(
+            config
+                .support
+                .as_ref()
+                .map(|s| s.root.join("librefresh.so"))
+                .as_deref(),
+        );
         let session_home = tempfile::Builder::new()
             .prefix("session-")
             .tempdir_in(config.target_directory.join("refresh"))?
             .keep();
-        let workspace = if config.check || config.strict {
+        let workspace = if config.support.is_some() && (config.check || config.strict) {
             Some(Workspace::copy(&config)?)
         } else {
             None
@@ -299,18 +323,20 @@ impl Pipeline {
                     .start(&result.executable.context("stock build has no executable")?)?;
             }
         }
-        let reply = agent::Client::new(&self.runtime.socket).ping()?;
-        self.hook_missing = self.config.after_patch_hook
-            && reply
-                .counters
-                .get("callback_present")
-                .and_then(|v| v.as_bool())
-                != Some(true);
-        if self.hook_missing && !self.triggers.configured() {
-            self.event(
-                "hook_unavailable",
-                "after-patch callback is missing; edits require a restart",
-            );
+        if self.config.support.is_some() {
+            let reply = agent::Client::new(&self.runtime.socket).ping()?;
+            self.hook_missing = self.config.after_patch_hook
+                && reply
+                    .counters
+                    .get("callback_present")
+                    .and_then(|v| v.as_bool())
+                    != Some(true);
+            if self.hook_missing && !self.triggers.configured() {
+                self.event(
+                    "hook_unavailable",
+                    "after-patch callback is missing; edits require a restart",
+                );
+            }
         }
         if let Some(workspace) = &self.workspace {
             let mut check = Checker::start(&self.config, workspace, self.fence.clone(), self.floor);
@@ -321,6 +347,11 @@ impl Pipeline {
         self.event(
             "ready",
             format!("application pid {}", self.runtime.pid().unwrap_or(0)),
+        );
+        eprintln!(
+            "[refresh] {} running (pid {}). Save a file to see it update.",
+            self.config.bin,
+            self.runtime.pid().unwrap_or(0)
         );
         self.sender.send(Update::Ready)?;
         Ok(())
@@ -335,7 +366,11 @@ impl Pipeline {
         }
     }
     fn begin_reset(&mut self) {
-        if self.reset.is_some() || self.fast.is_some() || !self.fence.current() {
+        if self.config.support.is_none()
+            || self.reset.is_some()
+            || self.fast.is_some()
+            || !self.fence.current()
+        {
             return;
         }
         self.reset_seq += 1;
@@ -392,6 +427,14 @@ impl Pipeline {
             .any(|c| c.kind == PathKind::Manifest);
         if manifest_change {
             self.config = Config::load(self.config.invocation.clone())?;
+            crate::install::prepare(&mut self.config);
+            self.runtime.configure_agent(
+                self.config
+                    .support
+                    .as_ref()
+                    .map(|s| s.root.join("librefresh.so"))
+                    .as_deref(),
+            );
             self.triggers = crate::triggers::Triggers::new(
                 self.config.after_patch_touch.clone(),
                 self.config.after_patch_http.as_deref(),
@@ -428,7 +471,7 @@ impl Pipeline {
         self.runtime
             .start(&result.executable.context("stock binary missing")?)?;
         mark(&mut job.phases, Phase::SpawnEnd);
-        if manifest_change {
+        if manifest_change && self.config.support.is_some() {
             let reply = agent::Client::new(&self.runtime.socket).ping()?;
             self.hook_missing = self.config.after_patch_hook
                 && reply
@@ -443,10 +486,15 @@ impl Pipeline {
         self.advance_checked(&job.changes);
         self.event("check_ok", "stock build passed borrow checking");
         if manifest_change {
-            if self.workspace.is_some() {
-                self.workspace = Some(Workspace::copy(&self.config)?);
-                self.view_dirty.clear();
-            }
+            // A session can gain qualified support after its toolchain/config
+            // changes. Recreate checks from the new policy before warming rustd.
+            self.workspace =
+                if self.config.support.is_some() && (self.config.check || self.config.strict) {
+                    Some(Workspace::copy(&self.config)?)
+                } else {
+                    None
+                };
+            self.view_dirty.clear();
             self.sender.send(Update::Reconfigure(
                 Box::new(self.config.clone()),
                 job.changes.revision,
@@ -526,6 +574,12 @@ impl Pipeline {
                 workspace.write(path, self.sources.get(path).map(|b| b.as_ref()))?;
             }
             self.view_dirty = current;
+        }
+        if self.config.support.is_none() && job.changes.disposition != Disposition::Skip {
+            return self.stock(
+                &mut job,
+                "live patching disabled; using normal cargo builds + restart".into(),
+            );
         }
         if job.changes.disposition == Disposition::Skip {
             if let Some(workspace) = &self.workspace {

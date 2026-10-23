@@ -74,6 +74,9 @@ pub struct RunArgs {
     /// Additional editable crates; replaces metadata.refresh.edit when supplied.
     #[arg(long, value_delimiter = ',', value_parser = clap::builder::NonEmptyStringValueParser::new())]
     pub edit: Option<Vec<String>>,
+    /// Install exact-toolchain support from a local .tar.zst plus adjacent .sha256.
+    #[arg(long, value_name = "PATH")]
+    pub from_archive: Option<PathBuf>,
     #[arg(long)]
     pub strict: bool,
     #[arg(long)]

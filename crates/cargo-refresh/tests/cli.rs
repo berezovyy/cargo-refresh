@@ -85,7 +85,8 @@ fn direct_and_cargo_style_run_resolve_config_build_and_log_without_self_events()
         command
             .current_dir(root)
             .env("RUSTUP_TOOLCHAIN", "1.99.0")
-            .env("REFRESH_RUSTD", "/nonexistent/refresh-test-rustd");
+            .env("REFRESH_RUSTD", "/nonexistent/refresh-test-rustd")
+            .env("CARGO_REFRESH_SUPPORT", root.join("missing-support"));
         if invocation != "direct" {
             command.arg("refresh");
         }
@@ -222,6 +223,7 @@ fn feature_selection_reaches_metadata_initial_and_stock_builds() {
             .current_dir(root)
             .env("RUSTUP_TOOLCHAIN", "1.99.0")
             .env("REFRESH_RUSTD", "/nonexistent/feature-test-rustd")
+            .env("CARGO_REFRESH_SUPPORT", root.join("missing-support"))
             .args([
                 "run",
                 "--no-default-features",
@@ -330,6 +332,103 @@ elif sys.argv[1]=='sync':
 else:raise RuntimeError(sys.argv)
 "#,
     );
+    // The installer intentionally ignores REFRESH_RUSTD. Supply a complete,
+    // checksummed local test package, keeping the production validation path.
+    // Use an ELF launcher so runtime dependency validation also runs normally.
+    let support = root.join("support");
+    fs::create_dir(&support).unwrap();
+    let launcher = root.join("launcher.c");
+    fs::write(
+        &launcher,
+        r#"#include <stdlib.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+    char **args = calloc((size_t)argc + 2, sizeof(char *));
+    if (!args) return 99;
+    args[0] = "python3";
+    args[1] = getenv("FIX1_RUSTD_SCRIPT");
+    for (int i = 1; i < argc; ++i) args[i + 1] = argv[i];
+    execvp(args[0], args);
+    return 99;
+}
+"#,
+    )
+    .unwrap();
+    assert!(
+        Command::new("cc")
+            .arg(&launcher)
+            .arg("-o")
+            .arg(support.join("rustd"))
+            .status()
+            .unwrap()
+            .success()
+    );
+    for shim in ["cargo-rustd", "rustd-rustc"] {
+        fs::copy("/bin/true", support.join(shim)).unwrap();
+    }
+    fs::write(
+        support.join("librefresh.so"),
+        cargo_refresh::supervisor::AGENT,
+    )
+    .unwrap();
+    fs::set_permissions(
+        support.join("librefresh.so"),
+        fs::Permissions::from_mode(0o755),
+    )
+    .unwrap();
+    let commit = cargo_refresh::install::QUALIFIED_COMMIT;
+    let target = cargo_refresh::install::TARGET;
+    fs::write(support.join("VERSION"), format!(
+        "cargo_refresh={}\nrustc_commit={commit}\ntarget={target}\ncargo_refresh_commit={commit}\nrustd_commit={commit}\nra_commit={commit}\nagent_static_libunwind=0\n",
+        env!("CARGO_PKG_VERSION")
+    )).unwrap();
+    fs::write(
+        support.join("abi-facts.bundle"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": 1, "commit_hash": commit, "target": target,
+            "simd128": "indirect", "personality": "rust_eh_personality",
+            "rustc_vv": format!("release: 1.99.0\ncommit-hash: {commit}\nhost: {target}\n")
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(support.join("RUNTIME.txt"), "test package\n").unwrap();
+    fs::create_dir(support.join("licenses")).unwrap();
+    for project in ["cargo-refresh", "rustd", "rust-analyzer"] {
+        for license in ["MIT", "APACHE"] {
+            fs::write(
+                support.join(format!("licenses/{project}-LICENSE-{license}")),
+                "test\n",
+            )
+            .unwrap();
+        }
+    }
+    use sha2::{Digest, Sha256};
+    fs::set_permissions(&support, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(support.join("licenses"), fs::Permissions::from_mode(0o700)).unwrap();
+    let mut sums = String::new();
+    for entry in walkdir::WalkDir::new(&support).min_depth(1) {
+        let entry = entry.unwrap();
+        if entry.file_type().is_file() {
+            let name = entry.path().strip_prefix(&support).unwrap();
+            let executable = ["rustd", "cargo-rustd", "rustd-rustc", "librefresh.so"]
+                .iter()
+                .any(|file| name == Path::new(file));
+            fs::set_permissions(
+                entry.path(),
+                fs::Permissions::from_mode(if executable { 0o755 } else { 0o644 }),
+            )
+            .unwrap();
+            let hash = Sha256::digest(fs::read(entry.path()).unwrap());
+            sums.push_str(&format!("{hash:x}  {}\n", name.display()));
+        }
+    }
+    fs::write(support.join("SHA256SUMS"), sums).unwrap();
+    fs::set_permissions(
+        support.join("SHA256SUMS"),
+        fs::Permissions::from_mode(0o644),
+    )
+    .unwrap();
     let source = root.join("src/main.rs");
     let initial = "fn value() -> u64 { 1 }\nfn main() { loop { println!(\"value={}\", value()); std::thread::sleep(std::time::Duration::from_millis(20)); } }\n";
     fs::write(&source, initial).unwrap();
@@ -350,7 +449,10 @@ else:raise RuntimeError(sys.argv)
                 "FIX1_REAL_CARGO",
                 String::from_utf8(real_cargo.stdout).unwrap().trim(),
             )
-            .env("REFRESH_RUSTD", rustd)
+            .env("REFRESH_RUSTD", "/not/the/validated/compiler")
+            .env("FIX1_RUSTD_SCRIPT", rustd)
+            .env("CARGO_REFRESH_SUPPORT", support)
+            .env("CARGO_REFRESH_WARM_PEAK_BYTES", "0")
             .env_remove("REFRESH_LANE_TOOL")
             .args(["run", "--no-check", "--events"])
             .arg(&events)
@@ -377,7 +479,9 @@ else:raise RuntimeError(sys.argv)
         save["reason"]
             .as_str()
             .unwrap()
-            .contains("no compiled change")
+            .contains("no compiled change"),
+        "{saves:#?}\n{}",
+        fs::read_to_string(&stderr).unwrap()
     );
     assert!(saves.iter().any(|r| r["event"] == "compiler_no_change"));
     wait_until(|| fs::read_to_string(&stdout).unwrap().contains("value=2"));

@@ -2,8 +2,18 @@
 # Build a local release candidate. Never publishes or downloads executables.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+PORTABLE=1
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --portable) PORTABLE=1 ;;
+    --native) PORTABLE=0 ;;
+    *) ARGS+=("$arg") ;;
+  esac
+done
+set -- "${ARGS[@]}"
 [[ $# == 1 && $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
-  echo 'Usage: scripts/release.sh <version> (e.g. 0.1.0-dev)' >&2; exit 2;
+  echo 'Usage: scripts/release.sh [--portable|--native] <version> (portable is default)' >&2; exit 2;
 }
 VERSION=$1
 RESEARCH=${REFRESH_RESEARCH_ROOT:-/path/to/research}
@@ -29,34 +39,51 @@ mkdir -p "$WORK" "$ROOT/dist"
 NAME=cargo-refresh-$VERSION-$COMMIT-x86_64-linux
 STAGE=$(mktemp -d "$WORK/package.XXXXXXXX")
 trap 'rm -rf "$STAGE"' EXIT
+# Zig is installed by the caller; no implicit network setup in release builds.
+# REFRESH_ZIG may point directly at the user-space Zig executable.
+if (( PORTABLE )); then
+  command -v cargo-zigbuild >/dev/null
+  export ZIG=${REFRESH_ZIG:-zig}
+  "$ZIG" version
+  export CARGO_ZIGBUILD_ZIG_PATH="$ZIG"
+  BUILD_TARGET=x86_64-unknown-linux-gnu.2.28
+  BUILD_COMMAND=zigbuild
+  BINARY_DIR="$WORK/rustd-portable-target/x86_64-unknown-linux-gnu/release"
+  TARGET_DIR="$WORK/rustd-portable-target"
+  TARGET_ARGS=(--target "$BUILD_TARGET")
+else
+  BUILD_COMMAND=build
+  BINARY_DIR="$WORK/rustd-target/release"
+  TARGET_DIR="$WORK/rustd-target"
+  TARGET_ARGS=()
+fi
 # Build with bounded parallelism and RAM guard, private target, no daemon.
 "$LANE" build -- python3 "$ROOT/scripts/run-guarded.py" env \
-  CARGO_TARGET_DIR="$WORK/rustd-target" CARGO_PROFILE_RELEASE_DEBUG=0 \
-  nice -n 19 cargo build --manifest-path "$RUSTD/Cargo.toml" --release --locked --offline -p rustd --bins -j 4
+  CARGO_TARGET_DIR="$TARGET_DIR" CARGO_PROFILE_RELEASE_DEBUG=0 \
+  nice -n 19 cargo "$BUILD_COMMAND" "${TARGET_ARGS[@]}" --manifest-path "$RUSTD/Cargo.toml" --release --locked --offline -p rustd --bins -j 4
 for bin in rustd cargo-rustd rustd-rustc; do
-  install -m 755 "$WORK/rustd-target/release/$bin" "$STAGE/$bin"
+  install -m 755 "$BINARY_DIR/$bin" "$STAGE/$bin"
 done
-# Static libunwind is preferred only when local PIC archives can actually link.
-# A failed static attempt never changes the production Makefile's dynamic default.
 STATIC=0
-if [[ -f $(cc -print-file-name=libunwind.a) && -f $(cc -print-file-name=libunwind-x86_64.a) ]]; then
-  if nice -n 19 make -B -C "$ROOT/agent" release \
-      LDLIBS='-Wl,-z,now -Wl,-Bstatic -lunwind -lunwind-x86_64 -Wl,-Bdynamic -ldl -lpthread'; then
-    STATIC=1
-  else
-    echo 'Static libunwind unavailable/non-PIC; building dynamic fallback.' >&2
-  fi
-fi
-if (( ! STATIC )); then
-  # Avoid reusing the static attempt or an older library with other link flags.
+if (( PORTABLE )); then
+  # The production hybrid agent uses libc + dlopen(libgcc_s), not test-only CFI
+  # libunwind. Never pull host libraries into a portable link.
+  nice -n 19 make -B -C "$ROOT/agent" BUILD=build-portable all \
+    CC="$ZIG cc -target x86_64-linux-gnu.2.28" \
+    LDLIBS='-Wl,-z,now -ldl -lpthread'
+  install -m 755 "$ROOT/agent/build-portable/librefresh.so" "$STAGE/librefresh.so"
+else
   nice -n 19 make -B -C "$ROOT/agent" release
+  install -m 755 "$ROOT/agent/build-release/librefresh.so" "$STAGE/librefresh.so"
 fi
-install -m 755 "$ROOT/agent/build-release/librefresh.so" "$STAGE/librefresh.so"
 "$ROOT/scripts/new-toolchain.sh" 1.99.0 --dry-run
 QUAL=${REFRESH_QUALIFICATION_OUT:-$WORK/qualification/$COMMIT}
 install -m 644 "$QUAL/abi-facts.bundle" "$STAGE/abi-facts.bundle"
 python3 "$ROOT/scripts/qualification/runtime-requirements.py" "$STAGE" > "$STAGE/RUNTIME.txt"
 cat "$STAGE/RUNTIME.txt"
+if (( PORTABLE )); then
+  python3 "$ROOT/scripts/check-glibc.py" "$STAGE" 2.28
+fi
 cat > "$STAGE/VERSION" <<METADATA
 cargo_refresh=$VERSION
 cargo_refresh_commit=$(git -C "$ROOT" rev-parse HEAD)
@@ -65,6 +92,7 @@ ra_commit=$RA_COMMIT
 rustc_commit=$COMMIT
 target=x86_64-unknown-linux-gnu
 agent_static_libunwind=$STATIC
+glibc_max=$(if (( PORTABLE )); then echo 2.28; else echo host; fi)
 METADATA
 mkdir "$STAGE/licenses"
 "$LANE" rustd -- bash -c 'for file in LICENSE-MIT LICENSE-APACHE; do install -m 644 "$1/vendor/rust-analyzer/$file" "$2/licenses/rust-analyzer-$file"; done' _ "$RUSTD" "$STAGE"

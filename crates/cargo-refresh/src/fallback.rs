@@ -50,15 +50,10 @@ pub fn cargo(config: &Config, project: &Path, target: &Path, verb: &str) -> Comm
             "--message-format=json",
         ])
         .args(config.features.cargo_args())
-        .env("RUSTUP_TOOLCHAIN", "1.99.0")
         .env("CARGO_TARGET_DIR", target)
         .process_group(0)
         .stdin(Stdio::null());
     for key in [
-        "RUSTC_WRAPPER",
-        "RUSTC_WORKSPACE_WRAPPER",
-        "RUSTFLAGS",
-        "CARGO_ENCODED_RUSTFLAGS",
         "LD_PRELOAD",
         "REFRESH_AGENT_SOCKET",
         "REFRESH_HOST_EXE",
@@ -187,6 +182,7 @@ mod tests {
         for verb in ["check", "build"] {
             let command = cargo(&config, Path::new("/demo"), Path::new("/demo/target"), verb);
             let args: Vec<_> = command.get_args().collect();
+            assert!(command.get_envs().all(|(key, _)| key != "RUSTUP_TOOLCHAIN"));
             let expected = config.features.cargo_args();
             assert!(args.ends_with(&expected.iter().map(|s| s.as_os_str()).collect::<Vec<_>>()));
         }

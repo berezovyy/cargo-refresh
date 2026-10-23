@@ -36,7 +36,6 @@ pub struct Config {
     pub package: Option<String>,
     pub edit: Vec<String>,
     pub features: crate::cli::Features,
-    pub toolchain: String,
     pub home: PathBuf,
     pub memory_min_bytes: u64,
     pub ready_timeout: Duration,
@@ -60,7 +59,6 @@ impl Config {
             package: None,
             edit: Vec::new(),
             features: crate::cli::Features::default(),
-            toolchain: "1.99.0".into(),
             memory_min_bytes: 2 * 1024 * 1024 * 1024,
             ready_timeout: Duration::from_secs(240),
             command_timeout: Duration::from_secs(240),
@@ -75,8 +73,9 @@ impl Config {
         for &key in SCRUB {
             cmd.env_remove(key);
         }
-        cmd.env("RUSTUP_TOOLCHAIN", &self.toolchain)
-            .env("RUSTD_HOME", &self.home)
+        // Keep the project/toolchain environment used by install::Toolchain::detect.
+        // A version label here could select a different compiler than the verified one.
+        cmd.env("RUSTD_HOME", &self.home)
             .env("RUSTD_SPARE", "0")
             .env("RUSTD_CACHE", "off")
             .env("RUSTD_IDLE_SECS", "0")
@@ -296,7 +295,15 @@ impl Client {
                 capture.args(["--edit", edit]);
             }
         }
+        let base_started = Instant::now();
+        eprintln!("[refresh] base build (normal cargo, first run only)…");
         self.run(capture, self.config.command_timeout)?;
+        eprintln!(
+            "[refresh] base build done in {:.2} s",
+            base_started.elapsed().as_secs_f64()
+        );
+        let warm_started = Instant::now();
+        eprintln!("[refresh] warming compiler…");
         while Instant::now() < deadline {
             self.check_daemon()?;
             self.guard_memory()?;
@@ -315,6 +322,10 @@ impl Client {
             if lines.iter().any(|l| l.contains(": ready"))
                 && !lines.iter().any(|l| l.contains("loading for"))
             {
+                eprintln!(
+                    "[refresh] warming compiler… ready in {:.2} s",
+                    warm_started.elapsed().as_secs_f64()
+                );
                 return Ok(());
             }
             thread::sleep(Duration::from_millis(100));
@@ -474,10 +485,7 @@ mod tests {
         for key in SCRUB {
             assert_eq!(env.get(std::ffi::OsStr::new(key)), Some(&None));
         }
-        assert_eq!(
-            env[std::ffi::OsStr::new("RUSTUP_TOOLCHAIN")],
-            Some(std::ffi::OsStr::new("1.99.0"))
-        );
+        assert!(!env.contains_key(std::ffi::OsStr::new("RUSTUP_TOOLCHAIN")));
         let dir = tmp.path().join("target/rustd/a/programs/b");
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join("patch.manifest"), b"test").unwrap();

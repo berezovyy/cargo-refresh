@@ -1,8 +1,8 @@
-# Toolchain support installation design
+# Toolchain support installation and portability
 
-This is the M5 packaging contract for controller integration. Download/cache behavior
-below is planned, not implemented by these scripts. Releases are built by hand;
-no upload or CI/CD is configured.
+This is the M5 packaging contract. Verified local installation and cache selection
+are implemented; public downloading remains planned. Releases are built by hand;
+no upload or CI/CD is configured. See the implemented first-run section below.
 
 The controller is installed separately with `cargo install cargo-refresh`. Toolchain
 support is cached beneath `${XDG_CACHE_HOME:-$HOME/.cache}/cargo-refresh/<rustc-commit>/`:
@@ -42,7 +42,7 @@ matching version label alone is insufficient. Only the qualified default GNU
 Linux x86-64 target/CPU/features and supported packaging flags may use rustd.
 Unknown target/ABI overrides must select stock mode.
 
-Proposed lookup/download/verification sequence:
+Cache/install contract and future download sequence:
 
 1. Check an explicit local support directory, then the commit-keyed cache. Validate
    identities, required members, permissions and all payload hashes before use.
@@ -59,7 +59,7 @@ Proposed lookup/download/verification sequence:
    under a per-commit install lock; never expose a partial installation. Keep failed
    downloads out of the active cache. Offline/missing/corrupt support selects cargo.
 
-Proposed fail-closed message:
+Fail-closed message:
 
 ```text
 [refresh] cargo-refresh has no qualified support for rustc <version> (<commit>).
@@ -85,7 +85,7 @@ require libunwind and it is unavailable, the diagnostic should say:
 
 Before warming, compare `/proc/meminfo` MemAvailable with the project's estimated
 warm-up peak plus a 2 GiB reserve. A missing estimate is not evidence that the
-project fits; use a conservative estimate. Proposed warning:
+project fits; use a conservative estimate. Memory warning:
 
 ```text
 [refresh] Live patching needs an estimated <peak> GiB plus 2 GiB reserve; <available> GiB is available.
@@ -99,15 +99,19 @@ integration task. Do not describe the default line-table compiler as meeting a
 
 ## Build host compatibility and qualification
 
-Run `scripts/release.sh <version>` locally. It builds rustd and both shims on the
-`refresh/m1` branch using rustc 1.99.0, and the production agent via
-`make -C agent release`. It attempts static libunwind only if local archives are
-available and linkable; otherwise the linker retains only libraries actually
-referenced. Test/CFI builds need libunwind; the current production artifact has
-no libunwind runtime dependency. See the artifact's `RUNTIME.txt` for measured GLIBC symbol versions and DT_NEEDED entries
-for each executable/library. The whole package's glibc floor can exceed the
-agent's. This host build does not establish an oldest-supported distro: rebuild
-in an agreed older-glibc environment and test loading there before publishing.
+Run `scripts/release.sh <version>` locally. The default portable build uses
+cargo-zigbuild targeting GNU x86-64/glibc 2.28 with rustc 1.99.0 and builds the
+production agent with Zig's old-glibc C headers/libraries. `--native` is an explicit
+host-only diagnostic alternative. The release rejects symbol imports above 2.28
+in portable mode, including weak imports. `RUNTIME.txt` records measured GLIBC
+symbol versions and DT_NEEDED entries for every artifact.
+
+The production hybrid agent does not link its test-only libunwind CFI walker.
+It dynamically opens `libgcc_s.so.1` for frame registration. Local Rocky Linux 8
+(glibc 2.28) checks ran the portable compiler, loaded the production agent, and
+completed archive installation plus one live save with PID/counter continuity
+and a matching stock oracle. This is container evidence on the host kernel;
+full release/app qualification remains a manual gate.
 
 `REFRESH_RESEARCH_ROOT`, `REFRESH_RUSTD_SOURCE` and `REFRESH_LANE` override local
 source/lane locations. `.release-work/` holds warm build targets and qualification
@@ -133,3 +137,81 @@ qualified bundle*. `reference-comparison.json` records that distinction. It neve
 rewrites the raw hash to imply a byte-identical re-extraction. Unknown differences
 fail closed. A new compiler's generated bundle stays a candidate until the manual
 matrix is complete.
+
+## Implemented local first run (M5 steps 1–3)
+
+The controller now detects `rustc -vV`, checks the full qualified identity, and
+validates every cached payload before compiler startup. `REFRESH_RUSTD` and a
+`rustd` found on PATH do not bypass qualification. The sibling shims come from the
+same verified support directory. `librefresh.so` is selected from that directory;
+stock-only mode does not inject an agent or start/reset rustd.
+
+Install a locally built candidate with either:
+
+```sh
+cargo refresh run --from-archive /absolute/path/cargo-refresh-0.1.0-dev-<commit>-x86_64-linux.tar.zst
+CARGO_REFRESH_DIST=/absolute/path/cargo-refresh-0.1.0-dev-<commit>-x86_64-linux.tar.zst cargo refresh run
+```
+
+Keep the adjacent `.tar.zst.sha256` file. It must name the archive basename and
+contain one SHA-256 line. These are trusted local inputs; this is integrity
+checking, not a signature or public distribution trust system. URL downloads are
+not implemented. `CARGO_REFRESH_SUPPORT` can select an explicit unpacked support
+directory, with the same mandatory validation as the cache.
+
+Installation rejects unknown members, links, traversal, duplicates, excessive
+compressed/expanded size, incomplete or incorrect checksums, and mismatched
+VERSION/ABI identities. A per-commit lock protects a private staging directory
+and atomic rename. Existing corrupt entries select stock mode; remove an entry
+explicitly before retrying installation. Cache hits are rehashed on every start.
+The controller stages `<commit>.json` in an owned private temporary directory.
+
+Unknown toolchains, target/CPU/profile/compiler-wrapper overrides, nonempty Cargo
+configuration files, unavailable runtime libraries, and insufficient memory select
+stock Cargo. Nonempty Cargo config is conservatively refused even when it contains
+only harmless settings; qualification of individual settings is future work. Stock
+builds preserve the active toolchain and user Rust flags. Until project-specific
+estimates are available, startup uses a conservative **estimated** 13 GiB compiler
+peak plus 2 GiB reserve, based on the research upper bound. This is an admission
+estimate, not a new measured product peak. An operator with a measured project
+estimate can set `CARGO_REFRESH_WARM_PEAK_BYTES`. Runtime memory guards remain
+separate and active during compiler operations.
+
+Portable release builds are now the default:
+
+```sh
+# Install user-space prerequisites; do not change global toolchain/config.
+RUSTUP_TOOLCHAIN=1.99.0 cargo install cargo-zigbuild --locked -j 4
+# Put Zig on PATH or set REFRESH_ZIG to its absolute executable path.
+scripts/release.sh --portable 0.1.0-dev
+# Host-only diagnostic build (does not assert old-glibc compatibility):
+scripts/release.sh --native 0.1.0-dev
+```
+
+Portable builds target `x86_64-unknown-linux-gnu.2.28` through cargo-zigbuild and
+compile the production agent with `zig cc -target x86_64-linux-gnu.2.28`. The
+release fails if any artifact imports a GLIBC symbol newer than 2.28, including
+weak imports. The production agent needs libc and dynamically opens libgcc_s;
+it does not link the test-only libunwind walker. `RUNTIME.txt` reports actual
+imports; a symbol check alone does not establish runtime qualification. Run the
+release payload on an old-glibc distro before accepting it.
+
+Hand-run integration (requires the research resource lane):
+
+```sh
+CARGO_REFRESH_TEST_ARCHIVE=/absolute/path/release.tar.zst \
+  RUSTUP_TOOLCHAIN=1.99.0 cargo test -p cargo-refresh --test install -- --ignored --nocapture
+```
+
+Or use `scripts/integration-install.py` with `--controller`, `--archive`, and a new
+`--work` directory under the rustd lane. It installs into a temporary HOME, applies
+one live save, checks PID and counter continuity, and compares the edited value
+with an independent stock build. Its `unsupported`, `corrupt`, `low-memory`, and
+`override` modes exercise stock decisions without starting rustd.
+
+Custom `[profile.dev]` settings in Cargo manifests are also refused before
+warming, including inline/quoted TOML spellings. They may change panic or codegen
+behavior beyond the qualified default. Release-only profiles do not affect the
+default development build and are allowed. Legacy `REFRESH_RUSTD_ENV` and inherited
+`RUSTD_*` tuning select stock mode; they cannot replace the verified compiler,
+ABI directory, or target behind the detector's back.
