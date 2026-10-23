@@ -70,7 +70,12 @@ Proposed fail-closed message:
 
 For a corrupt or mismatched cached bundle, add the concrete reason and path, then
 use the same stock fallback. Never launch rustd to discover whether a mismatch
-works. An unavailable runtime dependency should say:
+works. Check the actual artifact requirements rather than assuming the research
+agent's dependencies: the current production hybrid agent compiles the libunwind
+CFI walker only in testing builds, and this host's as-needed linker drops
+libunwind from its DT_NEEDED list. It dynamically opens `libgcc_s.so.1` for frame
+registration, which must be available for patch unwinding. If an artifact does
+require libunwind and it is unavailable, the diagnostic should say:
 
 ```text
 [refresh] Live patching needs libunwind.so.8 and libunwind-x86_64.so.8.
@@ -97,8 +102,9 @@ integration task. Do not describe the default line-table compiler as meeting a
 Run `scripts/release.sh <version>` locally. It builds rustd and both shims on the
 `refresh/m1` branch using rustc 1.99.0, and the production agent via
 `make -C agent release`. It attempts static libunwind only if local archives are
-available and linkable; otherwise it uses the runtime libraries above. See the
-artifact's `RUNTIME.txt` for measured GLIBC symbol versions and DT_NEEDED entries
+available and linkable; otherwise the linker retains only libraries actually
+referenced. Test/CFI builds need libunwind; the current production artifact has
+no libunwind runtime dependency. See the artifact's `RUNTIME.txt` for measured GLIBC symbol versions and DT_NEEDED entries
 for each executable/library. The whole package's glibc floor can exceed the
 agent's. This host build does not establish an oldest-supported distro: rebuild
 in an agreed older-glibc environment and test loading there before publishing.
