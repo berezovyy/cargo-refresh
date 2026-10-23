@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "09-fn-pointer",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "Store the function pointer before reading stdin. Both saved pointer and direct calls must reach the edited entry.",
+  "base": [
+    "probe=saved=1;direct=1",
+    "probe=saved=1;direct=1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=saved=2;direct=2",
+        "probe=saved=2;direct=2"
+      ],
+      "live-expected": [
+        "probe=saved=2;direct=2",
+        "probe=saved=2;direct=2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

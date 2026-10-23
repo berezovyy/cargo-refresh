@@ -1,0 +1,6 @@
+[package]
+name = "caller"
+version = "0.0.0"
+edition = "2024"
+[dependencies]
+generic-lib = { path = "../generic-lib" }

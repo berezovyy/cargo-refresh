@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "20-extern-c",
+  "v0.1-allowed-outcomes": [
+    "works",
+    "restart"
+  ],
+  "state-rule": "Compile a tiny C object with the system cc, linked into the Rust app. Its indirect call uses a retained pointer to an exported no_mangle extern C Rust function. Both the C call and direct Rust call must reach new code, or refresh must refuse.",
+  "base": [
+    "probe=c=1;rust=1",
+    "probe=c=1;rust=1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=c=2;rust=2",
+        "probe=c=2;rust=2"
+      ],
+      "live-expected": [
+        "probe=c=2;rust=2",
+        "probe=c=2;rust=2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

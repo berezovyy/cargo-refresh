@@ -1,0 +1,30 @@
+schema = 1
+case = "03-new-static"
+title = "New generation static and later reuse"
+v0_1 = ["works"]
+state_rule = "The first edit adds storage initialized to 100. After two probes it holds 102. The second edit must reuse that storage: 112 then 122; a fresh process gives 110 then 120."
+base_probes = ["probe=absent", "probe=absent"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=101", "probe=102"]
+live_expected = ["probe=101", "probe=102"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    // EDIT: add static\n    \"absent\".to_string()\n"
+replace = "    static ADDED: AtomicU64 = AtomicU64::new(100);\n    let delta = 1;\n    (ADDED.fetch_add(delta, Ordering::SeqCst) + delta).to_string()\n"
+
+[[steps]]
+name = "edit-2"
+stock_after_restart = ["probe=110", "probe=120"]
+live_expected = ["probe=112", "probe=122"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    let delta = 1;\n"
+replace = "    let delta = 10;\n"

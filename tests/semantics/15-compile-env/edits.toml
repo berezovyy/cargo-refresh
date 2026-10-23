@@ -1,0 +1,20 @@
+schema = 1
+case = "15-compile-env"
+title = "env! and option_env! build inputs"
+v0_1 = ["stock"]
+state_rule = "Change the compiler environment, including absent -> present option_env!. Stock cargo must notice these tracked inputs and recompile. A live controller will need an explicit restart/relaunch with the new build environment; environment-only changes do not generate a file save."
+base_probes = ["probe=11:missing", "probe=11:missing"]
+
+[environment]
+M4_SEMANTICS_REQUIRED = "11"
+
+[unset_environment]
+M4_SEMANTICS_OPTIONAL = true
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=22:present", "probe=22:present"]
+live_expected = ["probe=22:present", "probe=22:present"]
+[steps.environment]
+M4_SEMANTICS_REQUIRED = "22"
+M4_SEMANTICS_OPTIONAL = "present"

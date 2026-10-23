@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "15-compile-env",
+  "v0.1-allowed-outcomes": [
+    "stock"
+  ],
+  "state-rule": "Change the compiler environment, including absent -> present option_env!. Stock cargo must notice these tracked inputs and recompile. A live controller will need an explicit restart/relaunch with the new build environment; environment-only changes do not generate a file save.",
+  "base": [
+    "probe=11:missing",
+    "probe=11:missing"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=22:present",
+        "probe=22:present"
+      ],
+      "live-expected": [
+        "probe=22:present",
+        "probe=22:present"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

@@ -1,0 +1,20 @@
+schema = 1
+case = "02-static-mut"
+title = "Single-threaded mutable static"
+v0_1 = ["works", "restart"]
+state_rule = "Only the stdin thread touches COUNTER. Live preserves 10 plus two initial increments; restart resets to 10. Refusal is allowed, silent reset on a live event is not."
+base_probes = ["probe=11", "probe=12"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=20", "probe=30"]
+live_expected = ["probe=22", "probe=32"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    let delta = 1;\n"
+replace = "    let delta = 10;\n"

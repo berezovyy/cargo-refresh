@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "02-static-mut",
+  "v0.1-allowed-outcomes": [
+    "works",
+    "restart"
+  ],
+  "state-rule": "Only the stdin thread touches COUNTER. Live preserves 10 plus two initial increments; restart resets to 10. Refusal is allowed, silent reset on a live event is not.",
+  "base": [
+    "probe=11",
+    "probe=12"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=20",
+        "probe=30"
+      ],
+      "live-expected": [
+        "probe=22",
+        "probe=32"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

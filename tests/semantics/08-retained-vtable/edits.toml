@@ -1,0 +1,20 @@
+schema = 1
+case = "08-retained-vtable"
+title = "Retained trait object, method pointer and direct call"
+v0_1 = ["works", "restart"]
+state_rule = "Retain a Box<dyn Value> and a concrete method pointer before the edit. Probe retained vtable, fresh vtable, saved method pointer, and direct method call. With entry jumps all four reach the new method. Actual live routing is unmeasured until integration; refuse if this contract cannot be met."
+base_probes = ["probe=old=1;new=1;saved=1;direct=1", "probe=old=1;new=1;saved=1;direct=1"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=old=2;new=2;saved=2;direct=2", "probe=old=2;new=2;saved=2;direct=2"]
+live_expected = ["probe=old=2;new=2;saved=2;direct=2", "probe=old=2;new=2;saved=2;direct=2"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "        1\n"
+replace = "        2\n"

@@ -1,0 +1,20 @@
+schema = 1
+case = "09-fn-pointer"
+title = "Retained function pointer"
+v0_1 = ["works"]
+state_rule = "Store the function pointer before reading stdin. Both saved pointer and direct calls must reach the edited entry."
+base_probes = ["probe=saved=1;direct=1", "probe=saved=1;direct=1"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=saved=2;direct=2", "probe=saved=2;direct=2"]
+live_expected = ["probe=saved=2;direct=2", "probe=saved=2;direct=2"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    1\n"
+replace = "    2\n"

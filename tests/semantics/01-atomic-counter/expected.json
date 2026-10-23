@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "01-atomic-counter",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "Each probe increments the same AtomicU64, initially 10. Two probes precede each edit; live keeps the last value, while each stock restart starts at 10.",
+  "base": [
+    "probe=11",
+    "probe=12"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=20",
+        "probe=30"
+      ],
+      "live-expected": [
+        "probe=22",
+        "probe=32"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

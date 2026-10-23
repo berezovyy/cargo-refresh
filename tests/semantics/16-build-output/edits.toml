@@ -1,0 +1,20 @@
+schema = 1
+case = "16-build-output"
+title = "build.rs generated Rust"
+v0_1 = ["stock"]
+state_rule = "Edit build.rs so it emits a new generated function into OUT_DIR. Stock must rerun the script. Refresh must choose stock and recapture its build metadata; running only rustd against the old generated file is wrong."
+base_probes = ["probe=1", "probe=1"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=2", "probe=2"]
+live_expected = ["probe=2", "probe=2"]
+
+[[steps.edits]]
+file = "build.rs"
+find = "    let value = 1;\n"
+replace = "    let value = 2;\n"

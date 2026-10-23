@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "18-async-body",
+  "v0.1-allowed-outcomes": [
+    "restart"
+  ],
+  "state-rule": "The async function has one existing await; the edit changes only its return literal. v0.1 conservatively restarts even though its suspension structure is unchanged.",
+  "base": [
+    "probe=1",
+    "probe=1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=2",
+        "probe=2"
+      ],
+      "live-expected": [
+        "probe=2",
+        "probe=2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

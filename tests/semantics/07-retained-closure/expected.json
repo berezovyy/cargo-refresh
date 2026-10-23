@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "07-retained-closure",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "A boxed closure captures a heap String before any probes. Retained closures must execute their original body; freshly created closures execute the edited body. Keep old closure code and its vtable alive.",
+  "base": [
+    "probe=old=captured:1;new=captured:1",
+    "probe=old=captured:1;new=captured:1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=old=captured:2;new=captured:2",
+        "probe=old=captured:2;new=captured:2"
+      ],
+      "live-expected": [
+        "probe=old=captured:1;new=captured:2",
+        "probe=old=captured:1;new=captured:2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

@@ -1,0 +1,20 @@
+schema = 1
+case = "11-inline-caller"
+title = "Inline function and its callers"
+v0_1 = ["works", "restart"]
+state_rule = "Two non-inlined callers use an inline(always) function. Both callers must update or the edit must be refused. Dev optimization level 1 ensures this is an actual optimized inlining fixture."
+base_probes = ["probe=11,22", "probe=11,22"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=20,40", "probe=20,40"]
+live_expected = ["probe=20,40", "probe=20,40"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    x + 1\n"
+replace = "    x + 10\n"

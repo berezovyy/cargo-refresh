@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "case": "03-new-static",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "The first edit adds storage initialized to 100. After two probes it holds 102. The second edit must reuse that storage: 112 then 122; a fresh process gives 110 then 120.",
+  "base": [
+    "probe=absent",
+    "probe=absent"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=101",
+        "probe=102"
+      ],
+      "live-expected": [
+        "probe=101",
+        "probe=102"
+      ]
+    },
+    {
+      "name": "edit-2",
+      "stock-after-restart": [
+        "probe=110",
+        "probe=120"
+      ],
+      "live-expected": [
+        "probe=112",
+        "probe=122"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

@@ -1,0 +1,30 @@
+schema = 1
+case = "10-cross-crate-generic"
+title = "Generic instantiations across crate/frontier boundaries"
+v0_1 = ["works", "stock"]
+state_rule = "Edit generic_lib::value<T>. The app and caller crate each instantiate u8 and u64, with different sizes. When all three crates are in the frontier all four values must change. With caller outside the frontier this same edit must use stock, updating the dependent crate too."
+base_probes = ["probe=app=2,9;caller=2,9", "probe=app=2,9;caller=2,9"]
+
+[environment]
+
+[unset_environment]
+
+[[frontiers]]
+name = "all-in-frontier"
+crates = ["m4-semantics-10", "generic-lib", "caller"]
+outcome = "works"
+
+[[frontiers]]
+name = "caller-outside-frontier"
+crates = ["m4-semantics-10", "generic-lib"]
+outcome = "stock"
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=app=11,18;caller=11,18", "probe=app=11,18;caller=11,18"]
+live_expected = ["probe=app=11,18;caller=11,18", "probe=app=11,18;caller=11,18"]
+
+[[steps.edits]]
+file = "generic-lib/src/lib.rs"
+find = "    std::mem::size_of::<T>() + 1\n"
+replace = "    std::mem::size_of::<T>() + 10\n"
