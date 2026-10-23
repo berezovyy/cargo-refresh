@@ -122,11 +122,16 @@ pub struct Build {
     pub candidate_path: PathBuf,
     pub manifest: Vec<u8>,
 }
+struct SocketAlias {
+    _dir: tempfile::TempDir,
+    home: PathBuf,
+}
 pub struct Client {
     pub config: Config,
     daemon: Option<Child>,
     last_manifest: Vec<u8>,
     commands: u64,
+    socket_alias: Option<SocketAlias>,
 }
 impl Client {
     pub fn new(config: Config) -> Self {
@@ -135,6 +140,7 @@ impl Client {
             daemon: None,
             last_manifest: vec![],
             commands: 0,
+            socket_alias: None,
         }
     }
     pub fn guard_memory(&mut self) -> Result<()> {
@@ -157,20 +163,53 @@ impl Client {
         );
         fs::create_dir_all(&self.config.home)?;
         fs::set_permissions(&self.config.home, fs::Permissions::from_mode(0o700))?;
-        let log = File::create(self.config.home.join("daemon.log"))?;
-        let mut cmd = self.config.command(&self.config.rustd);
-        cmd.arg("daemon").stdout(log.try_clone()?).stderr(log);
-        self.daemon = Some(cmd.spawn().context("start rustd daemon")?);
-        let result = self.initialize().and_then(|()| {
+        // Worker paths add a 32-byte hash and a socket suffix. Deep project
+        // paths exceed Linux's sockaddr_un limit even if daemon.sock fits.
+        // Keep all daemon state under target/refresh/d, but address its sockets
+        // through a short, private symlink for this owned daemon's lifetime.
+        let result = (|| -> Result<()> {
+            let alias = tempfile::Builder::new()
+                .prefix("crfd-")
+                .tempdir_in("/tmp")?;
+            // The final component must be a real directory: rustd deliberately
+            // refuses RUSTD_HOME itself being a symlink. Only alias its parent.
+            let home = fs::canonicalize(&self.config.home)?;
+            let parent = home.parent().context("daemon home has no parent")?;
+            let name = home.file_name().context("daemon home has no basename")?;
+            std::os::unix::fs::symlink(parent, alias.path().join("p"))?;
+            let short = alias.path().join("p").join(name);
+            ensure!(
+                short.as_os_str().len() + 52 < 108,
+                "daemon home basename too long for worker sockets; use a short name such as d"
+            );
+            self.socket_alias = Some(SocketAlias {
+                _dir: alias,
+                home: short,
+            });
+            let log = File::create(self.config.home.join("daemon.log"))?;
+            let mut cmd = self.command(&self.config.rustd);
+            cmd.arg("daemon").stdout(log.try_clone()?).stderr(log);
+            self.daemon = Some(cmd.spawn().context("start rustd daemon")?);
+            self.initialize()?;
             if let Ok(path) = newest_manifest(&self.config.project) {
                 self.last_manifest = fs::read(path)?;
             }
             Ok(())
-        });
+        })();
         if result.is_err() {
             let _ = self.stop();
         }
         result
+    }
+    fn transport_home(&self) -> PathBuf {
+        self.socket_alias
+            .as_ref()
+            .map_or_else(|| self.config.home.clone(), |alias| alias.home.clone())
+    }
+    fn command(&self, program: impl AsRef<std::ffi::OsStr>) -> Command {
+        let mut command = self.config.command(program);
+        command.env("RUSTD_HOME", self.transport_home());
+        command
     }
     fn initialize(&mut self) -> Result<()> {
         let deadline = Instant::now() + self.config.ready_timeout;
@@ -182,7 +221,7 @@ impl Client {
         }
         // cargo-rustd captures the rustc invocation using its workspace wrapper.
         // Setup builds are low priority; saves below bypass Cargo entirely.
-        let mut capture = self.config.command("nice");
+        let mut capture = self.command("nice");
         capture.args([
             "-n",
             "19",
@@ -198,7 +237,7 @@ impl Client {
         while Instant::now() < deadline {
             self.check_daemon()?;
             self.guard_memory()?;
-            let mut status = self.config.command("cargo");
+            let mut status = self.command("cargo");
             status.args(["rustd", "status"]);
             let text = self.run(status, Duration::from_secs(15))?;
             let project = self.config.project.to_string_lossy();
@@ -259,13 +298,13 @@ impl Client {
     pub fn build(&mut self) -> Result<Build> {
         self.check_daemon()?;
         self.guard_memory()?;
-        let sockets = sockets(&self.config.home.join("workers"))?;
+        let sockets = sockets(&self.transport_home().join("workers"))?;
         ensure!(
             sockets.len() == 1,
             "expected one direct worker socket, found {}",
             sockets.len()
         );
-        let mut command = self.config.command(&self.config.rustd);
+        let mut command = self.command(&self.config.rustd);
         command.arg("sync").arg(&sockets[0]);
         self.run(command, self.config.command_timeout)?;
         let manifest_path = newest_manifest(&self.config.project)?;
@@ -289,20 +328,25 @@ impl Client {
     }
     pub fn stop(&mut self) -> Result<()> {
         let Some(mut daemon) = self.daemon.take() else {
+            self.socket_alias = None;
             return Ok(());
         };
-        let mut cmd = self.config.command("cargo");
+        let mut cmd = self.command("cargo");
         cmd.args(["rustd", "stop"])
             .stdout(Stdio::null())
             .stderr(Stdio::null());
         if let Ok(mut child) = cmd.spawn() {
             let deadline = Instant::now() + Duration::from_secs(5);
-            while Instant::now() < deadline && child.try_wait()?.is_none() {
-                thread::sleep(Duration::from_millis(25));
+            while Instant::now() < deadline {
+                match child.try_wait() {
+                    Ok(None) => thread::sleep(Duration::from_millis(25)),
+                    Ok(Some(_)) | Err(_) => break,
+                }
             }
             terminate(&mut child, Duration::from_millis(100));
         }
         terminate(&mut daemon, Duration::from_secs(5));
+        self.socket_alias = None;
         Ok(())
     }
 }
@@ -421,11 +465,21 @@ else:raise Exception(sys.argv)
 "#,
         );
         let mut cfg = Config::new(tmp.path(), bin.join("rustd"), "fake").unwrap();
+        cfg.home = tmp.path().join("deep").join("x".repeat(150)).join("d");
         cfg.memory_min_bytes = 0;
         cfg.ready_timeout = Duration::from_secs(5);
         let mut c = Client::new(cfg);
         c.start().unwrap();
         let pid = c.daemon.as_ref().unwrap().id();
+        let transport = c.transport_home();
+        assert!(transport.as_os_str().len() < 64);
+        assert!(
+            fs::metadata(c.config.home.join("daemon.sock"))
+                .unwrap()
+                .file_type()
+                .is_socket()
+        );
+        fs::write(c.config.home.join("retain"), b"persistent").unwrap();
         let build = c.build().unwrap();
         assert_eq!(
             refresh_proto::manifest::parse(&build.manifest)
@@ -442,6 +496,11 @@ else:raise Exception(sys.argv)
                 .contains("MemAvailable")
         );
         assert!(c.daemon.is_none());
+        assert!(!transport.exists(), "owned socket alias must be removed");
+        assert_eq!(
+            fs::read(c.config.home.join("retain")).unwrap(),
+            b"persistent"
+        );
         assert!(!Path::new(&format!("/proc/{pid}")).exists());
     }
 }
