@@ -507,32 +507,6 @@ pub fn classify(before: &[FileSnapshot], after: &[FileSnapshot]) -> Class {
     DEFAULT_GUARD.with_borrow_mut(|guard| guard.classify(before, after))
 }
 
-#[cfg(test)]
-mod containment_tests {
-    use super::*;
-
-    #[test]
-    fn internal_panic_clears_cache_and_guard_remains_usable() {
-        let source = [FileSnapshot::new(
-            "main.rs",
-            b"fn f() -> i32 { 1 }".to_vec(),
-        )];
-        let mut guard = Guard::new();
-        assert!(matches!(
-            guard.classify(&source, &source),
-            Class::LiveEligible { .. }
-        ));
-        assert!(guard.cache_stats().entries > 0);
-        let result: Result<(), _> = guard.contain_panic(|_| panic!("injected visitor failure"));
-        assert_eq!(result.unwrap_err(), "injected visitor failure");
-        assert_eq!(guard.cache_stats().entries, 0);
-        assert!(matches!(
-            guard.classify(&source, &source),
-            Class::LiveEligible { .. }
-        ));
-    }
-}
-
 /// Token-stringifying macros whose exact expansion remains unqualified.
 /// `assert!` uses rustc's AST expression printer, whereas `stringify!` uses its
 /// token printer. Until the AST printer is ported, even startup code containing
@@ -569,4 +543,30 @@ pub fn requires_stock_stringification(bytes: &[u8]) -> bool {
         .ok()
         .and_then(|text| text.parse::<proc_macro2::TokenStream>().ok())
         .is_some_and(scan)
+}
+
+#[cfg(test)]
+mod containment_tests {
+    use super::*;
+
+    #[test]
+    fn internal_panic_clears_cache_and_guard_remains_usable() {
+        let source = [FileSnapshot::new(
+            "main.rs",
+            b"fn f() -> i32 { 1 }".to_vec(),
+        )];
+        let mut guard = Guard::new();
+        assert!(matches!(
+            guard.classify(&source, &source),
+            Class::LiveEligible { .. }
+        ));
+        assert!(guard.cache_stats().entries > 0);
+        let result: Result<(), _> = guard.contain_panic(|_| panic!("injected visitor failure"));
+        assert_eq!(result.unwrap_err(), "injected visitor failure");
+        assert_eq!(guard.cache_stats().entries, 0);
+        assert!(matches!(
+            guard.classify(&source, &source),
+            Class::LiveEligible { .. }
+        ));
+    }
 }
