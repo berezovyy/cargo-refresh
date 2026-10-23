@@ -67,8 +67,9 @@ pub struct Manifest {
     pub compiler_prepare_us: u64,
     pub compiler_scanned_bytes: u64,
     pub compiler_relative_records: u64,
-    /// Certificates are ignored by the v0.1 classifier; no JSON decoding on saves.
+    /// Legacy opaque certificates never authorize live patching.
     pub certificates: Option<Vec<u8>>,
+    pub async_certificates: Option<Vec<crate::async_certs::Certificate>>,
 }
 fn range(addr: u64, len: u64) -> Result<()> {
     if len == 0 || addr.checked_add(len).is_none() {
@@ -226,14 +227,19 @@ pub fn parse(bytes: &[u8]) -> Result<Manifest> {
     let compiler_relative_records = r.u64()?;
     let cumulative_roots = if v1 { r.u64()? } else { 0 };
     let retained_bytes = if v1 { r.u64()? } else { 0 };
-    let certificates = if (!v1 && r.remaining() > 0) || flags & FLAG_CERTIFICATES != 0 {
-        if r.take(8)? != b"AC109001" {
+    let mut certificates = None;
+    let mut async_certificates = None;
+    if (!v1 && r.remaining() > 0) || flags & FLAG_CERTIFICATES != 0 {
+        let magic = r.take(8)?;
+        let bytes = r.blob()?;
+        if magic == b"AC109001" {
+            certificates = Some(bytes);
+        } else if v1 && magic == crate::async_certs::MAGIC {
+            async_certificates = Some(crate::async_certs::parse(&bytes)?);
+        } else {
             return Err(Error("unknown manifest trailer"));
         }
-        Some(r.blob()?)
-    } else {
-        None
-    };
+    }
     r.finish()?;
     Ok(Manifest {
         version,
@@ -252,6 +258,7 @@ pub fn parse(bytes: &[u8]) -> Result<Manifest> {
         compiler_scanned_bytes,
         compiler_relative_records,
         certificates,
+        async_certificates,
     })
 }
 /// IEEE CRC32 of the manifest bytes preceding the checksum field.
@@ -262,6 +269,26 @@ pub fn crc32(bytes: &[u8]) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn binary_async_section_is_crc_fenced_and_typed() {
+        let mut b = v1();
+        b.truncate(b.len() - 4);
+        b[6..8].copy_from_slice(&FLAG_CERTIFICATES.to_le_bytes());
+        b.extend(crate::async_certs::MAGIC);
+        let rows = crate::async_certs::tests::sample();
+        b.extend((rows.len() as u32).to_le_bytes());
+        b.extend(&rows);
+        let wire = seal(b.clone());
+        let parsed = parse(&wire).unwrap();
+        assert!(parsed.certificates.is_none());
+        assert_eq!(parsed.async_certificates.unwrap().len(), 1);
+        let mut bad_crc = wire;
+        let end = bad_crc.len();
+        bad_crc[end - 5] ^= 1;
+        assert!(parse(&bad_crc).is_err());
+        b[6..8].copy_from_slice(&0u16.to_le_bytes());
+        assert!(parse(&seal(b)).is_err());
+    }
     #[test]
     fn epoch_footer_limits_are_bounded_and_independent() {
         assert!(!epoch_due(0, 0));

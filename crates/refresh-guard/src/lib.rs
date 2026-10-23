@@ -229,6 +229,29 @@ impl Guard {
     /// Reason priority is global across the change set, deterministic in lexical
     /// path/function order. Configuration changes outrank everything else.
     pub fn classify(&mut self, before: &[FileSnapshot], after: &[FileSnapshot]) -> Class {
+        self.classify_inner(before, after, false, &mut Vec::new())
+    }
+
+    /// Defer same-header async body decisions to compiler proofs. Every returned
+    /// owner must be covered before the controller may choose the live rung.
+    /// File sets, layouts, attributes and non-async policy remain strict.
+    pub fn classify_with_async_certificates(
+        &mut self,
+        before: &[FileSnapshot],
+        after: &[FileSnapshot],
+    ) -> (Class, Vec<ChangedFn>) {
+        let mut owners = Vec::new();
+        let class = self.classify_inner(before, after, true, &mut owners);
+        (class, owners)
+    }
+
+    fn classify_inner(
+        &mut self,
+        before: &[FileSnapshot],
+        after: &[FileSnapshot],
+        certificates: bool,
+        owners: &mut Vec<ChangedFn>,
+    ) -> Class {
         let (old, new) = match snapshots(before, after) {
             Ok(pair) => pair,
             Err(detail) => {
@@ -313,6 +336,19 @@ impl Guard {
                     || other.is_some_and(|f| !f.async_shape.is_empty()))
                     && other.map(|f| &f.async_shape) != Some(&function.async_shape)
                 {
+                    if certificates
+                        && other.is_some_and(|other| {
+                            function.header == other.header
+                                && !function.async_shape.is_empty()
+                                && !other.async_shape.is_empty()
+                        })
+                    {
+                        owners.push(ChangedFn {
+                            path: path.clone(),
+                            name: name.clone(),
+                        });
+                        continue;
+                    }
                     return Class::Restart {
                         reason: Reason::Async {
                             path: path.clone(),
@@ -324,6 +360,13 @@ impl Guard {
         }
         for (path, a, b) in &pairs {
             for (name, function) in &a.functions {
+                if certificates
+                    && owners
+                        .iter()
+                        .any(|owner| &owner.path == path && &owner.name == name)
+                {
+                    continue;
+                }
                 if b.functions
                     .get(name)
                     .is_none_or(|other| !function.same_policy(other))

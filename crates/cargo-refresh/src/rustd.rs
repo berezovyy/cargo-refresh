@@ -359,6 +359,9 @@ impl Client {
         result
     }
     pub fn build(&mut self) -> Result<Build> {
+        self.build_with_async_certificates(false)
+    }
+    pub fn build_with_async_certificates(&mut self, async_certs: bool) -> Result<Build> {
         self.check_daemon()?;
         self.guard_memory()?;
         let sockets = sockets(&self.transport_home().join("workers"))?;
@@ -368,7 +371,10 @@ impl Client {
             sockets.len()
         );
         let mut command = self.command(&self.config.rustd);
-        command.arg("sync").arg(&sockets[0]);
+        command
+            .arg("sync")
+            .arg(&sockets[0])
+            .args(["--async-certs", if async_certs { "true" } else { "false" }]);
         self.run(command, self.config.command_timeout)?;
         let manifest_path = newest_manifest(&self.config.project)?;
         let manifest = fs::read(&manifest_path)?;

@@ -1,4 +1,5 @@
 //! Bounded readers and shared types for rustd manifests and the v0 agent wire.
+pub mod async_certs;
 pub mod manifest;
 pub mod wire;
 
