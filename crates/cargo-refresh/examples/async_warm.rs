@@ -102,7 +102,8 @@ fn main() -> Result<()> {
         .flat_map(|text| {
             text.lines()
                 .filter_map(|line| {
-                    line.strip_prefix("compiled ")
+                    line.split_once("compiled ")
+                        .map(|(_, rest)| rest)
                         .and_then(|s| s.split_whitespace().next())
                         .and_then(|s| s.parse::<usize>().ok())
                 })
