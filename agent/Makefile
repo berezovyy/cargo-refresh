@@ -76,3 +76,6 @@ $(BUILD)/block-region.so: tests/block_region.c | $(BUILD)
 .PHONY: test-region
 test-region: all $(BUILD)/block-region.so $(BUILD)/host $(BUILD)/host-pie
 	REFRESH_TEST_BUILD=$(abspath $(BUILD)) python3 tests/region.py $(BUILD)/librefresh.so
+.PHONY: release
+release:
+	$(MAKE) BUILD=build-release all
