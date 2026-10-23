@@ -227,6 +227,7 @@ fn start_fast(
 }
 fn reason_text(reason: &Reason) -> String {
     match reason {
+        Reason::InternalError { detail } => format!("guard internal error: {detail}"),
         Reason::Layout { path } => format!("types or layout changed in {}", path.display()),
         Reason::Async { function, .. } => format!("async function {function} changed"),
         Reason::FileSet { .. } => "source files added or removed".into(),
@@ -676,6 +677,9 @@ impl Pipeline {
         mark(&mut job.phases, Phase::Gate);
         let mut admission_checked = false;
         if let Admission::Reject { rule, detail } = admission {
+            if rule == AdmissionRule::InternalError {
+                return self.stock(&mut job, format!("guard internal error: {detail}"));
+            }
             // EXP-119 intentionally errs toward waiting. A frozen stock check
             // can prove a saved, syntactically complete buffer valid without
             // exposing a rejected buffer to rustd (e.g. a local `weight` whose
@@ -756,6 +760,12 @@ impl Pipeline {
         }
         if self.fast.is_none() {
             return self.stock(&mut job, "compiler is recovering; using Cargo".into());
+        }
+        if let Class::Restart {
+            reason: Reason::InternalError { ref detail },
+        } = class
+        {
+            return self.stock(&mut job, format!("guard internal error: {detail}"));
         }
         let mut restart_reason = match class {
             Class::Restart { reason } => Some(reason_text(&reason)),

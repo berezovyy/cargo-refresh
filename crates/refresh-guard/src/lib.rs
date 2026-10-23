@@ -45,6 +45,7 @@ pub enum AdmissionRule {
     BareFunctionReference,
     UnknownCall,
     RemovedFunction,
+    InternalError,
 }
 
 impl AdmissionRule {
@@ -56,6 +57,7 @@ impl AdmissionRule {
             Self::BareFunctionReference => "bare-function-reference",
             Self::UnknownCall => "unknown-call",
             Self::RemovedFunction => "removed-function",
+            Self::InternalError => "internal-error",
         }
     }
 }
@@ -76,6 +78,9 @@ pub struct ChangedFn {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Reason {
+    InternalError {
+        detail: String,
+    },
     Manifest {
         path: PathBuf,
     },
@@ -111,6 +116,7 @@ pub enum Reason {
 impl Reason {
     pub fn code(&self) -> &'static str {
         match self {
+            Self::InternalError { .. } => "internal-error",
             Self::Manifest { .. } => "manifest",
             Self::FileSet { .. } => "file-set",
             Self::Layout { .. } => "layout",
@@ -224,19 +230,61 @@ impl Guard {
     }
 
     pub fn admit(&mut self, before: &[FileSnapshot], after: &[FileSnapshot]) -> Admission {
-        admission::admit(self, before, after)
+        self.contain_panic(|guard| admission::admit(guard, before, after))
+            .unwrap_or_else(|detail| Admission::Reject {
+                rule: AdmissionRule::InternalError,
+                detail,
+            })
+    }
+
+    // A parser/visitor bug must never unwind out of the controller worker.
+    // Invalidate partial cache work and retain the payload in the fallback log.
+    fn contain_panic<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Result<T, String> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(self))) {
+            Ok(value) => Ok(value),
+            Err(payload) => {
+                self.clear_cache();
+                let detail = payload
+                    .downcast_ref::<String>()
+                    .map(String::as_str)
+                    .or_else(|| payload.downcast_ref::<&str>().copied())
+                    .unwrap_or("non-string panic payload")
+                    .to_owned();
+                eprintln!("refresh-guard internal error: {detail}; restarting with stock Cargo");
+                Err(detail)
+            }
+        }
     }
 
     /// Reason priority is global across the change set, deterministic in lexical
     /// path/function order. Configuration changes outrank everything else.
     pub fn classify(&mut self, before: &[FileSnapshot], after: &[FileSnapshot]) -> Class {
-        self.classify_inner(before, after, false, &mut Vec::new())
+        self.contain_panic(|guard| guard.classify_inner(before, after, false, &mut Vec::new()))
+            .unwrap_or_else(|detail| Class::Restart {
+                reason: Reason::InternalError { detail },
+            })
     }
 
     /// Defer same-header async body decisions to compiler proofs. Every returned
     /// owner must be covered before the controller may choose the live rung.
     /// File sets, layouts, attributes and non-async policy remain strict.
     pub fn classify_with_async_certificates(
+        &mut self,
+        before: &[FileSnapshot],
+        after: &[FileSnapshot],
+    ) -> (Class, Vec<ChangedFn>) {
+        self.contain_panic(|guard| guard.classify_certificates_inner(before, after))
+            .unwrap_or_else(|detail| {
+                (
+                    Class::Restart {
+                        reason: Reason::InternalError { detail },
+                    },
+                    Vec::new(),
+                )
+            })
+    }
+
+    fn classify_certificates_inner(
         &mut self,
         before: &[FileSnapshot],
         after: &[FileSnapshot],
@@ -457,4 +505,30 @@ pub fn admit(before: &[FileSnapshot], after: &[FileSnapshot]) -> Admission {
 
 pub fn classify(before: &[FileSnapshot], after: &[FileSnapshot]) -> Class {
     DEFAULT_GUARD.with_borrow_mut(|guard| guard.classify(before, after))
+}
+
+#[cfg(test)]
+mod containment_tests {
+    use super::*;
+
+    #[test]
+    fn internal_panic_clears_cache_and_guard_remains_usable() {
+        let source = [FileSnapshot::new(
+            "main.rs",
+            b"fn f() -> i32 { 1 }".to_vec(),
+        )];
+        let mut guard = Guard::new();
+        assert!(matches!(
+            guard.classify(&source, &source),
+            Class::LiveEligible { .. }
+        ));
+        assert!(guard.cache_stats().entries > 0);
+        let result: Result<(), _> = guard.contain_panic(|_| panic!("injected visitor failure"));
+        assert_eq!(result.unwrap_err(), "injected visitor failure");
+        assert_eq!(guard.cache_stats().entries, 0);
+        assert!(matches!(
+            guard.classify(&source, &source),
+            Class::LiveEligible { .. }
+        ));
+    }
 }

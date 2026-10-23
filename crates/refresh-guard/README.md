@@ -183,3 +183,11 @@ includes process startup; ratios describe that concrete architecture comparison.
 `freeze.py --research ...` regenerates research-derived cases; `boundaries.py`
 regenerates the manually reviewed table. These are maintenance tools, not part
 of `cargo test`. They disable Python bytecode writes to research directories.
+
+Internal parser/visitor panics are contained at every `Guard` entrypoint. Admission
+returns `internal-error`; classification returns `Restart(InternalError)`. Both
+log the panic payload and clear partially populated syntax caches. The controller
+handles either result with a stock Cargo build and process restart, so an internal
+analysis failure cannot leave a save waiting indefinitely or crash its worker.
+Underscore imports (`use Trait as _`) never shadow a macro name; raw aliases such
+as `r#println` do participate in the conservative shadowing policy.

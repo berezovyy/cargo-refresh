@@ -378,8 +378,12 @@ fn expression_macro(path: &syn::Path, allow_bare: bool) -> bool {
         [root, name] if root == "std" || root == "core" => name,
         _ => return false,
     };
+    expression_macro_name(name)
+}
+
+fn expression_macro_name(name: &str) -> bool {
     matches!(
-        name.as_str(),
+        name.strip_prefix("r#").unwrap_or(name),
         "format"
             | "format_args"
             | "print"
@@ -429,8 +433,9 @@ impl<'ast> Visit<'ast> for MacroShadowing {
             _ => None,
         };
         if let Some(name) = name {
-            let path: syn::Path = syn::parse_quote!(#name);
-            self.0 |= expression_macro(&path, true);
+            // `_` is a valid import alias but cannot be parsed as a Path.
+            // Shadowing only needs the name, including raw macro identifiers.
+            self.0 |= expression_macro_name(&name.to_string());
         }
         syn::visit::visit_use_tree(self, tree);
     }
@@ -441,7 +446,11 @@ impl<'ast> Visit<'ast> for MacroShadowing {
 /// rather than treating the entire token stream as an expression or ignoring it.
 fn safe_macro_arguments(item: &syn::Macro, allow_bare: bool) -> bool {
     use syn::parse::Parser;
-    let name = item.path.segments.last().unwrap().ident.to_string();
+    let Some(segment) = item.path.segments.last() else {
+        return false;
+    };
+    let name = segment.ident.to_string();
+    let name = name.strip_prefix("r#").unwrap_or(&name);
     // stringify never expands or evaluates its input tokens.
     if name == "stringify" {
         return true;
