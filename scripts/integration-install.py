@@ -86,7 +86,7 @@ def main():
     parser.add_argument('--controller', type=Path, required=True)
     parser.add_argument('--archive', type=Path)
     parser.add_argument('--work', type=Path, required=True)
-    parser.add_argument('--mode', choices=['live', 'unsupported', 'corrupt', 'low-memory', 'override'], default='live')
+    parser.add_argument('--mode', choices=['live', 'unsupported', 'corrupt', 'low-memory', 'override', 'compiler-env'], default='live')
     args = parser.parse_args()
     root = args.work.resolve()
     root.mkdir(parents=True, exist_ok=False)
@@ -128,6 +128,8 @@ def main():
         env['RUSTC'] = str(fake)
     elif args.mode == 'low-memory':
         env['CARGO_REFRESH_WARM_PEAK_BYTES'] = str(1024**5)
+    elif args.mode == 'compiler-env':
+        env['REFRESH_RUSTD_ENV'] = json.dumps({'RUSTC': '/not/a/qualified/compiler'})
     elif args.mode == 'override':
         env['RUSTFLAGS'] = '-C opt-level=1'
     elif args.mode == 'corrupt':

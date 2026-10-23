@@ -400,6 +400,7 @@ fn default_environment(config: &Config) -> Result<()> {
         "RUSTC_WORKSPACE_WRAPPER",
         "RUSTC_BOOTSTRAP",
         "LD_PRELOAD",
+        "REFRESH_RUSTD_ENV",
     ] {
         ensure!(
             std::env::var_os(key).is_none_or(|v| v.is_empty()),
@@ -408,6 +409,10 @@ fn default_environment(config: &Config) -> Result<()> {
     }
     for (key, _) in std::env::vars_os() {
         let key = key.to_string_lossy();
+        ensure!(
+            !key.starts_with("RUSTD_"),
+            "unqualified compiler override {key}"
+        );
         ensure!(
             !(key.starts_with("CARGO_TARGET_")
                 || key.starts_with("CARGO_PROFILE_")
