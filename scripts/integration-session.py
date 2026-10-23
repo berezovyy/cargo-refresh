@@ -35,6 +35,19 @@ class Session:
         text=self.events.read_text();lines=text.splitlines()
         if not text.endswith('\n'):lines=lines[:-1]
         return [json.loads(line) for line in lines]
+    def application_pid(self):
+        children=set()
+        for path in pathlib.Path(f'/proc/{self.proc.pid}/task').glob('*/children'):
+            try:children.update(path.read_text().split())
+            except FileNotFoundError:pass
+        found=[]
+        for pid in children:
+            try:
+                executable=os.readlink(f'/proc/{pid}/exe')
+                if executable.startswith('/tmp/refresh-run-') and executable.endswith('/app'):found.append(int(pid))
+            except FileNotFoundError:pass
+        assert len(found)==1,found
+        return found[0]
     def wait(self,predicate,timeout=120):
         end=time.monotonic()+timeout
         while time.monotonic()<end:
@@ -207,6 +220,7 @@ def rendered(args, app):
     try:
         s.wait(lambda:http(s.port,probe))
         for step in steps:
+            previous_pid=s.application_pid()
             files={}
             for edit in step['edits']:
                 path=edit['file'];text=files.get(path,(s.project/path).read_text());assert text.count(edit['find'])==1,(step['id'],edit)
@@ -214,6 +228,9 @@ def rendered(args, app):
             row=s.save(files,step['kind'],step['observation']['contains'],step.get('expect_build')=='error',path=probe)
             expected=json.loads((args.expected/f"{step['id']:02d}.json").read_text())
             observed=http(s.port,probe);assert observed==(expected['observations'][0]['status'],expected['observations'][0]['body']),(step['id'],'response differs from stock',observed)
+            row['application_pid']=s.application_pid()
+            if step.get('expect_build')!='error':
+                assert (row['application_pid']==previous_pid)==(row['path']=='live'),(step['id'],row['path'],previous_pid,row['application_pid'])
             row['oracle_match']=True;s.flush();print(step['id'],step['kind'],row['path'],'PASS',flush=True)
         assert not any(r['event']=='application_exit' for r in s.read()),'application crashed'
         (s.out/'completed.json').write_text(json.dumps({'saves':30,'valid':28,'oracle_matches':30,'paths':{path:sum(r['path']==path for r in s.rows) for path in set(r['path'] for r in s.rows)}}))
