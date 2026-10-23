@@ -16,9 +16,16 @@ copies the extractor's normalized immutable baseline, so restarting the
 application cannot change an earlier fixture. RELATIVE normalization is
 idempotent when the Rust reader opens that copy.
 
-The task-local instrumentation is in `work/m2-t3/scripts/sitecustomize.py` and
-`capture.sh`. It changes neither research experiment files nor the M0 Python
-sources. Capture runs the existing M0 web session with its strict certificate-off
+Capture instrumentation lives next to this file (`sitecustomize.py` and
+`capture.sh`); the actual task run uses copies in `work/m2-t3/scripts/`. It changes
+neither research experiment files nor the M0 Python sources. To reproduce:
+
+```sh
+tests/extractor-golden/capture.sh /absolute/rust-fast-compiler /fresh/output
+```
+
+The script takes the rustd lane itself and refuses existing golden/session
+destinations. Capture runs the existing M0 web session with its strict certificate-off
 guard and no-certificate compiler, prepends a handler apply/revert pair, then
 runs the first 26 ordinary saves. The resulting 28-source replay includes new
 helpers and comment/line shifts. Stock replay uses the same generated steps.
