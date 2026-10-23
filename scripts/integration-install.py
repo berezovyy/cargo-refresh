@@ -17,7 +17,6 @@ import urllib.request
 SOURCE = '''use std::io::{Read, Write};
 use std::net::TcpListener;
 
-#[inline(never)]
 fn value() -> u64 { 1 }
 
 fn main() {
