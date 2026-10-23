@@ -160,7 +160,10 @@ impl Client {
         let mut sent = 0;
         while sent < bytes.len() {
             stream.set_write_timeout(Some(remaining()?))?;
-            let count = stream.write(&bytes[sent..]).context("send agent request")?;
+            let count = match stream.write(&bytes[sent..]) {
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                result => result.context("send agent request")?,
+            };
             ensure!(count != 0, "agent disconnected while sending request");
             sent += count;
         }
@@ -168,9 +171,12 @@ impl Client {
         let mut buffer = [0; 4096];
         loop {
             stream.set_read_timeout(Some(remaining()?))?;
-            let count = stream
-                .read(&mut buffer)
-                .context("read agent acknowledgement")?;
+            // A signal delivered to this thread (e.g. a child exit) must not turn a
+            // successful APPLY into a spurious agent failure.
+            let count = match stream.read(&mut buffer) {
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                result => result.context("read agent acknowledgement")?,
+            };
             ensure!(count != 0, "agent disconnected before acknowledgement");
             line.extend_from_slice(&buffer[..count]);
             if let Some(end) = line.iter().position(|b| *b == b'\n') {
