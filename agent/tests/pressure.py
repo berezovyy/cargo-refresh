@@ -9,14 +9,19 @@ def run(library):
     h = Host(library, host_name='host-pie')
     try:
         base = h.request(v1(flags=1))['load_base']
-        heap = next(line for line in Path(f'/proc/{h.p.pid}/maps').read_text().splitlines() if '[heap]' in line)
-        address = int(heap.split('-')[0], 16)
+        heap = next((line for line in Path(f'/proc/{h.p.pid}/maps').read_text().splitlines()
+                     if '[heap]' in line and line.split()[1]=='rw-p'), None)
+        # A reservation can contain the kernel's randomized start_brk, making
+        # glibc fall back entirely to mmap. Only writable VMAs are real heap.
+        address = int(heap.split('-')[0], 16) if heap else h.entry
+
         reply = h.request(v1(record(address-base, b'x', 1, 0)))
-        assert reply['code'] == 'MMAP_FAILED' and '[heap]' in reply['message'], reply
+        assert reply['code'] == 'MMAP_FAILED' and 'conflicts with' in reply['message'], reply
+        if heap: assert '[heap]' in reply['message'], reply
         assert reply['attempts'] == 0 and reply['pages'] == 0 and h.value() == 1, reply
         assert reply['conflict_address'] == address and reply['conflict_start'] <= address < reply['conflict_end'], reply
         assert h.request(v1(flags=1))['conflict_address'] == 0
-        print(f"mapping: actual PIE C heap collision refused without writes: {reply['message']} PASS")
+        print(f"mapping: PIE application mapping outside reservation refused without writes: {reply['message']} PASS")
     finally:
         h.close()
     h = Host(library)

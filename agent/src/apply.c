@@ -1,5 +1,6 @@
 #include "internal.h"
 #include "apply.h"
+#include "region.h"
 #include "hazard.h"
 #include "park.h"
 #include "unwind.h"
@@ -24,6 +25,16 @@ static struct page_slot *find_page(uintptr_t p) {
     return &page_index[at];
 }
 int owned(uintptr_t p) { return p && find_page(p)->address == p; }
+/* Called only for main-image PT_LOADs validated against the region note. */
+int adopt_region_segment(uintptr_t start, uintptr_t end, unsigned prot) {
+    for (uintptr_t a = start; a < end; a += 4096) {
+        struct page_slot *slot = find_page(a);
+        if (slot->address) continue;
+        if (npages == MAX_PAGES) return -1;
+        *slot = (struct page_slot){a, prot}; pages[npages++] = a;
+    }
+    return 0;
+}
 /* Trust only exact controller-described PT_LOADs of the main executable. */
 struct adoption { const char *spec; int failed; };
 static int adopt_cb(struct dl_phdr_info *image, size_t size, void *opaque) {
@@ -41,7 +52,9 @@ static int adopt_cb(struct dl_phdr_info *image, size_t size, void *opaque) {
             if (sscanf(item, "%llx:%llx:%x%c", &addr, &len, &prot, &extra) != 3 ||
                 !len || (addr & 4095) || len > MAX_PAGES * 4096ULL ||
                 addr > UINTPTR_MAX - load_base || load_base + addr > UINTPTR_MAX - 4095 ||
-                len > UINTPTR_MAX - (load_base + addr) - 4095) {
+                len > UINTPTR_MAX - (load_base + addr) - 4095 ||
+                !region_contains(load_base + addr) ||
+                len > region_end - (load_base + addr)) {
                 adopt->failed = 1; break;
             }
             int matched = 0;
@@ -99,7 +112,7 @@ static void mapping_conflict(uintptr_t address, char error[160]) {
         }
         fclose(f);
     }
-    snprintf(error, 160, "mmap %lx conflicts with existing mapping", address);
+    snprintf(error, 160, "page %lx outside reserved code region", address);
 }
 static void remove_page(uintptr_t p) {
     struct page_slot *slot = find_page(p);
@@ -115,10 +128,14 @@ static void remove_page(uintptr_t p) {
         at = (at + 1) & (PAGE_SLOTS - 1);
     }
 }
+static _Noreturn void rollback_fatal(void);
 static void discard_pages(int before) {
     while (npages > before) {
         uintptr_t p = pages[--npages];
-        munmap((void *)p, 4096);
+        /* Restore our reservation on every refusal; never leave a hole for brk. */
+        if (mmap((void *)p, 4096, PROT_NONE,
+                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0) == MAP_FAILED)
+            rollback_fatal();
         remove_page(p);
     }
 }
@@ -226,6 +243,7 @@ enum refresh_code apply(char error[160], int *threads) {
     *threads = 0;
     unregistered_threads = 0;
     apply_conflict = (struct refresh_conflict){0};
+    if (!region_ok) return fail(error, REFRESH_MMAP_FAILED, "refresh code region reservation unavailable");
     const int before = npages;
     enum refresh_code code = REFRESH_OK;
     int fail_at = -1, fail_phase = 0;
@@ -255,7 +273,11 @@ enum refresh_code apply(char error[160], int *threads) {
     for (int i = 0; i < nrec; ++i) if (recs[i].kind == 0) {
         uintptr_t end = (recs[i].address + recs[i].length + 4095) & ~4095ULL;
         for (uintptr_t a = recs[i].address & ~4095ULL; a < end; a += 4096)
-            if (owned(a)) {
+            if (!region_contains(a)) {
+                mapping_conflict(a, error);
+                code = REFRESH_MMAP_FAILED;
+                goto refuse;
+            } else if (owned(a)) {
                 apply_conflict = (struct refresh_conflict){a, a, a + 4096};
                 code = fail(error, REFRESH_OVERLAP, "append-only generation overlaps retained page");
                 goto refuse;
@@ -277,7 +299,7 @@ enum refresh_code apply(char error[160], int *threads) {
                 code = fail(error, REFRESH_PAGE_LIMIT, "retained page limit"); goto refuse;
             }
             void *mapped = mmap((void *)a, 4096, PROT_READ | PROT_WRITE,
-                                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE, -1, 0);
+                                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
             if (mapped == MAP_FAILED) {
                 if (errno == EEXIST) mapping_conflict(a, error);
                 else snprintf(error, 160, "mmap %lx: %s", a, strerror(errno));

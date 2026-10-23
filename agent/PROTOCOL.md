@@ -21,7 +21,7 @@ deprecation line per active process, rather than one line per variable.
 | `REFRESH_HOST_EXE` | `E106_HOST_EXE` | Exact absolute `/proc/self/exe` path. Required when using the new socket variable, preventing activation in inherited child executables. |
 | `REFRESH_AFTER_PATCH` | `E099_AUTO_HOOK` | `1` calls `fast_refresh_after_patch` after a successful APPLY. |
 | `REFRESH_DEBUG` | `E121_DEBUG` | Nonzero enables the prototype ptrace diagnostics. |
-| `REFRESH_INHERITED` | `E106_INHERITED_SEGMENTS` | Semicolon-separated `addr:memsz:prot` hexadecimal triples for inherited patch PT_LOADs. Each must exactly match the main ELF; adopted pages return OVERLAP on a later fresh write. Malformed specifications disable agent startup with a diagnostic. |
+| `REFRESH_INHERITED` | `E106_INHERITED_SEGMENTS` | Semicolon-separated `addr:memsz:prot` hexadecimal triples for inherited patch PT_LOADs. Each must exactly match the main ELF; adopted pages return OVERLAP on a later fresh write. Versioned REFRESH-note binaries automatically adopt all patch PT_LOADs inside the region, including loader metadata, without this list. Malformed specifications disable agent startup with a diagnostic. |
 | `REFRESH_PARK_SIGNAL` | none | Decimal signal number, default `SIGRTMIN+7`. Invalid/unusable signals disable agent startup; an existing handler is warned about. |
 
 Release uses hybrid IP/frame-pointer/conservative-stack checks. `E084_MODE`,
@@ -92,7 +92,7 @@ and fixup addition overflows are refused. Length must be nonzero and at most
 
 | Kind | Contract |
 |---:|---|
-| 0 | Fresh appended code/data. MAP_FIXED_NOREPLACE never replaces application mappings. No page may overlap a previously committed generation. Records may share a fresh page only with identical final protections; payload writes occur in record order. |
+| 0 | Fresh appended code/data. Pages must lie inside the successfully reserved code region. MAP_FIXED replaces only agent-owned PROT_NONE reservation pages. No page may overlap a previously committed generation. Records may share a fresh page only with identical final protections; payload writes occur in record order. |
 | 1 | Existing entry write/restore: exactly 5 bytes, prot=5, no fixups. Every affected page must be original executable `r-xp` memory of the main executable (inode **and device** checked). |
 | 2 | Original immutable data: at most 4096 bytes, prot=1. Every affected page must be original `r--p` memory of the main executable. A record may straddle two pages. |
 | 3 | Unwind descriptor: length=8, prot=1, no fixups. Payload is a u64 source span (8 bytes–1 MiB), address points into retained/new patch pages. A terminated near copy is validated and rebased. |
@@ -220,3 +220,42 @@ handler, and allows the next identical-address transaction to succeed.
 and invoked after the first task listing, before gate=1. The raw-clone fixture
 uses it to prove that the second listing detects a newly born thread. This hook
 and environment name are absent from release builds.
+
+## Reserved code region (M3-T3 / EXP-122, EXP-126)
+
+The compiler and agent share an address rule without controller negotiation:
+`R = align_up(base_image_end_vaddr, 2 MiB) + 256 MiB`, region `[R, R+1 GiB)`.
+Base images ending above 700 MiB are refused conservatively for rel32 reach.
+Replies expose absolute `region_start`, `region_end`, boolean `region_ok`, and
+`region_used` (retained/inherited code/data pages in bytes; unwind copies excluded).
+Reservation failure keeps the status socket available. PING may return OK with
+`region_ok=false`; controllers should restart/use stock. Every APPLY then returns
+MMAP_FAILED before parking or writes, including an empty APPLY.
+
+The constructor reserves gaps with PROT_NONE / MAP_FIXED_NOREPLACE before its
+first allocation. The only exclusions are kernel-loaded main ELF PT_LOAD pages
+proven inside the versioned region. A 36-byte PT_NOTE inside a readable PT_LOAD
+preserves the original base-image end across sparse splice restarts/promotions:
+`namesz=8, descsz=16, type=0x52465231, name="REFRESH\0"`, then two little-endian
+u64 values: original base-image end and version `1`. The compiler replaces this
+note header on promotion rather than accumulating notes. Unknown/duplicate
+recognized versions fail closed. Inherited pages are entered in the same retained
+ownership index as committed live pages. Every new page is bounds checked and
+must be absent from that index before MAP_FIXED can replace our reservation.
+Transaction refusal restores PROT_NONE with MAP_FIXED; it never leaves a hole
+where a subsequent heap allocation could land. Failure to restore is fail-stop.
+
+A prior library constructor can allocate at the randomized brk address before
+this constructor runs. If that mapping intersects the region, reservation
+safely fails and patching remains disabled. A `[heap]` label on a PROT_NONE
+reservation is merely Linux's address-based label when it covers start_brk;
+allocation tests check writable mappings and successfully touch/free 320 MiB.
+Application MAP_FIXED/munmap over an agent reservation is outside this ownership
+contract, just as overwriting the application's existing executable mappings is.
+
+Unwind copies remain outside the region: PIE searches below the image in 2 MiB
+slots; ET_EXEC searches 64 KiB slots in the top 32 MiB below 2 GiB, above every
+allowed region. NOREPLACE and signed displacement validation remain mandatory.
+The C++ stress fixture disables libstdc++'s pre-constructor emergency EH pool
+with `GLIBCXX_TUNABLES=glibcxx.eh_pool.obj_count=0`; a separate occupied-startup
+fixture verifies refusal without clobbering its sentinel.

@@ -18,7 +18,7 @@ def unwind_throw(target, helper):
             record(eh, struct.pack('<Q', len(frames)), 1, 3)]
 
 def run(library):
-    h = Host(library, host_name='host-panic')
+    h = Host(library, host_name='host-panic', env={'GLIBCXX_TUNABLES': 'glibcxx.eh_pool.obj_count=0'})
     refused = 0
     try:
         initial = int(h.command('s').split()[1])

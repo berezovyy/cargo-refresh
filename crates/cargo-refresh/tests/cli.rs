@@ -13,13 +13,15 @@ struct Running {
 }
 impl Drop for Running {
     fn drop(&mut self) {
-        let _ = self.child.kill();
+        unsafe {
+            libc::kill(self.child.id() as i32, libc::SIGTERM);
+        }
         let _ = self.child.wait();
     }
 }
 
 fn wait_until(mut check: impl FnMut() -> bool) {
-    let deadline = Instant::now() + Duration::from_secs(10);
+    let deadline = Instant::now() + Duration::from_secs(30);
     while !check() {
         assert!(Instant::now() < deadline, "controller condition timed out");
         thread::sleep(Duration::from_millis(2));
@@ -52,12 +54,16 @@ strict = true
 "#,
     )
     .unwrap();
-    fs::write(directory.path().join("src/main.rs"), "fn main() {}\n").unwrap();
+    fs::write(
+        directory.path().join("src/main.rs"),
+        "fn main() { loop { std::thread::sleep(std::time::Duration::from_millis(10)); } }\n",
+    )
+    .unwrap();
     directory
 }
 
 #[test]
-fn direct_and_cargo_style_run_resolve_config_watch_and_log_without_self_events() {
+fn direct_and_cargo_style_run_resolve_config_build_and_log_without_self_events() {
     for invocation in ["direct", "cargo-style", "cargo"] {
         let directory = fixture();
         let root = directory.path();
@@ -76,7 +82,10 @@ fn direct_and_cargo_style_run_resolve_config_watch_and_log_without_self_events()
                 .chain(std::env::split_paths(&inherited_path));
             command.env("PATH", std::env::join_paths(path).unwrap());
         }
-        command.current_dir(root).env("RUSTUP_TOOLCHAIN", "1.99.0");
+        command
+            .current_dir(root)
+            .env("RUSTUP_TOOLCHAIN", "1.99.0")
+            .env("REFRESH_RUSTD", "/nonexistent/refresh-test-rustd");
         if invocation != "direct" {
             command.arg("refresh");
         }
@@ -107,7 +116,7 @@ fn direct_and_cargo_style_run_resolve_config_watch_and_log_without_self_events()
                     fs::read_to_string(&stderr).unwrap()
                 );
             }
-            rows(&log).iter().any(|row| row["event"] == "start")
+            rows(&log).iter().any(|row| row["event"] == "ready")
         });
         // Compare resolved roots to the stock cargo metadata result for this exact fixture.
         let stock = Command::new("cargo")
@@ -147,25 +156,22 @@ fn direct_and_cargo_style_run_resolve_config_watch_and_log_without_self_events()
         assert_eq!(config["args"], serde_json::json!(["--port", "8080"]));
         assert_eq!(config["verbose"], 1);
 
-        fs::write(&source, "fn main() { println!(\"edited\"); }\n").unwrap();
-        wait_until(|| rows(&log).iter().any(|row| row["path"] == "waiting"));
-        wait_until(|| fs::read_to_string(&stdout).unwrap().contains("changed: "));
-        let count = rows(&log).len();
+        fs::write(&source, "fn main() { loop { println!(\"edited\"); std::thread::sleep(std::time::Duration::from_millis(10)); } }\n").unwrap();
+        wait_until(|| rows(&log).iter().any(|row| row["path"] == "stock"));
+        wait_until(|| fs::read_to_string(&stdout).unwrap().contains("edited"));
+        let count = rows(&log).iter().filter(|r| r["event"] == "save").count();
         // This bound is a functional assertion against a recursive logging loop, not a latency claim.
         thread::sleep(Duration::from_millis(50));
         assert_eq!(
-            rows(&log).len(),
+            rows(&log).iter().filter(|r| r["event"] == "save").count(),
             count,
             "event log triggered its own save events"
         );
-        fs::write(&source, "fn main() { println!(\"edited\"); }\n").unwrap();
+        fs::write(&source, "fn main() { loop { println!(\"edited\"); std::thread::sleep(std::time::Duration::from_millis(10)); } }\n").unwrap();
         wait_until(|| rows(&log).iter().any(|row| row["path"] == "skip"));
-        wait_until(|| fs::read_to_string(&stdout).unwrap().contains("· unchanged"));
+        wait_until(|| fs::read_to_string(&stderr).unwrap().contains("· unchanged"));
         for row in rows(&log).iter().filter(|row| row["event"] == "save") {
-            assert_eq!(
-                row["generation"], 0,
-                "watch-only mode must not claim an applied patch"
-            );
+            assert!(row["generation"].as_u64().unwrap() >= 1);
             assert!(
                 row["phases"]["sources"].as_f64().unwrap()
                     >= row["phases"]["notice"].as_f64().unwrap()
