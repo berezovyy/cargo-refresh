@@ -1,6 +1,7 @@
 #ifndef REFRESH_UNWIND_H
 #define REFRESH_UNWIND_H
 #include "protocol.h"
+#define REFRESH_NEAR_SLOTS 512
 size_t unwind_bytes122(void);
 void unwind_init(void);
 void discard_staged(void);

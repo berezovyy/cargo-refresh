@@ -7,6 +7,7 @@
 
 uintptr_t pages[MAX_PAGES];
 int npages;
+struct refresh_conflict apply_conflict;
 uint64_t patch_bytes_total, patch_count;
 
 /* Open addressing keeps retained-page checks independent of session length. */
@@ -23,6 +24,83 @@ static struct page_slot *find_page(uintptr_t p) {
     return &page_index[at];
 }
 int owned(uintptr_t p) { return p && find_page(p)->address == p; }
+/* Trust only exact controller-described PT_LOADs of the main executable. */
+struct adoption { const char *spec; int failed; };
+static int adopt_cb(struct dl_phdr_info *image, size_t size, void *opaque) {
+    (void)size;
+    if (image->dlpi_name && image->dlpi_name[0]) return 0;
+    struct adoption *adopt = opaque;
+    char *copy = strdup(adopt->spec), *save = NULL;
+    if (!copy) { adopt->failed = 1; return 1; }
+    /* Validate everything first; a bad suffix must not partially adopt pages. */
+    for (int pass = 0; pass < 2 && !adopt->failed; ++pass) {
+        strcpy(copy, adopt->spec);
+        size_t count = (size_t)npages;
+        for (char *item = strtok_r(copy, ";", &save); item; item = strtok_r(NULL, ";", &save)) {
+            unsigned long long addr, len; unsigned prot; char extra;
+            if (sscanf(item, "%llx:%llx:%x%c", &addr, &len, &prot, &extra) != 3 ||
+                !len || (addr & 4095) || len > MAX_PAGES * 4096ULL ||
+                addr > UINTPTR_MAX - load_base || load_base + addr > UINTPTR_MAX - 4095 ||
+                len > UINTPTR_MAX - (load_base + addr) - 4095) {
+                adopt->failed = 1; break;
+            }
+            int matched = 0;
+            for (int j = 0; j < image->dlpi_phnum; ++j) {
+                const ElfW(Phdr) *ph = &image->dlpi_phdr[j];
+                unsigned expected = ((ph->p_flags & PF_R) ? PROT_READ : 0) |
+                    ((ph->p_flags & PF_W) ? PROT_WRITE : 0) |
+                    ((ph->p_flags & PF_X) ? PROT_EXEC : 0);
+                if (ph->p_type == PT_LOAD && ph->p_vaddr == addr && ph->p_memsz == len &&
+                    expected == prot) matched = 1;
+            }
+            size_t needed = (len + 4095) / 4096;
+            if (!matched || count + needed > MAX_PAGES) { adopt->failed = 1; break; }
+            count += needed;
+            if (pass) for (uintptr_t a = load_base + addr;
+                          a < load_base + addr + len; a += 4096) {
+                struct page_slot *slot = find_page(a);
+                if (!slot->address) {
+                    *slot = (struct page_slot){a, prot};
+                    pages[npages++] = a;
+                }
+            }
+        }
+    }
+    free(copy);
+    return 1;
+}
+int adopt_inherited(const char *spec) {
+    if (!spec || !*spec) return 0;
+    /* Empty items and separators at either end are malformed, too. */
+    size_t len = strlen(spec);
+    if (spec[0] == ';' || spec[len - 1] == ';' || strstr(spec, ";;")) return -1;
+    struct adoption adopt = {spec, 0};
+    dl_iterate_phdr(adopt_cb, &adopt);
+    return adopt.failed ? -1 : 0;
+}
+
+/* Preserve the conflict's actual owner so placement failures are diagnosable. */
+static void mapping_conflict(uintptr_t address, char error[160]) {
+    apply_conflict.address = address;
+    FILE *f = fopen("/proc/self/maps", "r");
+    char line[1024], perms[8], name[512];
+    unsigned long start, end;
+    if (f) {
+        while (fgets(line, sizeof(line), f)) {
+            int consumed = 0;
+            if (sscanf(line, "%lx-%lx %7s %*s %*s %*s %n", &start, &end, perms,
+                       &consumed) != 3 || address < start || address >= end) continue;
+            apply_conflict.start = start; apply_conflict.end = end;
+            snprintf(name, sizeof(name), "%s", line + consumed);
+            name[strcspn(name, "\n")] = 0;
+            snprintf(error, 160, "mmap %lx conflicts with %lx-%lx %s %.60s",
+                     address, start, end, perms, name[0] ? name : "[anonymous]");
+            fclose(f); return;
+        }
+        fclose(f);
+    }
+    snprintf(error, 160, "mmap %lx conflicts with existing mapping", address);
+}
 static void remove_page(uintptr_t p) {
     struct page_slot *slot = find_page(p);
     if (slot->address != p) return;
@@ -146,6 +224,8 @@ enum refresh_code apply(char error[160], int *threads) {
     read_errors = read_errno = 0; badsp = badhigh = 0;
     unwind_us = park_us = 0;
     *threads = 0;
+    unregistered_threads = 0;
+    apply_conflict = (struct refresh_conflict){0};
     const int before = npages;
     enum refresh_code code = REFRESH_OK;
     int fail_at = -1, fail_phase = 0;
@@ -176,6 +256,7 @@ enum refresh_code apply(char error[160], int *threads) {
         uintptr_t end = (recs[i].address + recs[i].length + 4095) & ~4095ULL;
         for (uintptr_t a = recs[i].address & ~4095ULL; a < end; a += 4096)
             if (owned(a)) {
+                apply_conflict = (struct refresh_conflict){a, a, a + 4096};
                 code = fail(error, REFRESH_OVERLAP, "append-only generation overlaps retained page");
                 goto refuse;
             }
@@ -198,7 +279,8 @@ enum refresh_code apply(char error[160], int *threads) {
             void *mapped = mmap((void *)a, 4096, PROT_READ | PROT_WRITE,
                                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE, -1, 0);
             if (mapped == MAP_FAILED) {
-                snprintf(error, 160, "mmap %lx: %s", a, strerror(errno));
+                if (errno == EEXIST) mapping_conflict(a, error);
+                else snprintf(error, 160, "mmap %lx: %s", a, strerror(errno));
                 code = REFRESH_MMAP_FAILED; goto refuse;
             }
             *slot = (struct page_slot){a, recs[i].prot};
@@ -229,7 +311,7 @@ enum refresh_code apply(char error[160], int *threads) {
     if (prepare_stacks()) {
         code = fail(error, REFRESH_INTERNAL, "stack map preparation failed"); goto refuse;
     }
-    int n = -1;
+    int n = -1, task_retries = 0;
     for (int attempt = 0; attempt < 100; ++attempt) {
         ++attempts;
         double pstart = stamp();
@@ -237,8 +319,11 @@ enum refresh_code apply(char error[160], int *threads) {
         park_us += stamp() - pstart;
         if (n >= 0) break;
         ++retries;
-        if (n == -1) {
-            code = fail(error, REFRESH_PARK_TIMEOUT, "park timeout or thread limit"); goto refuse;
+        if (n == -4) {
+            code = fail(error, REFRESH_PARK_TIMEOUT, "unregistered application thread"); goto refuse;
+        }
+        if (n == -1 || (n == -3 && ++task_retries >= 3)) {
+            code = fail(error, REFRESH_PARK_TIMEOUT, "park timeout, task race or thread limit"); goto refuse;
         }
         usleep(1000);
     }

@@ -50,10 +50,12 @@ static void send_reply(int fd, const struct refresh_message *message,
         "{\"ok\":%s,\"code\":\"%s\",\"message\":%s,\"error\":%s,"
         "\"txid\":%u,\"generation\":%llu,\"agent_us\":%.3f,\"threads\":%d,"
         "\"pages\":%d,\"patch_bytes_total\":%llu,\"patch_count\":%llu,"
+        "\"retained_bytes\":%llu,\"unwind_copies\":%d,\"near_slots_used\":%d,\"pressure\":%s,"
+        "\"conflict_address\":%llu,\"conflict_start\":%llu,\"conflict_end\":%llu,"
         "\"load_base\":%llu,\"mode\":%d,\"attempts\":%llu,\"retries\":%llu,"
         "\"pc_hits\":%llu,\"fp_hits\":%llu,\"scan_hits\":%llu,\"fp_frames\":%llu,"
         "\"fp_incomplete\":%llu,\"scan_words\":%llu,\"cfi_frames\":%llu,\"cfi_fail\":%llu,"
-        "\"unwind_us\":%.3f,\"park_us\":%.3f,"
+        "\"unwind_us\":%.3f,\"park_us\":%.3f,\"unregistered_threads\":%llu,"
         "\"scan_first_root123\":%llu,\"scan_us123\":%.3f,\"scan_bytes123\":%llu,"
         "\"scan_hits123\":%llu,\"scan_retained123\":%d,\"scan_candidates123\":%d,"
         "\"scan_errors123\":%d,\"reclaimed123\":%d,\"unwind_active\":%d,"
@@ -64,12 +66,17 @@ static void send_reply(int fd, const struct refresh_message *message,
         code == REFRESH_OK ? "true" : "false", refresh_code_name(code), escaped, escaped,
         message->txid, (unsigned long long)patch_count, elapsed, threads,
         npages, (unsigned long long)patch_bytes_total, (unsigned long long)patch_count,
+        (unsigned long long)npages * 4096 + unwind_bytes122(), nframes, nframes,
+        (npages > MAX_PAGES * 3 / 4 || nframes > MAX_RECORDS * 3 / 4 ||
+         nframes > REFRESH_NEAR_SLOTS * 3 / 4) ? "true" : "false",
+        (unsigned long long)apply_conflict.address, (unsigned long long)apply_conflict.start,
+        (unsigned long long)apply_conflict.end,
         (unsigned long long)load_base, mode, (unsigned long long)attempts,
         (unsigned long long)retries, (unsigned long long)pc_hits,
         (unsigned long long)fp_hits, (unsigned long long)scan_hits,
         (unsigned long long)fp_frames, (unsigned long long)fp_incomplete,
         (unsigned long long)scan_words, (unsigned long long)cfi_frames,
-        (unsigned long long)cfi_fail, unwind_us, park_us,
+        (unsigned long long)cfi_fail, unwind_us, park_us, (unsigned long long)unregistered_threads,
         (unsigned long long)scan.first_root, scan.us, (unsigned long long)scan.bytes,
         (unsigned long long)scan.hits, scan.retained, scan.candidates, scan.errors, scan.reclaimed,
         nframes, unwind_bytes122(),
@@ -96,7 +103,7 @@ static void *server(void *unused) {
     if (fd < 0) return NULL;
     strcpy(addr.sun_path, socket_path);
     unlink(socket_path);
-    if (bind(fd, (void *)&addr, sizeof(addr)) || listen(fd, 4)) { close(fd); return NULL; }
+    if (bind(fd, (void *)&addr, sizeof(addr)) || listen(fd, 16)) { close(fd); return NULL; }
     for (;;) {
         int c = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
         if (c < 0) continue;
@@ -110,6 +117,7 @@ static void *server(void *unused) {
             close(c); continue;
         }
         char error[160] = "";
+        apply_conflict = (struct refresh_conflict){0};
         int threads = 0, invoked = 0;
         double start = stamp();
         struct refresh_message message;
@@ -153,8 +161,7 @@ __attribute__((constructor)) static void init(void) {
     }
     const char *debug = refresh_env("REFRESH_DEBUG", "E121_DEBUG");
     const char *hook = refresh_env("REFRESH_AFTER_PATCH", "E099_AUTO_HOOK");
-    /* Adoption is implemented by M3 section 3.5; recognize the rename here. */
-    (void)refresh_env("REFRESH_INHERITED", "E106_INHERITED_SEGMENTS");
+    const char *inherited = refresh_env("REFRESH_INHERITED", "E106_INHERITED_SEGMENTS");
     if (legacy_environment)
         fputs("cargo-refresh: legacy agent environment variables are deprecated; use REFRESH_*\n", stderr);
     if (debug && strcmp(debug, "0")) prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0);
@@ -172,6 +179,10 @@ __attribute__((constructor)) static void init(void) {
     after_patch = (refresh_callback)dlsym(RTLD_DEFAULT, "fast_refresh_after_patch");
     callback_enabled = hook && !strcmp(hook, "1");
     dl_iterate_phdr(base_cb, NULL);
+    if (adopt_inherited(inherited)) {
+        fputs("cargo-refresh: invalid REFRESH_INHERITED; agent disabled\n", stderr);
+        return;
+    }
     unwind_init();
     if (park_init()) return;
     /* Application setlocale must not turn JSON decimals into comma decimals. */
