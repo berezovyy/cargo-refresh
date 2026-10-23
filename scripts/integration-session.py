@@ -263,6 +263,48 @@ def strict(args):
         (s.out/'completed.json').write_text(json.dumps({'strict_borrow_error_blocked_before_build':True,'editor_preserved':True,'oracle_matches':2}))
     finally:s.close()
 
+def triggers(args):
+    """Exercise post-ACK ordering, rejection/skip, and failed notification restart."""
+    import http.server, threading
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            assert self.path=='/refresh',self.path
+            server.observed.append(http(server.app_port))
+            self.send_response(server.status);self.end_headers()
+        def log_message(self,*unused):pass
+    server=http.server.HTTPServer(('127.0.0.1',0),Handler)
+    server.status=204;server.observed=[]
+    task=threading.Thread(target=server.serve_forever,daemon=True);task.start()
+    source=(args.project/'src/main.rs').read_text();manifest=args.project/'Cargo.toml'
+    manifest.write_text(manifest.read_text()+f'\n[package.metadata.refresh]\nafter_patch_touch = ["refresh-input.md"]\nafter_patch_http = "http://127.0.0.1:{server.server_port}/refresh"\n')
+    touched=args.project/'refresh-input.md';touched.write_bytes(b'Unchanged input.\n')
+    s=None
+    try:
+        s=Session(args);server.app_port=s.port;s.wait(lambda:http(s.port)==(200,'1'))
+        for value,status,path in [(2,204,'live'),(3,503,'restart'),(4,204,'live')]:
+            server.status=status
+            row=s.save({'src/main.rs':source.replace('number: 1',f'number: {value}')},'notification',str(value))
+            assert row['path']==path,row
+            assert server.observed[-1]==(200,str(value)),server.observed
+            assert touched.read_bytes()==b'Unchanged input.\n'
+            s.oracle_tiny(row,value)
+        assert len(server.observed)==3,server.observed
+        current=(s.project/'src/main.rs').read_text()
+        rejected=s.save({'src/main.rs':current+'\nfn incomplete( {\n'},'syntax-error','4',True)
+        assert rejected['path']=='waiting',rejected;s.oracle_tiny(rejected,4,True)
+        restored=s.save({'src/main.rs':current},'identical','4');assert restored['path']=='skip',restored
+        assert len(server.observed)==3,server.observed
+        touched.unlink()
+        failed=s.save({'src/main.rs':source.replace('number: 1','number: 5')},'missing-touch','5')
+        assert failed['path']=='restart',failed;s.oracle_tiny(failed,5)
+        assert len(server.observed)==3 and not touched.exists()
+        assert sum(r['event']=='after_patch_failed' for r in s.read())==2
+        assert not any(r['event']=='application_exit' for r in s.read())
+        (s.out/'completed.json').write_text(json.dumps({'post_ack_gets':server.observed,'failure_restarts':2,'rejected_and_skip_did_not_notify':True,'touch_content_preserved':True,'oracle_matches':5}))
+    finally:
+        if s:s.close()
+        server.shutdown();server.server_close();task.join()
+
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','zola','resilience','strict']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
+    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','zola','resilience','strict','triggers']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
 if __name__=='__main__':main()
