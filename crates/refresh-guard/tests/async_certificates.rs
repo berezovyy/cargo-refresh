@@ -35,8 +35,8 @@ fn certificates_never_relax_structure_signatures_or_nonasync_hazards() {
             "struct A(u64); async fn a() { 2; }",
         ),
         (
-            "async fn a() { 1; } fn b() { println!(\"old\"); }",
-            "async fn a() { 2; } fn b() { println!(\"new\"); }",
+            "async fn a() { 1; } fn b() { opaque!(\"old\"); }",
+            "async fn a() { 2; } fn b() { opaque!(\"new\"); }",
         ),
     ] {
         assert!(!matches!(classify(old, new).0, Class::LiveEligible { .. }));
@@ -83,4 +83,23 @@ fn attribute_coverage_is_bounded_by_the_unique_method_header() {
     let (class, owners) = classify(old, &old.replace("1;", "3;"));
     assert!(matches!(class, Class::LiveEligible { .. }));
     assert_eq!(owners[0].name, "@line:3-6::call");
+}
+
+#[test]
+fn certificate_deferral_preserves_the_closed_expression_macro_policy() {
+    let old = "async fn a() { 1; } fn b() { println!(\"old\"); }";
+    let new = old.replace("1;", "2;").replace("old", "new");
+    let (class, owners) = classify(old, &new);
+    assert!(matches!(class, Class::LiveEligible { .. }), "{class:?}");
+    assert_eq!(owners.len(), 1);
+    assert_eq!(owners[0].name, "::a");
+
+    for hazard in ["opaque!(1)", "println!(\"{}\", || 1)", "vec![async { 1 }]"] {
+        let before = format!("async fn a() {{ 1; }} fn b() {{ {hazard}; }}");
+        let after = before.replace('1', "2");
+        assert!(!matches!(
+            classify(&before, &after).0,
+            Class::LiveEligible { .. }
+        ));
+    }
 }

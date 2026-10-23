@@ -112,36 +112,35 @@ impl VisitMut for Lift<'_> {
         self.owners.insert(format!("::{name}"), line);
     }
 }
+type OwnerHeaders = BTreeMap<(PathBuf, String), (u32, u32)>;
+
 /// Only unambiguous method names are lifted. Bounded header coverage binds
 /// the compiler proof to the edited method even when qualified type spellings
 /// or trait aliases differ. Missing macro source locations fail closed.
-pub(crate) fn view(
-    files: &[FileSnapshot],
-) -> (Vec<FileSnapshot>, BTreeMap<(PathBuf, String), (u32, u32)>) {
+pub(crate) fn view(files: &[FileSnapshot]) -> (Vec<FileSnapshot>, OwnerHeaders) {
     let mut result = Vec::new();
     let mut owners = BTreeMap::new();
     for file in files {
         let mut bytes = file.bytes.clone();
-        if is_rust(&file.path) {
-            if let Ok(text) = std::str::from_utf8(&file.bytes) {
-                if let Ok(mut ast) = syn::parse_file(text) {
-                    let mut counts = Counts::default();
-                    counts.visit_file(&ast);
-                    let lines = declaration_lines(text);
-                    let mut lift = Lift {
-                        counts: &counts,
-                        lines: &lines,
-                        methods: Vec::new(),
-                        owners: BTreeMap::new(),
-                    };
-                    lift.visit_file_mut(&mut ast);
-                    if !lift.methods.is_empty() {
-                        ast.items.extend(lift.methods);
-                        bytes = ast.to_token_stream().to_string().into_bytes();
-                        for (name, line) in lift.owners {
-                            owners.insert((file.path.clone(), name), line);
-                        }
-                    }
+        if is_rust(&file.path)
+            && let Ok(text) = std::str::from_utf8(&file.bytes)
+            && let Ok(mut ast) = syn::parse_file(text)
+        {
+            let mut counts = Counts::default();
+            counts.visit_file(&ast);
+            let lines = declaration_lines(text);
+            let mut lift = Lift {
+                counts: &counts,
+                lines: &lines,
+                methods: Vec::new(),
+                owners: BTreeMap::new(),
+            };
+            lift.visit_file_mut(&mut ast);
+            if !lift.methods.is_empty() {
+                ast.items.extend(lift.methods);
+                bytes = ast.to_token_stream().to_string().into_bytes();
+                for (name, line) in lift.owners {
+                    owners.insert((file.path.clone(), name), line);
                 }
             }
         }
