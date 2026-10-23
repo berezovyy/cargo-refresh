@@ -19,5 +19,7 @@ pub mod agent;
 pub mod checker;
 pub mod fallback;
 pub mod ladder;
+pub mod process;
 pub mod supervisor;
+pub mod triggers;
 pub mod ui;

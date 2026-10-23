@@ -189,23 +189,33 @@ def web(args):
     finally:s.close()
 
 def mdbook(args):
+    rendered(args, 'mdbook')
+
+def zola(args):
+    rendered(args, 'zola')
+
+def rendered(args, app):
     import tomllib
     session=tomllib.loads(args.session.read_text());steps=session['saves'];assert len(steps)==30
     book=args.book.resolve()
-    s=Session(args,app_args=['serve',str(book),'--hostname','127.0.0.1','--port','{PORT}'],env={'CFLAGS':'-std=gnu17','CARGO_PROFILE_DEV_DEBUG':'0','RUST_LOG':'off'})
+    if app=='mdbook':
+        app_args=['serve',str(book),'--hostname','127.0.0.1','--port','{PORT}'];probe='/chapter.html'
+    else:
+        app_args=['--root',str(book),'serve','--interface','127.0.0.1','--port','{PORT}','--output-dir',str(book/'output'),'--force'];probe='/'
+    s=Session(args,app_args=app_args,env={'CFLAGS':'-std=gnu17','CARGO_PROFILE_DEV_DEBUG':'0','RUST_LOG':'off'})
     try:
-        s.wait(lambda:http(s.port,'/chapter.html'))
+        s.wait(lambda:http(s.port,probe))
         for step in steps:
             files={}
             for edit in step['edits']:
                 path=edit['file'];text=files.get(path,(s.project/path).read_text());assert text.count(edit['find'])==1,(step['id'],edit)
                 files[path]=text.replace(edit['find'],edit['replace'],1)
-            row=s.save(files,step['kind'],step['observation']['contains'],step.get('expect_build')=='error',path='/chapter.html')
+            row=s.save(files,step['kind'],step['observation']['contains'],step.get('expect_build')=='error',path=probe)
             expected=json.loads((args.expected/f"{step['id']:02d}.json").read_text())
-            observed=http(s.port,'/chapter.html');assert observed==(expected['observations'][0]['status'],expected['observations'][0]['body']),(step['id'],'response differs from stock')
+            observed=http(s.port,probe);assert observed==(expected['observations'][0]['status'],expected['observations'][0]['body']),(step['id'],'response differs from stock',observed)
             row['oracle_match']=True;s.flush();print(step['id'],step['kind'],row['path'],'PASS',flush=True)
         assert not any(r['event']=='application_exit' for r in s.read()),'application crashed'
-        (s.out/'completed.json').write_text(json.dumps({'saves':30,'valid':28,'oracle_matches':30,'missing_hook':True,'paths':{path:sum(r['path']==path for r in s.rows) for path in set(r['path'] for r in s.rows)}}))
+        (s.out/'completed.json').write_text(json.dumps({'saves':30,'valid':28,'oracle_matches':30,'paths':{path:sum(r['path']==path for r in s.rows) for path in set(r['path'] for r in s.rows)}}))
     finally:s.close()
 
 def resilience(args):
@@ -254,5 +264,5 @@ def strict(args):
     finally:s.close()
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','resilience','strict']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
+    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','zola','resilience','strict']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
 if __name__=='__main__':main()

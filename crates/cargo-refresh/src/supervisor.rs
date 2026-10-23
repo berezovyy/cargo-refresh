@@ -95,7 +95,7 @@ impl Supervisor {
             .env("REFRESH_AGENT_SOCKET", &socket)
             .env("REFRESH_HOST_EXE", &executable)
             .env("REFRESH_AFTER_PATCH", if self.hook { "1" } else { "0" });
-        let child = command.spawn().context("start application")?;
+        let child = crate::process::spawn(&mut command).context("start application")?;
         self.child = Some(child);
         self.exit_reported = false;
         self.executable = executable;

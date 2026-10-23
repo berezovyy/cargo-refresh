@@ -3,6 +3,40 @@ use anyhow::{Context, Result, bail, ensure};
 use object::read::elf::{FileHeader, ProgramHeader};
 use object::{LittleEndian as LE, Object, ObjectSection, ObjectSymbol, SectionFlags};
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::{Deref, DerefMut};
+
+#[derive(Debug)]
+pub enum ImageBytes {
+    Owned(Vec<u8>),
+    Mapped(memmap2::MmapMut),
+}
+impl From<Vec<u8>> for ImageBytes {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self::Owned(bytes)
+    }
+}
+impl ImageBytes {
+    fn as_slice(&self) -> &[u8] {
+        self
+    }
+}
+impl Deref for ImageBytes {
+    type Target = [u8];
+    fn deref(&self) -> &[u8] {
+        match self {
+            Self::Owned(bytes) => bytes,
+            Self::Mapped(bytes) => bytes,
+        }
+    }
+}
+impl DerefMut for ImageBytes {
+    fn deref_mut(&mut self) -> &mut [u8] {
+        match self {
+            Self::Owned(bytes) => bytes,
+            Self::Mapped(bytes) => bytes,
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
@@ -50,7 +84,7 @@ pub type SymbolIndex = (
 
 #[derive(Debug)]
 pub struct Image {
-    pub data: Vec<u8>,
+    pub data: ImageBytes,
     pub typ: u16,
     pub phoff: u64,
     pub headers: Vec<Program>,
@@ -79,6 +113,20 @@ pub fn u64_at(data: &[u8], off: usize) -> Result<u64> {
 }
 impl Image {
     pub fn parse(data: Vec<u8>, normalize: bool) -> Result<Self> {
+        Self::parse_bytes(data.into(), normalize)
+    }
+    /// Map a completed worker candidate without copying untouched program bytes.
+    ///
+    /// # Safety
+    /// The file must not be changed or truncated until this Image is dropped.
+    pub unsafe fn map_candidate(path: &std::path::Path) -> Result<Self> {
+        let file = std::fs::File::open(path)?;
+        // A private mapping also prevents accidental normalization from writing
+        // the compiler artifact. Only accessed metadata pages are faulted in.
+        let bytes = unsafe { memmap2::MmapOptions::new().map_copy(&file)? };
+        Self::parse_bytes(ImageBytes::Mapped(bytes), false)
+    }
+    fn parse_bytes(data: ImageBytes, normalize: bool) -> Result<Self> {
         ensure!(
             data.get(..6) == Some(b"\x7fELF\x02\x01"),
             "requires ELF64 little endian"
@@ -282,6 +330,30 @@ mod tests {
         r[16..24].copy_from_slice(&9_u64.to_le_bytes());
         b[0x418..0x430].copy_from_slice(&r);
         assert!(Image::parse(b, true).is_err());
+    }
+    #[test]
+    fn mapped_candidate_matches_owned_validation_and_is_private() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("candidate");
+        let bytes = elf_bytes();
+        std::fs::write(&file, &bytes).unwrap();
+        let owned = Image::parse(bytes.clone(), false).unwrap();
+        // SAFETY: this test owns the file, which stays unchanged until drop.
+        let mut mapped = unsafe { Image::map_candidate(&file) }.unwrap();
+        assert_eq!(mapped.headers, owned.headers);
+        assert_eq!(mapped.dynamic, owned.dynamic);
+        assert_eq!(
+            mapped.relocation_table().unwrap(),
+            owned.relocation_table().unwrap()
+        );
+        assert_eq!(&*mapped.data, bytes);
+        mapped.data[0x100] = 42;
+        assert_eq!(std::fs::read(&file).unwrap(), bytes);
+        drop(mapped);
+        for bytes in [vec![], vec![0; 64], b"not an ELF".to_vec()] {
+            std::fs::write(&file, &bytes).unwrap();
+            assert!(unsafe { Image::map_candidate(&file) }.is_err());
+        }
     }
     #[test]
     fn truncated_and_header_garbage_never_panics() {
