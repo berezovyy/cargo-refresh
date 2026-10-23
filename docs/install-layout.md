@@ -22,9 +22,11 @@ licenses/
 The two compiler shims are siblings of rustd. Preserve their executable permissions
 and use this absolute directory when launching compiler capture; do not mix shims
 from PATH with a different rustd release. `abi-facts.bundle` is schema-1 JSON, named
-independently of its internal `commit_hash`. If rustd expects a commit-named JSON
-file in a bundle directory, the controller must stage a verified copy under
-`<commit>.json` and pass that directory through its ABI-facts configuration.
+independently of its internal `commit_hash`. Current rustd reads
+`$RUSTD_ABI_FACTS_DIR/<commit>.json`; the controller must stage a verified copy of
+`abi-facts.bundle` under that name in a private per-session bundle directory and
+set `RUSTD_ABI_FACTS_DIR` to its absolute path. The archive/cache file remains
+`abi-facts.bundle`, so this adapter is required before compiler startup.
 
 `VERSION` is a newline-separated key/value file: `cargo_refresh`,
 `cargo_refresh_commit`, `rustd_commit`, `ra_commit`, `rustc_commit`, `target`, and
