@@ -81,3 +81,22 @@ fn unqualified_ast_stringification_is_found_through_wrappers() {
         assert!(!blocked(source.as_bytes()), "{source}");
     }
 }
+
+#[test]
+fn async_macro_arguments_are_distinct_from_outer_async_and_token_text() {
+    use refresh_guard::has_async_macro_arguments as needs_stock;
+    for source in [
+        "fn f() { vec![block_on(async { 1 }); 3]; }",
+        "fn f() { println!(\"{:?}\", vec![block_on(async { 1 }), block_on(async { 2 })]); }",
+        "fn f() { std::vec!{block_on(async move { 1 })}; }",
+    ] {
+        assert!(needs_stock(source.as_bytes()), "{source}");
+    }
+    for source in [
+        "fn f() { block_on(async { println!(\"x\"); }); }",
+        "fn f() { println!(\"async\"); /* async */ }",
+        "fn f() { println!(\"{}\", r#async); }",
+    ] {
+        assert!(!needs_stock(source.as_bytes()), "{source}");
+    }
+}

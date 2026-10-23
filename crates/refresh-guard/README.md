@@ -204,3 +204,10 @@ marks resolved assertion-bearing roots and instances unsupported and refuses
 refresh builds involving these roots. This covers aliases and included/generated
 bodies beyond the controller's source scan and prevents stale native copies. Remove this
 fence only after the AST printer has its own stock equivalence qualification.
+
+Changed async bodies inside macro arguments also require a stock rebuild when
+the guard reports `macro-body`. The macro campaign found that switching `vec!`
+between repeat and list forms could reuse coroutine bodies with stale constants
+after a compiler-backed restart. This narrow controller fence remains until
+coroutine identity invalidation is qualified; outer async code keeps its existing
+certificate policy.

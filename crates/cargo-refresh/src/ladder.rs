@@ -815,6 +815,21 @@ impl Pipeline {
         {
             return self.stock(&mut job, format!("guard internal error: {detail}"));
         }
+        if matches!(
+            class,
+            Class::Restart {
+                reason: Reason::MacroBody { .. }
+            }
+        ) && before
+            .iter()
+            .chain(after.iter())
+            .any(|snapshot| refresh_guard::has_async_macro_arguments(&snapshot.bytes))
+        {
+            return self.stock(
+                &mut job,
+                "async bodies inside macro arguments require a stock rebuild".into(),
+            );
+        }
         let mut restart_reason = match class {
             Class::Restart { reason } => Some(reason_text(&reason)),
             Class::Stock { reason } => return self.stock(&mut job, reason_text(&reason)),

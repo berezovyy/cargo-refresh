@@ -507,6 +507,41 @@ pub fn classify(before: &[FileSnapshot], after: &[FileSnapshot]) -> Class {
     DEFAULT_GUARD.with_borrow_mut(|guard| guard.classify(before, after))
 }
 
+/// Macro argument token streams can contain async bodies invisible to the
+/// ordinary AST visitor. Their coroutine identities are not yet safe to reuse
+/// when macro expansion changes the number of bodies (e.g. vec repeat/list).
+/// Only use this fence for a changed opaque macro body, not outer async code.
+pub fn has_async_macro_arguments(bytes: &[u8]) -> bool {
+    use proc_macro2::{TokenStream, TokenTree};
+    fn contains_async(tokens: TokenStream) -> bool {
+        tokens.into_iter().any(|token| match token {
+            TokenTree::Ident(ident) => ident == "async",
+            TokenTree::Group(group) => contains_async(group.stream()),
+            _ => false,
+        })
+    }
+    fn scan(tokens: TokenStream) -> bool {
+        let mut bang = false;
+        for token in tokens {
+            match token {
+                TokenTree::Group(group) => {
+                    if (bang && contains_async(group.stream())) || scan(group.stream()) {
+                        return true;
+                    }
+                    bang = false;
+                }
+                TokenTree::Punct(punct) => bang = punct.as_char() == '!',
+                _ => bang = false,
+            }
+        }
+        false
+    }
+    std::str::from_utf8(bytes)
+        .ok()
+        .and_then(|text| text.parse::<TokenStream>().ok())
+        .is_some_and(scan)
+}
+
 /// Token-stringifying macros whose exact expansion remains unqualified.
 /// `assert!` uses rustc's AST expression printer, whereas `stringify!` uses its
 /// token printer. Until the AST printer is ported, even startup code containing
