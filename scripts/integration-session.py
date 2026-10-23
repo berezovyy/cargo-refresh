@@ -28,7 +28,8 @@ class Session:
             if float(load.split()[0])<=2:break
             time.sleep(5)
         self.proc=subprocess.Popen(command,cwd=self.project,env=self.env,stdout=self.log,stderr=subprocess.STDOUT)
-        self.wait(lambda:any(r['event']=='ready' for r in self.read()),300)
+        try:self.wait(lambda:any(r['event']=='ready' for r in self.read()),300)
+        except BaseException:self.close();raise
     def read(self):
         if not self.events.exists():return []
         text=self.events.read_text();lines=text.splitlines()

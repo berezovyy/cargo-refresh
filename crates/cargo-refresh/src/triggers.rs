@@ -19,18 +19,24 @@ pub struct Http {
 impl Http {
     pub fn parse(url: &str) -> Result<Self> {
         ensure!(
-            url.is_ascii() && !url.bytes().any(|b| b.is_ascii_control() || b == b' '),
+            url.len() <= 8192
+                && url.is_ascii()
+                && !url.bytes().any(|b| b.is_ascii_control() || b == b' '),
             "invalid after_patch_http URL"
         );
         let rest = url
             .strip_prefix("http://")
             .context("after_patch_http requires http://")?;
         ensure!(
-            !rest.contains(['#', '@']),
+            !rest.contains('#'),
             "after_patch_http does not support fragments or credentials"
         );
         let end = rest.find(['/', '?']).unwrap_or(rest.len());
         let authority = &rest[..end];
+        ensure!(
+            !authority.contains('@'),
+            "after_patch_http does not support credentials"
+        );
         let suffix = &rest[end..];
         let path = if suffix.starts_with('/') {
             suffix.to_owned()
@@ -117,8 +123,13 @@ impl Endpoint {
         }
         let mut stream =
             connected.with_context(|| format!("after_patch_http connect failed: {last:?}"))?;
-        stream.set_write_timeout(Some(remaining()?))?;
-        stream.write_all(self.request.as_bytes())?;
+        let mut request = self.request.as_bytes();
+        while !request.is_empty() {
+            stream.set_write_timeout(Some(remaining()?))?;
+            let n = stream.write(request)?;
+            ensure!(n != 0, "after_patch_http write returned zero");
+            request = &request[n..];
+        }
         let mut header = Vec::new();
         loop {
             stream.set_read_timeout(Some(remaining()?))?;

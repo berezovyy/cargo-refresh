@@ -738,19 +738,27 @@ impl Pipeline {
                 })?;
                 match agent::action(&reply) {
                     agent::Action::Applied => {
-                        if let Err(error) = self.triggers.fire() {
-                            self.event("after_patch_failed", format!("{error:#}"));
-                            return self.restart_candidate(
-                                &mut job,
-                                &build,
-                                patch,
-                                format!("after-patch notification failed: {error:#}"),
-                            );
-                        }
+                        let notification = self.triggers.fire();
                         mark(&mut job.phases, Phase::TriggerEnd);
+                        // APPLY already mutated the runtime, even if a newer
+                        // save arrived during notification. Commit and publish
+                        // that fact so the watcher can reconcile its hashes.
                         self.fast.as_mut().unwrap().extractor.commit(patch)?;
                         mark(&mut job.phases, Phase::CommitEnd);
-                        self.publish(&job, SavePath::Live, String::new(), true)?;
+                        if let Err(error) = notification {
+                            self.event("after_patch_failed", format!("{error:#}"));
+                            self.runtime.start(&build.candidate_path)?;
+                            mark(&mut job.phases, Phase::SpawnEnd);
+                            self.recovery_restart = false;
+                            self.publish(
+                                &job,
+                                SavePath::Restart,
+                                format!("after-patch notification failed: {error:#}"),
+                                true,
+                            )?;
+                        } else {
+                            self.publish(&job, SavePath::Live, String::new(), true)?;
+                        }
                     }
                     agent::Action::Intact => {
                         self.publish(
