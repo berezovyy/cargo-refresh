@@ -20,6 +20,7 @@ use std::{
     path::PathBuf,
     sync::Arc,
     thread::{self, JoinHandle},
+    time::{Duration, Instant},
 };
 
 #[derive(Clone)]
@@ -56,6 +57,7 @@ pub struct Fast {
     manifest: State,
     control: PathBuf,
     promotions: u32,
+    pressure: bool,
 }
 struct Reset {
     task: JoinHandle<Result<Fast>>,
@@ -84,6 +86,8 @@ pub struct Pipeline {
     recovery_restart: bool,
     view_dirty: BTreeSet<PathBuf>,
     session_home: PathBuf,
+    last_save: Instant,
+    epoch_idle_safe: bool,
 }
 fn mark(phases: &mut BTreeMap<Phase, f64>, phase: Phase) {
     phases.insert(phase, monotonic_seconds().unwrap_or(0.0) * 1000.0);
@@ -166,6 +170,7 @@ fn start_fast(
         manifest: State::default(),
         control,
         promotions: 0,
+        pressure: false,
     })
 }
 fn reason_text(reason: &Reason) -> String {
@@ -236,6 +241,8 @@ impl Pipeline {
             recovery_restart: false,
             view_dirty: BTreeSet::new(),
             session_home,
+            last_save: Instant::now(),
+            epoch_idle_safe: false,
         })
     }
     fn event(&self, name: &'static str, message: impl Into<String>) {
@@ -335,6 +342,7 @@ impl Pipeline {
     fn publish(&mut self, job: &Job, path: SavePath, reason: String, applied: bool) -> Result<()> {
         let notice = job.phases.get(&Phase::Notice).copied().unwrap_or(0.0);
         if applied {
+            self.epoch_idle_safe = true;
             checker::apply(&mut self.sources, &job.changes);
             self.unchecked
                 .extend(job.changes.changes.iter().map(|c| c.path.clone()));
@@ -446,6 +454,7 @@ impl Pipeline {
             .context("compiler baseline unavailable")?
             .extractor
             .commit(patch)?;
+        self.fast.as_mut().unwrap().pressure = false;
         self.recovery_restart = false;
         self.publish(job, SavePath::Restart, reason, true)
     }
@@ -475,6 +484,8 @@ impl Pipeline {
         self.unchecked.clear();
     }
     pub fn process(&mut self, mut job: Job) -> Result<()> {
+        self.last_save = Instant::now();
+        self.epoch_idle_safe = false;
         self.fence.revision = job.changes.revision;
         if let Some((mut old, _)) = self.checker.take() {
             old.cancel();
@@ -701,6 +712,7 @@ impl Pipeline {
             }
             fast.manifest = State::default();
             fast.promotions += 1;
+            fast.pressure = false;
             self.recovery_restart = false;
             self.publish(&job, SavePath::Restart, reason, true)?;
             return Ok(());
@@ -717,6 +729,10 @@ impl Pipeline {
         mark(&mut job.phases, Phase::PatchAck);
         match reply {
             Ok(reply) => {
+                if let Some(fast) = self.fast.as_mut() {
+                    fast.pressure |=
+                        reply.counters.get("pressure").and_then(|v| v.as_bool()) == Some(true);
+                }
                 self.sender.send(Update::AgentReply {
                     reply: reply.clone(),
                     revision: self.fence.revision,
@@ -878,6 +894,111 @@ impl Pipeline {
                 Err(error) => self.event("check_failed", error.to_string()),
             }
         }
+        self.poll_epoch()?;
+        Ok(())
+    }
+
+    /// Maintenance has no editor revision of its own. Only restart a fully
+    /// delivered, checked snapshot after the watcher has been idle for two seconds.
+    fn poll_epoch(&mut self) -> Result<()> {
+        if !self.epoch_idle_safe
+            || self.last_save.elapsed() < Duration::from_secs(2)
+            || !self.fence.current()
+            || self.checker.is_some()
+            || self.reset.is_some()
+            || self.recovery_restart
+            || (self.workspace.is_some() && !self.unchecked.is_empty())
+        {
+            return Ok(());
+        }
+        let Some(fast) = self.fast.as_ref() else {
+            return Ok(());
+        };
+        if !fast.manifest.epoch_due && !fast.pressure {
+            return Ok(());
+        }
+        self.event(
+            "epoch_due",
+            format!(
+                "epoch_due=true cumulative_roots={} retained_bytes={} pressure={}",
+                fast.manifest.cumulative_roots, fast.manifest.retained_bytes, fast.pressure,
+            ),
+        );
+        // Bound the loader's retained headers/tables too. A native recapture is
+        // quarantined from the current runtime until the next save establishes it.
+        if fs::metadata(&self.runtime.executable)?.len() >= 256 * 1024 * 1024 {
+            self.quarantine();
+            self.recovery_restart = true;
+            self.epoch_idle_safe = false;
+            self.begin_reset();
+            self.event(
+                "epoch_native_due",
+                "epoch limit reached; next save establishes a native baseline",
+            );
+            return Ok(());
+        }
+        let result = self.promote_idle_epoch();
+        if let Err(error) = result {
+            // Promotion may have advanced compiler semantics even when a newer
+            // revision arrived. Never continue patching the old live baseline.
+            self.quarantine();
+            self.recovery_restart = true;
+            self.epoch_idle_safe = false;
+            self.event(
+                "epoch_failed",
+                format!("epoch promotion deferred to next save: {error:#}"),
+            );
+            self.begin_reset();
+        }
+        Ok(())
+    }
+
+    fn promote_idle_epoch(&mut self) -> Result<()> {
+        let fast = self.fast.as_mut().context("compiler unavailable")?;
+        fs::write(&fast.control, "1")?;
+        let build = fast.client.build();
+        fs::write(&fast.control, "0")?;
+        let build = build?;
+        ensure!(
+            fs::metadata(&build.candidate_path)?.len() < 256 * 1024 * 1024,
+            "epoch candidate requires a native rebase"
+        );
+        ensure!(
+            self.fence.current(),
+            "new save arrived during epoch promotion"
+        );
+        ensure!(
+            fast.manifest.update(&build.manifest)?,
+            "stale epoch manifest"
+        );
+        let candidate = Image::parse(fs::read(&build.candidate_path)?, false)?;
+        // Apply the same candidate validation as a save before replacing a process.
+        let _ = fast.extractor.extract(&fast.manifest, &candidate)?;
+        let mut extractor =
+            ManifestExtractor::new(&build.candidate_path, self.config.allow_tracing_metadata)?;
+        let catalog = build.candidate_path.with_extension("promoted126.json");
+        ensure!(catalog.exists(), "epoch promotion catalog missing");
+        let symbols: Vec<serde_json::Value> = serde_json::from_slice(&fs::read(catalog)?)?;
+        for symbol in symbols {
+            if symbol["text"] == true && symbol["size"].as_u64().unwrap_or(0) >= 5 {
+                extractor.add_function(symbol["address"].as_u64().context("invalid epoch symbol")?);
+            }
+        }
+        ensure!(
+            self.fence.current(),
+            "new save arrived during epoch validation"
+        );
+        self.runtime.start(&build.candidate_path)?;
+        fast.extractor = extractor;
+        fast.manifest = State::default();
+        // Keep the existing layout-save promotion budget independent of idle
+        // maintenance. The absolute executable bound above covers both kinds.
+        fast.pressure = false;
+        self.epoch_idle_safe = false;
+        self.event(
+            "epoch_restart",
+            "promoted epoch baseline; cumulative roots and retained pages reset",
+        );
         Ok(())
     }
 }
