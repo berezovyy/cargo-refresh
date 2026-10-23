@@ -17,9 +17,9 @@ module.loader.exec_module(runner)
 
 
 class AdapterContract(unittest.TestCase):
-    def exercise(self, path="live", output=None, identity=None, timeout=False, environment=False, base_output=None):
+    def exercise(self, path="live", output=None, identity=None, timeout=False, environment=False, base_output=None, case_name="01-test"):
         spec = {
-            "case": "01-test", "v0_1": ["works"], "state_rule": "counter retained",
+            "case": case_name, "v0_1": ["works"], "state_rule": "counter retained",
             "base_probes": ["probe=11", "probe=12"],
             "steps": [{"name": "edit-1", "stock_after_restart": ["probe=20", "probe=30"],
                        "live_expected": ["probe=22", "probe=32"]}],
@@ -66,6 +66,8 @@ name="edit-1"
 stock_after_restart=["probe=20", "probe=30"]
 live_expected=["probe=22", "probe=32"]
 ''')
+            contract = case / "edits.toml"
+            contract.write_text(contract.read_text().replace('case="01-test"', f'case="{case_name}"'))
             if environment:
                 with (case / "edits.toml").open("a") as contract:
                     contract.write('[steps.environment]\nM4_SEMANTICS_REQUIRED="22"\n')
@@ -135,6 +137,12 @@ live_expected=["probe=22", "probe=32"]
         self.assertFalse(result["coverage-complete"])
         self.assertEqual(result["steps"][0]["actual-path"], "session-relaunch")
         self.assertEqual(result["steps"][0]["output-verdict"], "PASS")
+
+    def test_stock_only_build_script_does_not_require_a_compiler_reset(self):
+        result = self.exercise(path="stock", case_name="16-build-output")
+        self.assertEqual(result["result"], "PASS")
+        self.assertEqual(result["steps"][0]["recapture-verdict"],
+                         "NOT-APPLICABLE: compiler disabled by installation policy")
 
     def test_error_outcome_is_not_treated_as_restart(self):
         result = self.exercise(path="error")
