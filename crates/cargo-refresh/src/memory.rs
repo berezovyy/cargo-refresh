@@ -176,9 +176,7 @@ impl Recovery {
         peak: u64,
         reserve: u64,
     ) -> bool {
-        if sample.pressured(reserve)
-            || !allows(sample.available.saturating_sub(512 * 1024 * 1024), peak)
-        {
+        if sample.pressured(reserve) || !allows(sample.available, peak) {
             self.healthy_since = None;
             return false;
         }
@@ -195,28 +193,27 @@ pub struct Estimate {
     pub rust_lines: u64,
     pub dependencies: usize,
     pub peak_bytes: u64,
+    pub debug_info: bool,
 }
 impl Estimate {
     pub fn from_counts(rust_lines: u64, dependencies: usize) -> Self {
-        // First 300 packages approximate graph/bootstrap cost; marginal cost
-        // falls for the larger observed dependency closures. LOC remains linear.
-        let dependencies_u64 = dependencies as u64;
-        let dependency_bytes = dependencies_u64
-            .min(300)
-            .saturating_mul(16 * 1024 * 1024)
-            .saturating_add(
-                dependencies_u64
-                    .saturating_sub(300)
-                    .saturating_mul(4 * 1024 * 1024),
-            );
-        let peak_bytes = (5_u64 * GIB / 2)
-            .saturating_add(rust_lines.saturating_mul(192 * 1024))
-            .saturating_add(dependency_bytes);
+        Self::with_debug(rust_lines, dependencies, true)
+    }
+    fn with_debug(rust_lines: u64, dependencies: usize, debug_info: bool) -> Self {
+        let fixed = if debug_info { 5 * GIB / 2 } else { GIB / 4 };
+        let peak_bytes = fixed
+            .saturating_add(rust_lines.saturating_mul(320 * 1024))
+            .saturating_add((dependencies as u64).saturating_mul(16 * 1024 * 1024))
+            .max(3 * GIB / 2);
         Self {
             rust_lines,
             dependencies,
             peak_bytes,
+            debug_info,
         }
+    }
+    pub fn without_debug_info(self) -> Self {
+        Self::with_debug(self.rust_lines, self.dependencies, false)
     }
     pub fn project(roots: &[PathBuf], dependencies: usize) -> Result<Self> {
         let mut seen = std::collections::BTreeSet::new();
@@ -244,6 +241,41 @@ impl Estimate {
         }
         Ok(Self::from_counts(lines, dependencies))
     }
+}
+
+/// Use the smaller model only for a global no-debug dev profile with no
+/// per-package/build override that could restore debug metadata. Unknown or
+/// mixed profiles keep the conservative default; Cargo qualifies flags later.
+pub fn debug_info_disabled(manifest: &Path) -> Result<bool> {
+    let text = match fs::read_to_string(manifest) {
+        Ok(text) => text,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error.into()),
+    };
+    let root: toml::Value = toml::from_str(&text)?;
+    let Some(dev) = root.get("profile").and_then(|v| v.get("dev")) else {
+        return Ok(false);
+    };
+    fn zero(value: &toml::Value) -> bool {
+        match value {
+            toml::Value::Integer(v) => *v == 0,
+            toml::Value::Boolean(v) => !*v,
+            toml::Value::String(v) => v == "none",
+            _ => false,
+        }
+    }
+    fn overrides_zero(value: &toml::Value) -> bool {
+        value.as_table().is_none_or(|table| {
+            table.iter().all(|(key, value)| {
+                if key == "debug" {
+                    zero(value)
+                } else {
+                    overrides_zero(value)
+                }
+            })
+        })
+    }
+    Ok(dev.get("debug").is_some_and(zero) && overrides_zero(dev))
 }
 
 #[cfg(test)]
@@ -371,7 +403,7 @@ mod tests {
             full_pressure: 0.0,
         };
         let marginal = Sample {
-            available: 3 * GIB,
+            available: 3 * GIB - 1,
             ..healthy
         };
         assert!(!recovery.observe(at, healthy, 2 * GIB, RESERVE));
@@ -393,6 +425,48 @@ mod tests {
             RESERVE
         ));
         assert!(!recovery.observe(at + Duration::from_secs(43), healthy, 2 * GIB, RESERVE));
+        // A finite cgroup that exactly fits admission must remain recoverable.
+        let mut exact = Recovery::new(at);
+        let fits = Sample {
+            available: 3 * GIB,
+            full_pressure: 0.0,
+        };
+        assert!(!exact.observe(at, fits, 2 * GIB, RESERVE));
+        assert!(exact.observe(at + Duration::from_secs(5), fits, 2 * GIB, RESERVE));
+    }
+
+    #[test]
+    fn no_debug_model_requires_global_zero_and_respects_mixed_overrides() {
+        let tree = tempfile::tempdir().unwrap();
+        let manifest = tree.path().join("Cargo.toml");
+        assert!(!debug_info_disabled(&manifest).unwrap());
+        for text in [
+            "[profile.dev]\ndebug = 0",
+            "[profile.dev]\ndebug = false",
+            "[profile.dev]\ndebug = 'none'\n[profile.dev.package.foo]\ndebug = 0",
+        ] {
+            fs::write(&manifest, text).unwrap();
+            assert!(debug_info_disabled(&manifest).unwrap());
+        }
+        for text in [
+            "[profile.dev]\ndebug = 1",
+            "[profile.dev.package.foo]\ndebug = 0",
+            "[profile.dev]\ndebug = 0\n[profile.dev.build-override]\ndebug = 1",
+            "[profile.dev]\ndebug = 0\n[profile.dev.package.foo]\ndebug = 2",
+        ] {
+            fs::write(&manifest, text).unwrap();
+            assert!(!debug_info_disabled(&manifest).unwrap());
+        }
+        let full = Estimate::from_counts(2164, 258);
+        let smaller = full.without_debug_info();
+        assert!(smaller.peak_bytes < full.peak_bytes && !smaller.debug_info);
+        assert!(Estimate::from_counts(0, 0).without_debug_info().peak_bytes >= RESERVE);
+        assert!(!allows(
+            u64::MAX,
+            Estimate::from_counts(u64::MAX, usize::MAX)
+                .without_debug_info()
+                .peak_bytes
+        ));
     }
 
     #[test]

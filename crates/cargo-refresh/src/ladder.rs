@@ -853,13 +853,15 @@ impl Pipeline {
                         format!("[refresh] {detail}. Retrying when memory recovers."),
                     );
                 }
-                return self.stock(
-                    &mut job,
+                let reason = if rustd::memory_stop_reported(&error) {
+                    "compiler stopped under memory pressure; using Cargo".to_owned()
+                } else {
                     format!(
                         "compiler failed: {}",
                         detail.lines().next().unwrap_or("unknown error")
-                    ),
-                );
+                    )
+                };
+                return self.stock(&mut job, reason);
             }
         };
         if build.native_rebase {
@@ -1188,7 +1190,7 @@ impl Pipeline {
     }
 
     /// Idle and reset checks share the same cadence as blocking compiler work.
-    /// Recovery needs five stable seconds and 512 MiB additional headroom; a
+    /// Recovery needs five stable seconds at the admission budget; a
     /// failed/degraded attempt has a 30-second cooldown to prevent thrashing.
     fn poll_memory(&mut self) {
         if self.memory_poll.elapsed() < crate::memory::INTERVAL {

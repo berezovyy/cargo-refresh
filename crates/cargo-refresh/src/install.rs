@@ -551,10 +551,15 @@ pub fn prepare(config: &mut Config) {
             .transpose()?
             .unwrap_or(config.memory_estimate.peak_bytes);
         eprintln!(
-            "[refresh] Memory estimate: {:.1} GiB ({} owned Rust lines, {} dependencies) + 1 GiB reserve; {:.1} GiB effective available.",
+            "[refresh] Memory estimate: {:.1} GiB ({} owned Rust lines, {} dependencies, debug info {}) + 1 GiB reserve; {:.1} GiB effective available.",
             peak as f64 / GIB as f64,
             config.memory_estimate.rust_lines,
             config.memory_estimate.dependencies,
+            if config.memory_estimate.debug_info {
+                "on"
+            } else {
+                "off"
+            },
             available as f64 / GIB as f64
         );
         if !memory_allows(available, peak) {

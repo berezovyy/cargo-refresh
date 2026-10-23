@@ -274,10 +274,13 @@ impl Config {
                     .filter_map(|t| t.src_path.parent().map(Path::to_path_buf))
             })
             .collect();
-        let memory_estimate = crate::memory::Estimate::project(
+        let mut memory_estimate = crate::memory::Estimate::project(
             &memory_roots,
             linked.iter().filter(|id| !owned.contains(**id)).count(),
         )?;
+        if crate::memory::debug_info_disabled(&metadata.workspace_root.join("Cargo.toml"))? {
+            memory_estimate = memory_estimate.without_debug_info();
+        }
         let stock_frontier_roots = local
             .iter()
             .filter(|p| owned.contains(p.id.as_str()))
