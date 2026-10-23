@@ -24,8 +24,11 @@ pub struct SymbolIndex {
 impl SymbolIndex {
     /// Read only the immutable run snapshot, once per application process.
     pub fn baseline(path: &Path, load_base: u64) -> Result<Self> {
-        let bytes = fs::read(path)?;
-        let image = object::File::parse(bytes.as_slice())?;
+        let file = fs::File::open(path)?;
+        // SAFETY: Supervisor owns this immutable run snapshot. It is never
+        // overwritten or truncated, including while the process is stopped.
+        let bytes = unsafe { memmap2::Mmap::map(&file)? };
+        let image = object::File::parse(&*bytes)?;
         let mut index = Self::default();
         for symbol in image.symbols().chain(image.dynamic_symbols()) {
             if symbol.kind() != SymbolKind::Text || symbol.is_undefined() || symbol.size() == 0 {
@@ -225,9 +228,11 @@ pub fn load_base(pid: u32, executable: &Path) -> Result<u64> {
         read::elf::{FileHeader, ProgramHeader},
     };
     use std::os::unix::fs::MetadataExt;
-    let bytes = fs::read(executable)?;
-    let header = object::elf::FileHeader64::<LittleEndian>::parse(bytes.as_slice())?;
-    let programs = header.program_headers(LittleEndian, bytes.as_slice())?;
+    let file = fs::File::open(executable)?;
+    // SAFETY: this is the supervisor's immutable executable snapshot.
+    let bytes = unsafe { memmap2::Mmap::map(&file)? };
+    let header = object::elf::FileHeader64::<LittleEndian>::parse(&*bytes)?;
+    let programs = header.program_headers(LittleEndian, &*bytes)?;
     let metadata = fs::metadata(executable)?;
     let inode = metadata.ino();
     let device = format!(

@@ -165,6 +165,8 @@ fn start_fast(
         "RUSTD_PROMOTE_CONTROL".into(),
         control.as_os_str().to_owned(),
     );
+    cfg.extra_env
+        .insert("RUSTD_PROMOTION_CATALOG".into(), "delta-v1".into());
     cfg.package = Some(config.package.clone());
     cfg.edit = config.edit.clone();
     cfg.features = config.features.clone();
@@ -731,24 +733,21 @@ impl Pipeline {
             }
             self.runtime.start(&build.candidate_path)?;
             mark(&mut job.phases, Phase::SpawnEnd);
-            let fast = self.fast.as_mut().unwrap();
-            fast.extractor = ManifestExtractor::new(
-                &self.runtime.executable,
-                self.config.allow_tracing_metadata,
-            )?;
-            let catalog = build.candidate_path.with_extension("promoted126.json");
-            if catalog.exists() {
-                let symbols: Vec<serde_json::Value> = serde_json::from_slice(&fs::read(catalog)?)?;
-                for symbol in symbols {
-                    if symbol["text"] == true && symbol["size"].as_u64().unwrap_or(0) >= 5 {
-                        fast.extractor.add_function(
-                            symbol["address"]
-                                .as_u64()
-                                .context("invalid promotion catalog")?,
-                        );
-                    }
-                }
+            let promoted = (|| -> Result<()> {
+                let catalog = build.candidate_path.with_extension("promoted126.json");
+                // SAFETY: this private run inode is never overwritten or truncated.
+                // Unlinking it at the next restart leaves existing mappings valid.
+                let baseline = unsafe { Image::map_baseline(&self.runtime.executable)? };
+                self.fast
+                    .as_mut()
+                    .unwrap()
+                    .extractor
+                    .promote(baseline, &fs::read(catalog)?)
+            })();
+            if let Err(error) = promoted {
+                return self.stock(&mut job, format!("invalid promotion baseline: {error:#}"));
             }
+            let fast = self.fast.as_mut().unwrap();
             fast.manifest = State::default();
             fast.promotions += 1;
             fast.pressure = false;
@@ -1025,25 +1024,20 @@ impl Pipeline {
             fast.manifest.update(&build.manifest)?,
             "stale epoch manifest"
         );
-        let candidate = Image::parse(fs::read(&build.candidate_path)?, false)?;
+        // SAFETY: this candidate is dropped before any subsequent worker build.
+        let candidate = unsafe { Image::map_candidate(&build.candidate_path)? };
         // Apply the same candidate validation as a save before replacing a process.
         let _ = fast.extractor.extract(&fast.manifest, &candidate)?;
-        let mut extractor =
-            ManifestExtractor::new(&build.candidate_path, self.config.allow_tracing_metadata)?;
         let catalog = build.candidate_path.with_extension("promoted126.json");
         ensure!(catalog.exists(), "epoch promotion catalog missing");
-        let symbols: Vec<serde_json::Value> = serde_json::from_slice(&fs::read(catalog)?)?;
-        for symbol in symbols {
-            if symbol["text"] == true && symbol["size"].as_u64().unwrap_or(0) >= 5 {
-                extractor.add_function(symbol["address"].as_u64().context("invalid epoch symbol")?);
-            }
-        }
         ensure!(
             self.fence.current(),
             "new save arrived during epoch validation"
         );
         self.runtime.start(&build.candidate_path)?;
-        fast.extractor = extractor;
+        // SAFETY: normalization touches only private pages of an immutable run inode.
+        let baseline = unsafe { Image::map_baseline(&self.runtime.executable)? };
+        fast.extractor.promote(baseline, &fs::read(catalog)?)?;
         fast.manifest = State::default();
         // Keep the existing layout-save promotion budget independent of idle
         // maintenance. The absolute executable bound above covers both kinds.

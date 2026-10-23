@@ -86,6 +86,7 @@ pub struct ManifestExtractor {
     applied: Applied,
     serial: u64,
     last_generation: u64,
+    promotion_generation: u64,
 }
 impl ManifestExtractor {
     pub fn new(baseline: impl AsRef<Path>, allow_tracing: bool) -> Result<Self> {
@@ -105,7 +106,72 @@ impl ManifestExtractor {
             applied: Applied::default(),
             serial: 0,
             last_generation: 0,
+            promotion_generation: 0,
         })
+    }
+    /// Install an already validated, immutable restart baseline. Existing data
+    /// symbols keep their offsets because every original PT_LOAD is retained.
+    /// Only changed function entries need to be added from the promotion catalog.
+    pub fn promote(&mut self, base: Image, catalog: &[u8]) -> Result<()> {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Delta {
+            version: u32,
+            generation: u64,
+            functions: Vec<u64>,
+        }
+        #[derive(serde::Deserialize)]
+        struct LegacySymbol {
+            address: u64,
+            size: u64,
+            text: bool,
+        }
+        #[derive(serde::Deserialize)]
+        #[serde(untagged)]
+        enum Catalog {
+            Delta(Delta),
+            Legacy(Vec<LegacySymbol>),
+        }
+        ensure!(base.typ == self.base.typ, "promotion ELF type changed");
+        ensure!(
+            self.base.loads().all(|p| base.loads().any(|q| p == q)),
+            "promotion changed original loaded mappings"
+        );
+        let next = self
+            .promotion_generation
+            .checked_add(1)
+            .context("promotion sequence overflow")?;
+        let functions = match serde_json::from_slice::<Catalog>(catalog)? {
+            Catalog::Delta(delta) => {
+                ensure!(delta.version == 1, "unsupported promotion catalog version");
+                ensure!(
+                    delta.generation == next,
+                    "stale or out-of-order promotion catalog"
+                );
+                delta.functions
+            }
+            Catalog::Legacy(symbols) => symbols
+                .into_iter()
+                .filter(|s| s.text && s.size >= 5)
+                .map(|s| s.address)
+                .collect(),
+        };
+        for &addr in &functions {
+            ensure!(
+                base.loads()
+                    .any(|p| p.flags & 1 != 0 && p.contains(addr, 5, true)),
+                "promotion function outside executable mapping: {addr:x}"
+            );
+        }
+        let loads = base.loads().map(|p| p.identity()).collect();
+        self.base = base;
+        self.original_loads = loads;
+        self.functions.extend(functions);
+        self.applied = Applied::default();
+        self.serial += 1;
+        self.last_generation = 0;
+        self.promotion_generation = next;
+        Ok(())
     }
     /// Promotion catalogs can add entry symbols absent from retained ELF sections.
     pub fn add_function(&mut self, addr: u64) {
@@ -379,6 +445,7 @@ mod tests {
             applied: Applied::default(),
             serial: 0,
             last_generation: 0,
+            promotion_generation: 0,
         };
         // A Location record in original immutable memory.
         put(&mut x.base, 0x1500, b"src/lib.rs");
@@ -444,6 +511,90 @@ mod tests {
             },
         );
         (x, s, c)
+    }
+    #[test]
+    fn promotion_retains_helpers_and_data_index_and_rejects_stale_catalogs() {
+        let (mut x, _, _) = setup();
+        x.promote(
+            candidate(),
+            br#"{"version":1,"generation":1,"functions":[32768]}"#,
+        )
+        .unwrap();
+        assert!(x.functions.contains(&0x1100));
+        assert!(x.functions.contains(&0x8000));
+        assert!(x.objects.contains_key(&0x200));
+        // Refusals leave the usable baseline and its sequence intact.
+        for catalog in [
+            br#"{"version":1,"generation":1,"functions":[]}"#.as_slice(),
+            br#"{"version":1,"generation":3,"functions":[]}"#.as_slice(),
+            br#"{"version":2,"generation":2,"functions":[]}"#.as_slice(),
+            br#"{"version":1,"generation":2,"functions":[16384]}"#.as_slice(),
+            br#"{"version":1,"generation":2,"functions":[36863]}"#.as_slice(),
+        ] {
+            assert!(x.promote(candidate(), catalog).is_err());
+            assert_eq!(x.promotion_generation, 1);
+        }
+        // An unrelated second promotion need not repeat the helper from the first.
+        x.promote(
+            candidate(),
+            br#"{"version":1,"generation":2,"functions":[]}"#,
+        )
+        .unwrap();
+        assert!(x.functions.contains(&0x8000));
+        assert!(x.objects.contains_key(&0x200));
+        // A later patch can still redirect that retained helper entry.
+        let mut next = candidate();
+        let crate::elf::ImageBytes::Owned(bytes) = &mut next.data else {
+            unreachable!()
+        };
+        bytes.resize(0x4000, 0);
+        next.headers
+            .push(crate::test_images::program(1, 5, 0x3000, 0xc000, 0x1000));
+        let mut state = State::default();
+        state.generation = 1;
+        state.segments = vec![Segment {
+            addr: 0xc000,
+            len: 4096,
+            prot: 5,
+        }];
+        state.unwind_regions = Some(vec![]);
+        state.pages.insert(
+            0xc000,
+            Arc::new(Page {
+                addr: 0xc000,
+                prot: 5,
+                payload: vec![0x90; 4096],
+                fixups: vec![],
+            }),
+        );
+        let mut jump = vec![0xe9];
+        jump.extend_from_slice(&(0xc000_i32 - 0x8000 - 5).to_le_bytes());
+        state.writes.insert(
+            0x8000,
+            Write {
+                addr: 0x8000,
+                kind: 1,
+                payload: jump,
+                fixups: vec![],
+                name: vec![],
+            },
+        );
+        let patch = x.extract(&state, &next).unwrap();
+        assert!(
+            patch
+                .records
+                .iter()
+                .any(|r| r.kind == 1 && r.addr == 0x8000)
+        );
+        x.commit(patch).unwrap();
+        // Compatibility with a compiler that does not implement delta catalogs.
+        x.promote(
+            candidate(),
+            br#"[{"name":"helper","address":33024,"size":8,"text":true}]"#,
+        )
+        .unwrap();
+        assert!(x.functions.contains(&0x8100));
+        assert_eq!(x.promotion_generation, 3);
     }
     #[test]
     fn v1_unwind_matches_elf_and_skips_its_index() {

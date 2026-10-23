@@ -12,6 +12,67 @@ use std::{
 };
 
 pub const AGENT: &[u8] = include_bytes!(env!("REFRESH_BUNDLED_AGENT"));
+
+/// Copy a completed candidate to a private inode without materializing its code-region hole.
+fn snapshot_executable(source: &Path, destination: &Path) -> Result<()> {
+    #[cfg(target_os = "linux")]
+    {
+        use std::io::{Read, Seek, SeekFrom};
+        use std::os::{fd::AsRawFd, unix::fs::OpenOptionsExt};
+        let mut input = fs::File::open(source)?;
+        let mut output = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(destination)?;
+        const FICLONE: libc::c_ulong = 0x4004_9409;
+        if unsafe { libc::ioctl(output.as_raw_fd(), FICLONE, input.as_raw_fd()) } == 0 {
+            return Ok(());
+        }
+        let len = input.metadata()?.len();
+        output.set_len(0)?;
+        output.set_len(len)?;
+        let mut at = 0;
+        while at < len {
+            let data =
+                unsafe { libc::lseek(input.as_raw_fd(), at as libc::off_t, libc::SEEK_DATA) };
+            if data < 0 {
+                let error = std::io::Error::last_os_error();
+                if error.raw_os_error() == Some(libc::ENXIO) {
+                    break;
+                }
+                if matches!(error.raw_os_error(), Some(libc::EINVAL | libc::EOPNOTSUPP)) {
+                    fs::copy(source, destination)?;
+                    return Ok(());
+                }
+                return Err(error.into());
+            }
+            let data = data as u64;
+            ensure!(data >= at && data < len, "invalid snapshot data extent");
+            let hole =
+                unsafe { libc::lseek(input.as_raw_fd(), data as libc::off_t, libc::SEEK_HOLE) };
+            if hole < 0 {
+                return Err(std::io::Error::last_os_error().into());
+            }
+            let end = (hole as u64).min(len);
+            ensure!(end > data, "invalid snapshot hole extent");
+            input.seek(SeekFrom::Start(data))?;
+            output.seek(SeekFrom::Start(data))?;
+            // std's file-to-file copy uses copy_file_range where supported.
+            let copied =
+                std::io::copy(&mut Read::by_ref(&mut input).take(end - data), &mut output)?;
+            ensure!(copied == end - data, "candidate truncated during snapshot");
+            at = end;
+        }
+        Ok(())
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        fs::copy(source, destination)?;
+        Ok(())
+    }
+}
+
 pub struct Supervisor {
     child: Option<Child>,
     run: Option<tempfile::TempDir>,
@@ -85,13 +146,22 @@ impl Supervisor {
     }
     pub fn start(&mut self, binary: &Path) -> Result<()> {
         let started = Instant::now();
-        self.stop();
-        let stopped = started.elapsed();
         // /tmp keeps Unix socket names within sockaddr_un even in deep workspaces.
         let run = tempfile::Builder::new().prefix("refresh-run-").tempdir()?;
         fs::set_permissions(run.path(), fs::Permissions::from_mode(0o700))?;
         let executable = run.path().join("app");
-        fs::copy(binary, &executable).context("snapshot application executable")?;
+        // The compiler has completed and validation has passed. Shutdown and the
+        // final ELF snapshot write are independent; join both before exec.
+        let stopped = thread::scope(|scope| -> Result<_> {
+            let snapshot = scope.spawn(|| snapshot_executable(binary, &executable));
+            self.stop();
+            let stopped = started.elapsed();
+            snapshot
+                .join()
+                .map_err(|_| anyhow::anyhow!("snapshot worker panicked"))?
+                .context("snapshot application executable")?;
+            Ok(stopped)
+        })?;
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o500))?;
         let snapshotted = started.elapsed();
         let socket = run.path().join("agent.sock");
@@ -149,10 +219,15 @@ impl Supervisor {
             thread::sleep(Duration::from_millis(5));
         }
         if std::env::var_os("REFRESH_PROFILE_RESTART").is_some() {
-            eprintln!("restart-timeline-us: stop={} snapshot={} spawn={} load_base={} symbols={} agent={}",
-                stopped.as_micros(), (snapshotted - stopped).as_micros(),
-                (spawned - snapshotted).as_micros(), (located - spawned).as_micros(),
-                (indexed - located).as_micros(), (started.elapsed() - indexed).as_micros());
+            eprintln!(
+                "restart-timeline-us: stop={} snapshot={} spawn={} load_base={} symbols={} agent={}",
+                stopped.as_micros(),
+                (snapshotted - stopped).as_micros(),
+                (spawned - snapshotted).as_micros(),
+                (located - spawned).as_micros(),
+                (indexed - located).as_micros(),
+                (started.elapsed() - indexed).as_micros()
+            );
         }
         Ok(())
     }
@@ -211,6 +286,57 @@ impl Drop for Supervisor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn sparse_snapshot_keeps_bytes_holes_and_an_independent_inode() {
+        use std::os::{
+            fd::AsRawFd,
+            unix::fs::{FileExt, MetadataExt},
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source");
+        let target = dir.path().join("snapshot");
+        let file = fs::File::create(&source).unwrap();
+        file.set_len(32 * 1024 * 1024).unwrap();
+        file.write_all_at(b"first", 0).unwrap();
+        file.write_all_at(b"last", 20 * 1024 * 1024).unwrap();
+        snapshot_executable(&source, &target).unwrap();
+        let copy = fs::File::open(&target).unwrap();
+        let mut bytes = [0; 5];
+        copy.read_exact_at(&mut bytes, 0).unwrap();
+        assert_eq!(&bytes, b"first");
+        copy.read_exact_at(&mut bytes[..4], 20 * 1024 * 1024)
+            .unwrap();
+        assert_eq!(&bytes[..4], b"last");
+        copy.read_exact_at(&mut bytes, 10 * 1024 * 1024).unwrap();
+        assert_eq!(bytes, [0; 5]);
+        assert_eq!(
+            copy.metadata().unwrap().len(),
+            file.metadata().unwrap().len()
+        );
+        assert_ne!(
+            copy.metadata().unwrap().ino(),
+            file.metadata().unwrap().ino()
+        );
+        file.write_all_at(b"newer", 0).unwrap();
+        copy.read_exact_at(&mut bytes, 0).unwrap();
+        assert_eq!(&bytes, b"first");
+        let probe = fs::File::open(&source).unwrap();
+        if unsafe { libc::lseek(probe.as_raw_fd(), 4096, libc::SEEK_DATA) } > 4096 {
+            assert!(copy.metadata().unwrap().blocks() * 512 < 1024 * 1024);
+        }
+        // A file consisting entirely of holes must retain its length, too.
+        let empty = dir.path().join("empty");
+        fs::File::create(&empty)
+            .unwrap()
+            .set_len(16 * 1024 * 1024)
+            .unwrap();
+        snapshot_executable(&empty, &dir.path().join("empty-copy")).unwrap();
+        assert_eq!(
+            fs::metadata(dir.path().join("empty-copy")).unwrap().len(),
+            16 * 1024 * 1024
+        );
+    }
     #[test]
     fn immutable_copy_group_and_agent_host_identity() {
         let storage = tempfile::tempdir().unwrap();
