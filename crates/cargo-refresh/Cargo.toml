@@ -1,0 +1,21 @@
+[package]
+name = "cargo-refresh"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Fast Refresh for Rust: development controller"
+
+[dependencies]
+anyhow.workspace = true
+blake3.workspace = true
+clap.workspace = true
+crossbeam-channel.workspace = true
+libc.workspace = true
+notify.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
