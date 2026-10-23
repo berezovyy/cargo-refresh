@@ -122,33 +122,43 @@ pub fn extend(config: &mut Config) -> Result<()> {
     let mut files: BTreeSet<_> = config.input_files.iter().cloned().collect();
     let mut depfiles = Vec::new();
     let mut working_dirs = BTreeMap::new();
-    for entry in walkdir::WalkDir::new(&config.target_directory)
-        .into_iter()
-        .filter_entry(|e| {
-            !e.file_type().is_dir()
-                || !matches!(
-                    e.file_name().to_str(),
-                    Some("refresh" | "incremental" | ".fingerprint")
-                )
-        })
-    {
-        let entry = entry?;
-        if !entry.file_type().is_file() {
+    // The stock ladder uses its own target under refresh/. Checker targets
+    // refer to private mirrors and must not become application watch inputs.
+    for scan_root in [
+        config.target_directory.clone(),
+        config.target_directory.join("refresh/stock"),
+    ] {
+        if !scan_root.is_dir() {
             continue;
         }
-        if entry.path().extension().is_some_and(|ext| ext == "d") {
-            depfiles.push(entry.into_path());
-        } else if entry.file_name() == "record.json"
-            && entry
-                .path()
-                .ancestors()
-                .any(|p| p.file_name().is_some_and(|n| n == ".rustd-units"))
+        for entry in walkdir::WalkDir::new(&scan_root)
+            .into_iter()
+            .filter_entry(|e| {
+                !e.file_type().is_dir()
+                    || !matches!(
+                        e.file_name().to_str(),
+                        Some("refresh" | "incremental" | ".fingerprint")
+                    )
+            })
         {
-            // Captured rustc records preserve the actual working directory of
-            // workspace members. Relative .d paths are relative to that cwd.
-            let record: serde_json::Value = serde_json::from_slice(&fs::read(entry.path())?)?;
-            if let Some((depfile, cwd)) = captured_depfile(&record) {
-                working_dirs.insert(depfile, cwd);
+            let entry = entry?;
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            if entry.path().extension().is_some_and(|ext| ext == "d") {
+                depfiles.push(entry.into_path());
+            } else if entry.file_name() == "record.json"
+                && entry
+                    .path()
+                    .ancestors()
+                    .any(|p| p.file_name().is_some_and(|n| n == ".rustd-units"))
+            {
+                // Captured rustc records preserve the actual working directory of
+                // workspace members. Relative .d paths are relative to that cwd.
+                let record: serde_json::Value = serde_json::from_slice(&fs::read(entry.path())?)?;
+                if let Some((depfile, cwd)) = captured_depfile(&record) {
+                    working_dirs.insert(depfile, cwd);
+                }
             }
         }
     }
@@ -160,17 +170,32 @@ pub fn extend(config: &mut Config) -> Result<()> {
             } else {
                 cwd.join(path)
             };
-            let path = path.canonicalize().unwrap_or(path);
-            // Regular Rust inputs already watched by the compiler must retain Rs classification.
-            if path.extension().is_some_and(|ext| ext == "rs")
-                && config
-                    .source_roots
-                    .iter()
-                    .any(|root| path.starts_with(root))
-            {
-                continue;
+            let canonical = path
+                .canonicalize()
+                .or_else(|error| {
+                    let Some(parent) = path.parent() else {
+                        return Err(error);
+                    };
+                    let Some(name) = path.file_name() else {
+                        return Err(error);
+                    };
+                    Ok(parent.canonicalize()?.join(name))
+                })
+                .unwrap_or_else(|_| path.clone());
+            // Preserve the spelling for symlink replacement, and the resolved
+            // path for events reported from canonical watched directories.
+            for path in [path, canonical] {
+                // Regular Rust inputs already watched by the compiler retain Rs classification.
+                if path.extension().is_some_and(|ext| ext == "rs")
+                    && config
+                        .source_roots
+                        .iter()
+                        .any(|root| path.starts_with(root))
+                {
+                    continue;
+                }
+                files.insert(path);
             }
-            files.insert(path);
         }
     }
     config.input_files = files.into_iter().collect();
@@ -228,6 +253,36 @@ mod tests {
                 PathBuf::from("/workspace/member")
             ))
         );
+    }
+
+    #[test]
+    fn stock_dep_info_is_read_and_missing_parent_relative_inputs_are_normalized() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("target/refresh/stock/debug")).unwrap();
+        fs::create_dir_all(root.join("target/refresh/check/debug")).unwrap();
+        fs::write(
+            root.join("target/refresh/stock/debug/app.d"),
+            "bin: future.dat src/../gone.txt\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("target/refresh/check/debug/app.d"),
+            "bin: checker-only.dat\n",
+        )
+        .unwrap();
+        let meta = serde_json::from_value(serde_json::json!({
+            "packages":[{"id":"app-id","name":"app","manifest_path":root.join("Cargo.toml"),
+                "source":null,"targets":[{"name":"app","kind":["bin"],"src_path":root.join("src/main.rs")}],
+                "metadata":{},"default_run":null}],
+            "workspace_root":root,"target_directory":root.join("target"),"workspace_default_members":["app-id"]
+        })).unwrap();
+        let mut config = Config::resolve(Default::default(), &meta, root).unwrap();
+        extend(&mut config).unwrap();
+        assert!(config.input_files.contains(&root.join("future.dat")));
+        assert!(config.input_files.contains(&root.join("gone.txt")));
+        assert!(!config.input_files.contains(&root.join("checker-only.dat")));
     }
 
     #[test]

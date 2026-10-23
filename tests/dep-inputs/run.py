@@ -4,6 +4,9 @@ import argparse
 import importlib.util
 import json
 import os
+import shutil
+import tomllib
+import uuid
 from pathlib import Path
 import subprocess
 import sys
@@ -26,7 +29,20 @@ module.loader.exec_module(runner)
 args.archive, args.offline, args.default_profile = None, True, False
 args.work = args.work.resolve()
 args.work.mkdir(parents=True, exist_ok=True)
-result = (runner.run_stock(ROOT / "fixture", args.work, True, False) if args.stock else
-          runner.run_refresh(ROOT / "fixture", args.work, args))
+# New dependency names must be unseen even with a warm target from a prior run.
+case = args.work / "fixture"
+if case.exists():
+    shutil.rmtree(case)
+shutil.copytree(ROOT / "fixture", case)
+nonce = uuid.uuid4().hex[:12]
+edits = (case / "edits.toml").read_text()
+for original in ("next.txt", "data.bin"):
+    fresh = f"{nonce}-{original}"
+    (case / original).rename(case / fresh)
+    edits = edits.replace(original, fresh)
+(case / "edits.toml").write_text(edits)
+(case / "expected.json").write_text(json.dumps(runner.expected_contract(tomllib.loads(edits)), indent=2) + "\n")
+result = (runner.run_stock(case, args.work, True, False) if args.stock else
+          runner.run_refresh(case, args.work, args))
 (args.work / ("stock.json" if args.stock else "refresh.json")).write_text(json.dumps(result, indent=2) + "\n")
 sys.exit(result["result"] != "PASS" or (not args.stock and not result.get("path-match", False)))

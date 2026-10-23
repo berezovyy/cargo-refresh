@@ -148,7 +148,10 @@ impl WatchSpec {
 fn existing_directory(path: &Path) -> Option<PathBuf> {
     path.ancestors()
         .find(|path| path.is_dir())
-        .map(Path::to_path_buf)
+        // inotify identifies directories by inode. Registering the same inode
+        // as both root/ and root/src/.. makes notify report an alias that no
+        // longer matches canonical dependency inputs.
+        .and_then(|path| path.canonicalize().ok())
 }
 
 fn skip_directory(name: &str) -> bool {
@@ -430,6 +433,22 @@ mod tests {
         assert!(!inventory.directories.contains(&root.join("src/.hidden")));
         assert!(!inventory.directories.contains(&root.join("src/target")));
         assert!(inventory.directories.contains(root));
+    }
+
+    #[test]
+    fn stale_parent_relative_input_cannot_alias_a_live_watch_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir(root.join("src")).unwrap();
+        let message = root.join("message.txt");
+        fs::write(&message, "before").unwrap();
+        let mut spec = spec(root);
+        spec.input_files
+            .extend([message.clone(), root.join("src/../gone.txt")]);
+        let mut watcher = SourceWatcher::new(spec).unwrap();
+        fs::write(&message, "after").unwrap();
+        let batch = watcher.next_batch(Duration::from_secs(2)).unwrap().unwrap();
+        assert!(batch.paths.contains(&message));
     }
 
     #[test]

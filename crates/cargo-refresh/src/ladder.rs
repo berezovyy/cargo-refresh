@@ -344,6 +344,8 @@ impl Pipeline {
             ensure!(result.success, "initial cargo check: {}", result.diagnostic);
             self.checked_available = true;
         }
+        // The public ready event must follow dependency-watch installation.
+        self.refresh_inputs()?;
         self.event(
             "ready",
             format!("application pid {}", self.runtime.pid().unwrap_or(0)),
@@ -353,7 +355,6 @@ impl Pipeline {
             self.config.bin,
             self.runtime.pid().unwrap_or(0)
         );
-        self.refresh_inputs()?;
         self.sender.send(Update::Ready)?;
         Ok(())
     }
@@ -435,8 +436,14 @@ impl Pipeline {
             .iter()
             .any(|c| c.kind == PathKind::Manifest);
         if manifest_change {
+            let watched_inputs = self.config.input_files.clone();
             self.config = Config::load(self.config.invocation.clone())?;
             crate::install::prepare(&mut self.config);
+            // Keep already captured inputs observable during the stock build.
+            // Installation policy above uses only the new Cargo configuration.
+            self.config.input_files.extend(watched_inputs);
+            self.config.input_files.sort();
+            self.config.input_files.dedup();
             self.runtime.configure_agent(
                 self.config
                     .support
@@ -490,6 +497,9 @@ impl Pipeline {
                     != Some(true);
         }
         self.recovery_restart = true;
+        // A client may save a newly included file immediately after the save
+        // event. Queue the new watch set first on the same ordered channel.
+        self.refresh_inputs()?;
         self.publish(job, SavePath::Stock, reason, true)?;
         // Stock build ran borrow checking and compiled the current source snapshot.
         self.advance_checked(&job.changes);
@@ -509,7 +519,6 @@ impl Pipeline {
                 job.changes.revision,
             ))?;
         }
-        self.refresh_inputs()?;
         self.begin_reset();
         Ok(())
     }
