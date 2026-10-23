@@ -84,13 +84,16 @@ impl Supervisor {
         self.name = name;
     }
     pub fn start(&mut self, binary: &Path) -> Result<()> {
+        let started = Instant::now();
         self.stop();
+        let stopped = started.elapsed();
         // /tmp keeps Unix socket names within sockaddr_un even in deep workspaces.
         let run = tempfile::Builder::new().prefix("refresh-run-").tempdir()?;
         fs::set_permissions(run.path(), fs::Permissions::from_mode(0o700))?;
         let executable = run.path().join("app");
         fs::copy(binary, &executable).context("snapshot application executable")?;
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o500))?;
+        let snapshotted = started.elapsed();
         let socket = run.path().join("agent.sock");
         let mut command = Command::new(&executable);
         command
@@ -123,9 +126,12 @@ impl Supervisor {
             stderr,
             self.symbols.clone(),
         )?);
+        let spawned = started.elapsed();
         self.load_base = crate::symbolize::load_base(self.pid().unwrap(), &self.executable)?;
+        let located = started.elapsed();
         *self.symbols.write().unwrap() =
             crate::symbolize::SymbolIndex::baseline(&self.executable, self.load_base)?;
+        let indexed = started.elapsed();
         let deadline = Instant::now() + Duration::from_secs(5);
         loop {
             ensure!(
@@ -141,6 +147,12 @@ impl Supervisor {
                 "application agent startup timed out"
             );
             thread::sleep(Duration::from_millis(5));
+        }
+        if std::env::var_os("REFRESH_PROFILE_RESTART").is_some() {
+            eprintln!("restart-timeline-us: stop={} snapshot={} spawn={} load_base={} symbols={} agent={}",
+                stopped.as_micros(), (snapshotted - stopped).as_micros(),
+                (spawned - snapshotted).as_micros(), (located - spawned).as_micros(),
+                (indexed - located).as_micros(), (started.elapsed() - indexed).as_micros());
         }
         Ok(())
     }
