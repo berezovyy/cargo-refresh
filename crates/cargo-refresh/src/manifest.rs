@@ -9,6 +9,11 @@ use std::{
 #[derive(Default, Debug)]
 pub struct State {
     pub generation: u64,
+    pub version: u16,
+    pub unwind_regions: Option<Vec<UnwindRegion>>,
+    pub symbols: Vec<Symbol>,
+    pub cumulative_roots: u64,
+    pub retained_bytes: u64,
     pub segments: Vec<Segment>,
     pub pages: BTreeMap<u64, Arc<Page>>,
     pub writes: BTreeMap<u64, Write>,
@@ -88,6 +93,11 @@ impl State {
         for p in m.pages {
             self.pages.insert(p.addr, Arc::new(p));
         }
+        self.version = m.version;
+        self.unwind_regions = m.unwind_regions;
+        self.symbols = m.symbols;
+        self.cumulative_roots = m.cumulative_roots;
+        self.retained_bytes = m.retained_bytes;
         self.segments = m.segments;
         self.writes = writes;
         self.generation = m.generation;

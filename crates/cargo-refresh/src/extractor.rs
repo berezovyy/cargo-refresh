@@ -66,6 +66,8 @@ struct Applied {
 pub struct PreparedPatch {
     pub records: Vec<Record>,
     pub generation: u64,
+    /// Symbols emitted by the compiler in this generation, for later backtrace lookup.
+    pub symbols: Vec<crate::manifest::Symbol>,
     serial: u64,
     next: Applied,
 }
@@ -254,7 +256,34 @@ impl ManifestExtractor {
                 fixups,
             });
         }
-        records.extend(unwind::descriptors(candidate, &self.original_loads)?);
+        if let Some(regions) = &state.unwind_regions {
+            for region in regions {
+                let end = region
+                    .addr
+                    .checked_add(region.len)
+                    .context("unwind overflow")?;
+                ensure!(
+                    region.len > 0
+                        && state.segments.iter().any(|s| s.prot == 1
+                            && s.addr <= region.addr
+                            && end
+                                <= (s.addr + s.len)
+                                    .checked_add(4095)
+                                    .map(|v| v & !4095)
+                                    .unwrap_or(0)),
+                    "manifest unwind outside read-only memory"
+                );
+                records.push(Record {
+                    addr: region.addr,
+                    prot: 1,
+                    kind: 3,
+                    payload: region.len.to_le_bytes().to_vec(),
+                    fixups: vec![],
+                });
+            }
+        } else {
+            records.extend(unwind::descriptors(candidate, &self.original_loads)?);
+        }
         ensure!(records.len() <= wire::MAX_RECORDS, "too many agent records");
         for r in &records {
             r.validate()?;
@@ -262,6 +291,7 @@ impl ManifestExtractor {
         Ok(PreparedPatch {
             records,
             generation: state.generation,
+            symbols: state.symbols.clone(),
             serial: self.serial,
             next: Applied {
                 pages,
@@ -416,6 +446,33 @@ mod tests {
         (x, s, c)
     }
     #[test]
+    fn v1_unwind_matches_elf_and_skips_its_index() {
+        let (x, mut state, mut candidate) = setup();
+        let legacy = x.extract(&state, &candidate).unwrap().encode().unwrap();
+        state.version = 1;
+        state.unwind_regions = Some(vec![crate::manifest::UnwindRegion {
+            addr: 0x4000,
+            len: 28,
+        }]);
+        assert_eq!(
+            x.extract(&state, &candidate).unwrap().encode().unwrap(),
+            legacy
+        );
+        // Proves the manifest path does not inspect PT_GNU_EH_FRAME bytes.
+        put(&mut candidate, 0x1300, &[2]);
+        assert_eq!(
+            x.extract(&state, &candidate).unwrap().encode().unwrap(),
+            legacy
+        );
+        state.unwind_regions = None;
+        assert!(x.extract(&state, &candidate).is_err());
+        state.unwind_regions = Some(vec![crate::manifest::UnwindRegion {
+            addr: 0x8000,
+            len: 28,
+        }]);
+        assert!(x.extract(&state, &candidate).is_err());
+    }
+    #[test]
     fn page_deltas_entry_and_data_restores_only_commit_after_ack() {
         let (mut x, mut s, c) = setup();
         let mut loc = x.base.read(0x1200, 24).unwrap();
@@ -545,6 +602,8 @@ mod tests {
         );
         let timing = std::env::var_os("REFRESH_TIMINGS").is_some();
         let mut times = Vec::new();
+        let paired = std::env::var_os("REFRESH_V1_GOLDENS").is_some();
+        let mut v1_times = Vec::new();
         for dir in &dirs {
             let input: serde_json::Value =
                 serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
@@ -589,12 +648,39 @@ mod tests {
                 .collect();
             paths.sort();
             let mut state = State::default();
+            let mut v1_state = State::default();
             let last_path = paths.pop().unwrap();
             for p in paths {
                 state.update(&gunzip(&p)).unwrap();
+                if paired {
+                    v1_state
+                        .update(&gunzip(
+                            &p.with_file_name(
+                                p.file_name()
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .replace(".manifest.gz", ".v1.gz"),
+                            ),
+                        ))
+                        .unwrap();
+                }
             }
             let last = gunzip(&last_path);
             let candidate_bytes = gunzip(&dir.join("candidate.elf.gz"));
+            let paired_input = paired.then(|| {
+                (
+                    gunzip(
+                        &last_path.with_file_name(
+                            last_path
+                                .file_name()
+                                .unwrap()
+                                .to_string_lossy()
+                                .replace(".manifest.gz", ".v1.gz"),
+                        ),
+                    ),
+                    candidate_bytes.clone(),
+                )
+            });
             let start = Instant::now();
             // Include latest manifest parsing/state update, candidate parsing,
             // extraction/unwind and wire encoding. Baseline index is session setup.
@@ -619,6 +705,55 @@ mod tests {
                     expected.len()
                 );
             }
+            if let Some((v1, candidate_bytes)) = paired_input {
+                let start = Instant::now();
+                v1_state.update(&v1).unwrap();
+                let candidate = Image::parse(candidate_bytes, false).unwrap();
+                let v1_patch = x.extract(&v1_state, &candidate).unwrap();
+                let v1_wire = v1_patch.encode().unwrap();
+                let v1_elapsed = start.elapsed().as_secs_f64() * 1000.0;
+                assert_eq!(v1_wire, wire, "paired v1/v0 mismatch {}", dir.display());
+                assert!(!v1_patch.symbols.is_empty());
+                assert!(
+                    v1_patch
+                        .symbols
+                        .iter()
+                        .any(|s| !s.file.is_empty() && s.first_line > 0)
+                );
+                assert!(
+                    v1_state
+                        .writes
+                        .values()
+                        .filter(|w| w.kind == 1)
+                        .all(|w| !w.name.is_empty())
+                );
+                if let Some(lines) = input["helper_lines"].as_object() {
+                    for symbol in &v1_patch.symbols {
+                        if let Some(line) = symbol
+                            .name
+                            .rsplit("::")
+                            .next()
+                            .and_then(|name| lines.get(name))
+                        {
+                            assert_eq!(
+                                u64::from(symbol.first_line),
+                                line.as_u64().unwrap(),
+                                "helper source line for {}",
+                                symbol.name
+                            );
+                            assert!(symbol.file.ends_with("crates/api/src/handlers.rs"));
+                        }
+                    }
+                }
+                println!(
+                    "PAIRED {} v0_ms={elapsed:.6} v1_ms={v1_elapsed:.6} v0_bytes={} v1_bytes={} symbols={}",
+                    dir.file_name().unwrap().to_string_lossy(),
+                    last.len(),
+                    v1.len(),
+                    v1_patch.symbols.len()
+                );
+                v1_times.push(v1_elapsed);
+            }
             x.commit(patch).unwrap();
             if timing {
                 println!(
@@ -628,6 +763,16 @@ mod tests {
                 );
                 times.push(elapsed);
             }
+        }
+        if paired && timing {
+            v1_times.sort_by(f64::total_cmp);
+            println!(
+                "V1_EXTRACTION n={} median_ms={:.6} min_ms={:.6} max_ms={:.6}",
+                v1_times.len(),
+                (v1_times[(v1_times.len() - 1) / 2] + v1_times[v1_times.len() / 2]) / 2.0,
+                v1_times[0],
+                v1_times[v1_times.len() - 1]
+            );
         }
         if timing {
             times.sort_by(f64::total_cmp);
