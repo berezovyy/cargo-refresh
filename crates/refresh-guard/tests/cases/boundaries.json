@@ -1592,5 +1592,91 @@
       "class": "live",
       "changed_fns": []
     }
+  },
+  {
+    "id": "t2-004-private-identity-alias-body",
+    "before": {
+      "main.rs": "fn label() -> u64 { std::convert::identity(1) }\nfn main() { println!(\"{}\", label()); }\n"
+    },
+    "after": {
+      "main.rs": "use std::convert::identity as m4_identity;\nfn label() -> u64 { m4_identity(2) }\nfn main() { println!(\"{}\", label()); }\n"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::label"
+      ]
+    }
+  },
+  {
+    "id": "identity-alias-existing-binding",
+    "before": {
+      "lib.rs": "fn m4_identity(x: u64) -> u64 { x + 1 } fn label() -> u64 { m4_identity(1) }"
+    },
+    "after": {
+      "lib.rs": "use std::convert::identity as m4_identity; fn label() -> u64 { m4_identity(2) }"
+    },
+    "expected": {
+      "admission": "removed-function",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "identity-alias-in-layout",
+    "before": {
+      "lib.rs": "struct A; fn label() -> u64 { 1 }"
+    },
+    "after": {
+      "lib.rs": "use std::convert::identity as m4_identity; struct A(m4_identity); fn label() -> u64 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "identity-alias-public",
+    "before": {
+      "lib.rs": "fn label() -> u64 { 1 }"
+    },
+    "after": {
+      "lib.rs": "pub use std::convert::identity as m4_identity; fn label() -> u64 { m4_identity(2) }"
+    },
+    "expected": {
+      "admission": "unknown-call",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "unrelated-import-stays-layout",
+    "before": {
+      "lib.rs": "fn label() -> u64 { 1 }"
+    },
+    "after": {
+      "lib.rs": "use std::fmt::Debug; fn label() -> u64 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "identity-alias-const-use",
+    "before": {
+      "lib.rs": "fn label() -> u64 { 1 }"
+    },
+    "after": {
+      "lib.rs": "use std::convert::identity as m4_identity; const A: u64 = m4_identity(1); fn label() -> u64 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
   }
 ]

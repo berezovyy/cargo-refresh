@@ -16,6 +16,9 @@ pub(crate) struct Names {
 }
 
 impl Names {
+    pub(crate) fn mentions(&self, name: &str) -> bool {
+        self.identifiers.contains(name)
+    }
     pub(crate) fn merge(&mut self, other: Self) {
         self.functions.extend(other.functions);
         self.calls.extend(other.calls);
@@ -98,6 +101,12 @@ impl Names {
 }
 
 impl<'ast> Visit<'ast> for Names {
+    fn visit_item_use(&mut self, item: &'ast syn::ItemUse) {
+        if let Some(alias) = crate::analysis::identity_alias(item) {
+            self.functions.insert(alias);
+        }
+        visit::visit_item_use(self, item);
+    }
     fn visit_ident(&mut self, id: &'ast syn::Ident) {
         self.identifiers.insert(id.to_string());
     }
