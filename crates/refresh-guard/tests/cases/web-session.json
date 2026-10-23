@@ -1,0 +1,1979 @@
+[
+  {
+    "id": "web-01-handler-body",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/c7f5a85e8d3ee994f5e16feb8577ce599bd67ffe7689f782c2ac9ebf24a2e1ac.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/73259006e8c26444344c4c9824a19046c2b58bb1136bbb6951d06b2c48e6c6d5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/5f99a6ee910b42da73522ad86165604858700960648dad5127f8785f34e24c24.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/73259006e8c26444344c4c9824a19046c2b58bb1136bbb6951d06b2c48e6c6d5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 1; M0 smoke-c events generation 1",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-02-validation",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/5f99a6ee910b42da73522ad86165604858700960648dad5127f8785f34e24c24.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/73259006e8c26444344c4c9824a19046c2b58bb1136bbb6951d06b2c48e6c6d5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/732fd96332c4267e612d8a28229418efc9011c7771bf884966319bb8720b7d69.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/73259006e8c26444344c4c9824a19046c2b58bb1136bbb6951d06b2c48e6c6d5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 2; M0 smoke-c events generation 2",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-03-dto-conversion",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/732fd96332c4267e612d8a28229418efc9011c7771bf884966319bb8720b7d69.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/73259006e8c26444344c4c9824a19046c2b58bb1136bbb6951d06b2c48e6c6d5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b6aa7ed9eb0d1f6e63bd8ffc0671a738e3ecc4d8901de95a6cab2253f4e84d9f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/73259006e8c26444344c4c9824a19046c2b58bb1136bbb6951d06b2c48e6c6d5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 3; M0 smoke-c events generation 3",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-04-deep-domain",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b6aa7ed9eb0d1f6e63bd8ffc0671a738e3ecc4d8901de95a6cab2253f4e84d9f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/73259006e8c26444344c4c9824a19046c2b58bb1136bbb6951d06b2c48e6c6d5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b6aa7ed9eb0d1f6e63bd8ffc0671a738e3ecc4d8901de95a6cab2253f4e84d9f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 4; M0 smoke-c events generation 4",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-05-new-helper",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b6aa7ed9eb0d1f6e63bd8ffc0671a738e3ecc4d8901de95a6cab2253f4e84d9f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a169a22ac68caf5cf32a387303aec90e6e4acc75e37cf4b7f84e0292b2f81e4d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 5; M0 smoke-c events generation 5",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-06-handler-multiline",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a169a22ac68caf5cf32a387303aec90e6e4acc75e37cf4b7f84e0292b2f81e4d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0e685748b620007439147eb7121666467e6ccc4857fddf061ce35f1a7a137695.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 6; M0 smoke-c events generation 6",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "projects::summary"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-07-comment-insert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0e685748b620007439147eb7121666467e6ccc4857fddf061ce35f1a7a137695.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/afc2563611826a8051e566486908da919837b40c8dc1f606dfa58828a0451639.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 7; M0 smoke-c events generation 7",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-08-handler-body",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/afc2563611826a8051e566486908da919837b40c8dc1f606dfa58828a0451639.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2048ba1ec942d503dddfe4dbc02721639f5f5f896c204e175e92ef27f4b7e527.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 8; M0 smoke-c events generation 8",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-09-validation",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2048ba1ec942d503dddfe4dbc02721639f5f5f896c204e175e92ef27f4b7e527.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/44b3dc55cf48d62a4864e60633e76064f2c13134f1925d66ad51de48aa20c220.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 9; M0 smoke-c events generation 9",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-10-dto-conversion",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/44b3dc55cf48d62a4864e60633e76064f2c13134f1925d66ad51de48aa20c220.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b17c84d5bd786c98369fa41c6f326cf4ab1bcb6805e13a3612f68f62a3d4d3ab.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 10; M0 smoke-c events generation 10",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-11-deep-domain",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b17c84d5bd786c98369fa41c6f326cf4ab1bcb6805e13a3612f68f62a3d4d3ab.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/1036ba9bb2c4afc0476a78a106287c311e5f3d524092839c30d9abd48f734cdd.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b17c84d5bd786c98369fa41c6f326cf4ab1bcb6805e13a3612f68f62a3d4d3ab.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 11; M0 smoke-c events generation 11",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-12-new-helper",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b17c84d5bd786c98369fa41c6f326cf4ab1bcb6805e13a3612f68f62a3d4d3ab.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2fb26ba9afce07f6809b2c0aa285e6191e342e177d1d932e9fa29c4a5d7777c2.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 12; M0 smoke-c events generation 12",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-13-handler-multiline",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2fb26ba9afce07f6809b2c0aa285e6191e342e177d1d932e9fa29c4a5d7777c2.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a309178f5942a90d3f388d27b907b6b2d4147c05bdcdbe2742939860b0bd2167.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 13; M0 smoke-c events generation 13",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "projects::summary"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-14-comment-insert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a309178f5942a90d3f388d27b907b6b2d4147c05bdcdbe2742939860b0bd2167.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/59e210dd850253fc60cf191c5eedbc12ec99164143016e27c16051d1d6ceec2a.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 14; M0 smoke-c events generation 14",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-15-handler-body",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/59e210dd850253fc60cf191c5eedbc12ec99164143016e27c16051d1d6ceec2a.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b05f60aaac45bdcd8c4e9910f9fca4007f41f5da59b9664bab086c99ddde52c8.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 15; M0 smoke-c events generation 15",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-16-validation",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b05f60aaac45bdcd8c4e9910f9fca4007f41f5da59b9664bab086c99ddde52c8.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/70181050b157ed86a9e354cfbdb52a87d8773d01b48639beecc56964c2682766.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 16; M0 smoke-c events generation 16",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-17-dto-conversion",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/70181050b157ed86a9e354cfbdb52a87d8773d01b48639beecc56964c2682766.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7dff773fb1a84880ce4e30e799df3bfbb7fe8a4146e859c55351d3e24acea2e8.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 17; M0 smoke-c events generation 17",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-18-deep-domain",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7dff773fb1a84880ce4e30e799df3bfbb7fe8a4146e859c55351d3e24acea2e8.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/bf31b85445205bd36bd1ca191951ae36de8e2d7df9ca538d8d753da48e7bdc65.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7dff773fb1a84880ce4e30e799df3bfbb7fe8a4146e859c55351d3e24acea2e8.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 18; M0 smoke-c events generation 18",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-19-new-helper",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7dff773fb1a84880ce4e30e799df3bfbb7fe8a4146e859c55351d3e24acea2e8.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/9647e92d76e0d9e9ed4f9029b96cdace9fc32f4fa6fe02a6529eabd51abf01aa.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 19; M0 smoke-c events generation 19",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-20-handler-multiline",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/9647e92d76e0d9e9ed4f9029b96cdace9fc32f4fa6fe02a6529eabd51abf01aa.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/4d98255c602d78b8614e6f6bc7cc540fdbfd7c787157095dc019b6d1b7ecf4f2.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 20; M0 smoke-c events generation 20",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "projects::summary"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-21-comment-insert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/4d98255c602d78b8614e6f6bc7cc540fdbfd7c787157095dc019b6d1b7ecf4f2.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/d6bb5210f58a7ad652769a7abcdd11ea281030df6cfbd006fab619faa6f9e1c1.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 21; M0 smoke-c events generation 21",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-22-handler-body",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/d6bb5210f58a7ad652769a7abcdd11ea281030df6cfbd006fab619faa6f9e1c1.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/9b65d8e3b05477b3c744a013b196d81ffad9b7c9d77ac21d056ba8f2fcdad6af.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 22; M0 smoke-c events generation 22",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-23-validation",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/9b65d8e3b05477b3c744a013b196d81ffad9b7c9d77ac21d056ba8f2fcdad6af.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a02bd2f7b4ea6d8eaf2cd80b5957854129f1697fc8454fe5a5055d79083f26b1.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 23; M0 smoke-c events generation 23",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-24-dto-conversion",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a02bd2f7b4ea6d8eaf2cd80b5957854129f1697fc8454fe5a5055d79083f26b1.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2d8f34456fb406b298d6ef85202ca2512a051d125621790933827ee42b8db09b.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 24; M0 smoke-c events generation 24",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-25-deep-domain",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2d8f34456fb406b298d6ef85202ca2512a051d125621790933827ee42b8db09b.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9f0abcf1d668934959dad9b9f888ef5ca7fee2b74700ebc6931d7db0a2180ac6.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2d8f34456fb406b298d6ef85202ca2512a051d125621790933827ee42b8db09b.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 25; M0 smoke-c events generation 25",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-26-new-helper",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2d8f34456fb406b298d6ef85202ca2512a051d125621790933827ee42b8db09b.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7e5baecd548b3f05f3ebac6f11edbeb77acad7b79d2101641c3a99facce30e79.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 26; M0 smoke-c events generation 26",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-27-handler-multiline",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7e5baecd548b3f05f3ebac6f11edbeb77acad7b79d2101641c3a99facce30e79.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/4b64cc1d1f213a6794a1b7ce17e0fb0dc6ff459c92e5e54f78a9d37295bc7bc6.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 27; M0 smoke-c events generation 27",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "projects::summary"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-28-comment-insert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/4b64cc1d1f213a6794a1b7ce17e0fb0dc6ff459c92e5e54f78a9d37295bc7bc6.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e22c2d05d4edbe55ed4549395456fbbb16bbd4a683cf3c130cdc03c57a0df3e3.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 28; M0 smoke-c events generation 28",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-29-handler-body",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e22c2d05d4edbe55ed4549395456fbbb16bbd4a683cf3c130cdc03c57a0df3e3.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/fb9cc6d9fce136a5ab610ee440050c1ceabc8c556f8099dd20dbb1c0a56ec705.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 29; M0 smoke-c events generation 29",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-30-validation",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/fb9cc6d9fce136a5ab610ee440050c1ceabc8c556f8099dd20dbb1c0a56ec705.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e89c1a3b582bd96eacda102ee948407b689509bb1b629e7b73ff14dad488df74.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 30; M0 smoke-c events generation 30",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-31-dto-conversion",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e89c1a3b582bd96eacda102ee948407b689509bb1b629e7b73ff14dad488df74.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/232cc73f38ed51866df5bd398da94b4f7021f41054e59cf93276157fb795241f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 31; M0 smoke-c events generation 31",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-32-deep-domain",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/232cc73f38ed51866df5bd398da94b4f7021f41054e59cf93276157fb795241f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/107cae63f15cef03ffba6ae3cde40326e80d36082bfd40682919a259ec2cb241.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/232cc73f38ed51866df5bd398da94b4f7021f41054e59cf93276157fb795241f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 32; M0 smoke-c events generation 32",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-33-new-helper",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/232cc73f38ed51866df5bd398da94b4f7021f41054e59cf93276157fb795241f.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/223e720794ee36239b0117a8daca47b2cb794d9332e3ccae59fc0196908cefa0.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 33; M0 smoke-c events generation 33",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-34-handler-multiline",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/223e720794ee36239b0117a8daca47b2cb794d9332e3ccae59fc0196908cefa0.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/47b61d26629f20b75c1d271057050385893ec4921885727de82186ccdb32af48.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 34; M0 smoke-c events generation 34",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "projects::summary"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-35-comment-insert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/47b61d26629f20b75c1d271057050385893ec4921885727de82186ccdb32af48.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0942cb09c782f2e965368b140d9fe7130a584c32c798017fa382a9b59c988c84.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 35; M0 smoke-c events generation 35",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-36-handler-body",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0942cb09c782f2e965368b140d9fe7130a584c32c798017fa382a9b59c988c84.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/fe04f4ffb595d1f8fa01cfdc2fc88679bf1b84de6a02c802afa3ce6812d3317d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 36; M0 smoke-c events generation 36",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-37-validation",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/fe04f4ffb595d1f8fa01cfdc2fc88679bf1b84de6a02c802afa3ce6812d3317d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/817a7971c06444573eadbf388761129fc617434d64389586f6776a1906ec4cf4.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 37; M0 smoke-c events generation 37",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-38-dto-conversion",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/817a7971c06444573eadbf388761129fc617434d64389586f6776a1906ec4cf4.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/1b11cbeea7f5ca8954354d5d31edae108b1929319b9821c8bbb80b36befc2ec7.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 38; M0 smoke-c events generation 38",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-39-deep-domain",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/1b11cbeea7f5ca8954354d5d31edae108b1929319b9821c8bbb80b36befc2ec7.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/aa74a24ca71b3b95c0fa0ae97d0eeb8f6df127517c164647d26f641be74595c5.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/1b11cbeea7f5ca8954354d5d31edae108b1929319b9821c8bbb80b36befc2ec7.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 39; M0 smoke-c events generation 39",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-40-new-helper",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/1b11cbeea7f5ca8954354d5d31edae108b1929319b9821c8bbb80b36befc2ec7.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2b7a84669cc59ec858c155fca475c0d7506692d759ff7722538c471f8cb9ffa3.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 40; M0 smoke-c events generation 40",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-41-handler-multiline",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/2b7a84669cc59ec858c155fca475c0d7506692d759ff7722538c471f8cb9ffa3.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/afcf95db2f94f47e023e6b192eab73765ce292c529407da7dd6593b434a4f643.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 41; M0 smoke-c events generation 41",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "projects::summary"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-42-comment-insert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/afcf95db2f94f47e023e6b192eab73765ce292c529407da7dd6593b434a4f643.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/aa6b7578cec912a3dc9a897b1096415e5c50b61b4794170357a60d22b0260d1c.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 42; M0 smoke-c events generation 42",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-43-handler-body",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/aa6b7578cec912a3dc9a897b1096415e5c50b61b4794170357a60d22b0260d1c.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/ba40c031c8c9f7e2dad51ed0b720c7e7b85764db2ae7c474b6c8420a339799bd.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 43; M0 smoke-c events generation 43",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-44-validation",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/ba40c031c8c9f7e2dad51ed0b720c7e7b85764db2ae7c474b6c8420a339799bd.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b0644a70e9899450ff62d151fb7f088c6dfe181ac2d25342a8fa07403c2d2331.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 44; M0 smoke-c events generation 44",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-45-dto-conversion",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b0644a70e9899450ff62d151fb7f088c6dfe181ac2d25342a8fa07403c2d2331.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/3a5d8eeb406e5071d61bdf6c4171271e24c6cfd655a9c2419c5f2ac24f7ae82d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 45; M0 smoke-c events generation 45",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-46-deep-domain",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/3a5d8eeb406e5071d61bdf6c4171271e24c6cfd655a9c2419c5f2ac24f7ae82d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/fb2347cfd46640f2f194ec5256f4a3cada006d4fc0820f8bd9a17a52274b9f10.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/3a5d8eeb406e5071d61bdf6c4171271e24c6cfd655a9c2419c5f2ac24f7ae82d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 46; M0 smoke-c events generation 46",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-47-new-helper",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/3a5d8eeb406e5071d61bdf6c4171271e24c6cfd655a9c2419c5f2ac24f7ae82d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/d41c31b4648f5ee376cfa71c4833513243d153d5e40c1c55d1add25189effb03.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 47; M0 smoke-c events generation 47",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-48-handler-multiline",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/d41c31b4648f5ee376cfa71c4833513243d153d5e40c1c55d1add25189effb03.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a89168a26678c3628a23d20d81e5fd623b8c1df94f09282eb5af1c643bbd8ef6.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 48; M0 smoke-c events generation 48",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "projects::summary"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-49-comment-insert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/a89168a26678c3628a23d20d81e5fd623b8c1df94f09282eb5af1c643bbd8ef6.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 49; M0 smoke-c events generation 49",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-50-stored-field-add",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7639bf474d0ffa89b97a87327151fe36f64285083d51425d4c90c01d5091e7ed.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/06e2493684c9baedc42b47305cfdfe6796362e3b8204020974ec38bafc1750cc.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 50; M0 smoke-c events generation 50",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-51-stored-field-remove",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/7639bf474d0ffa89b97a87327151fe36f64285083d51425d4c90c01d5091e7ed.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/06e2493684c9baedc42b47305cfdfe6796362e3b8204020974ec38bafc1750cc.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 51; M0 smoke-c events generation 51",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-52-serde-rename",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/99c3e353fd8eb4e897930b0f375bc940bcae65ae8a29a96a8285b479d5daa9c2.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 52; M0 smoke-c events generation 52",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-53-serde-revert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/99c3e353fd8eb4e897930b0f375bc940bcae65ae8a29a96a8285b479d5daa9c2.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 53; M0 smoke-c events generation 53",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-54-syntax-error",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/ea903f5666725d4f76ecd17c622057ba998f10f523e89bc2d4bef84c787adafa.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "parse",
+      "class": "stock",
+      "reason": "parse"
+    },
+    "origin": "EXP-128 scenarios.py save 54; M0 smoke-c events generation 54",
+    "prototype": {
+      "class": "reject",
+      "reason": "cannot parse string into token stream",
+      "owners": []
+    },
+    "event_path": "build_error"
+  },
+  {
+    "id": "web-55-syntax-fix",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 55; M0 smoke-c events generation 55",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "comment": "Before is last successfully analyzed AST, not the rejected syntax buffer.",
+    "event_path": "live"
+  },
+  {
+    "id": "web-56-borrow-prepare",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/0c12251d16ef40ca5270b363f64a045769553b3759ff5d88050c29d340438193.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/213c0968b762ea176322e2ea01e2a45d2e220db559033f34487642746c6da026.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "incomplete-expression",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 56; M0 smoke-c events generation 56",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-57-borrow-error",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/213c0968b762ea176322e2ea01e2a45d2e220db559033f34487642746c6da026.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/ec0221b10525630955e1407c26a001cae0ced190408cd996abebd1f7181cc69d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 57; M0 smoke-c events generation 57",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-58-borrow-fix",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/ec0221b10525630955e1407c26a001cae0ced190408cd996abebd1f7181cc69d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e31e395ab2bda2dbc29ce7735b7f7817d0d3bf9b2ff16328c4ea9541c9b65988.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 58; M0 smoke-c events generation 58",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-59-async-post-await-apply",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e31e395ab2bda2dbc29ce7735b7f7817d0d3bf9b2ff16328c4ea9541c9b65988.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b7c012c03201f475ef3ee75d1fd3729ffeec1f2f8432cdb4a75a6943f95fc169.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 59; M0 smoke-c events generation 59",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "::refresh_async_label"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-60-async-post-await-revert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/b7c012c03201f475ef3ee75d1fd3729ffeec1f2f8432cdb4a75a6943f95fc169.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e31e395ab2bda2dbc29ce7735b7f7817d0d3bf9b2ff16328c4ea9541c9b65988.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 60; M0 smoke-c events generation 60",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "::refresh_async_label"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-61-async-cross-await-add",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e31e395ab2bda2dbc29ce7735b7f7817d0d3bf9b2ff16328c4ea9541c9b65988.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/5bcdef156fba7eb3e7f6661cce3768af0bcf86f8156d352e7a9f4f3a5b66263d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 61; M0 smoke-c events generation 61",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "::refresh_async_label"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-62-async-cross-await-remove",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/5bcdef156fba7eb3e7f6661cce3768af0bcf86f8156d352e7a9f4f3a5b66263d.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e31e395ab2bda2dbc29ce7735b7f7817d0d3bf9b2ff16328c4ea9541c9b65988.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-128 scenarios.py save 62; M0 smoke-c events generation 62",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "crates/api/src/handlers.rs",
+          "::refresh_async_label"
+        ]
+      ]
+    },
+    "event_path": "restart+state"
+  },
+  {
+    "id": "web-63-panic-caught",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e31e395ab2bda2dbc29ce7735b7f7817d0d3bf9b2ff16328c4ea9541c9b65988.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/c97e811e87b78caa07933205f0434e8b44efddfaac7dcc7c902e68176329ade6.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 63; M0 smoke-c events generation 63",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  },
+  {
+    "id": "web-64-panic-revert",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/c97e811e87b78caa07933205f0434e8b44efddfaac7dcc7c902e68176329ade6.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e31e395ab2bda2dbc29ce7735b7f7817d0d3bf9b2ff16328c4ea9541c9b65988.rs"
+      },
+      "crates/domain/src/lib.rs": {
+        "file": "sources/707bd42b9ce42b476bb85f383a60514ae47436a251a7dfe66ea2bb9b7016f946.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "EXP-128 scenarios.py save 64; M0 smoke-c events generation 64",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    },
+    "event_path": "live"
+  }
+]

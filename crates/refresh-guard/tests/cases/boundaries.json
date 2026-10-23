@@ -1,0 +1,1596 @@
+[
+  {
+    "id": "literal",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::n"
+      ]
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "identical",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  },
+  {
+    "id": "comment",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "// leading comment\nfn n() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  },
+  {
+    "id": "formatting",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n ( ) -> u8\n{ 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  },
+  {
+    "id": "crlf",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 }\r\n"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  },
+  {
+    "id": "unicode-identifier",
+    "before": {
+      "lib.rs": "fn caf\u00e9() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn caf\u00e9() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::caf\u00e9"
+      ]
+    }
+  },
+  {
+    "id": "parse-incomplete",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n( {"
+    },
+    "expected": {
+      "admission": "parse",
+      "class": "stock",
+      "reason": "parse"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "parse-unclosed-string",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { \""
+    },
+    "expected": {
+      "admission": "parse",
+      "class": "stock",
+      "reason": "parse"
+    }
+  },
+  {
+    "id": "parse-priority-over-prefix",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() { fixture_fa; fn broken( }"
+    },
+    "expected": {
+      "admission": "parse",
+      "class": "stock",
+      "reason": "parse"
+    }
+  },
+  {
+    "id": "prefix-name",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_fa }"
+    },
+    "expected": {
+      "admission": "incomplete-expression",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "prefix-call",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_fa() }"
+    },
+    "expected": {
+      "admission": "incomplete-expression",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "prefix-owner-site",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 } fn other() { let fixture_fa = 1; let _ = fixture_fa; }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_fa } fn other() { let fixture_fa = 1; let _ = fixture_fa; }"
+    },
+    "expected": {
+      "admission": "incomplete-expression",
+      "class": "live"
+    },
+    "comment": "Existing expression in a different function does not exempt the new site."
+  },
+  {
+    "id": "prefix-existing-site",
+    "before": {
+      "lib.rs": "fn fixture_factory() {} fn n() { fixture_fa; }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() {} fn n() { fixture_fa; let x = 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "prefix-new-function-exempt",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_fa() } fn fixture_fa() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "prefix-current-function-name",
+    "before": {
+      "lib.rs": "fn n() {}"
+    },
+    "after": {
+      "lib.rs": "fn n() { newly(); } fn newly_added() {}"
+    },
+    "expected": {
+      "admission": "incomplete-expression",
+      "class": "live"
+    }
+  },
+  {
+    "id": "exp119-false-reject-local-prefix",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { let fixture_fa = 2; fixture_fa }"
+    },
+    "expected": {
+      "admission": "incomplete-expression",
+      "class": "live"
+    },
+    "comment": "Known EXP-119 false rejection: valid local binding is a strict prefix.",
+    "stock": "valid"
+  },
+  {
+    "id": "prefix-outranks-tail",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_fa; }"
+    },
+    "expected": {
+      "admission": "incomplete-expression",
+      "class": "live"
+    }
+  },
+  {
+    "id": "tail-empty",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 {}"
+    },
+    "expected": {
+      "admission": "missing-return-tail",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "tail-let",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { let x = 1; }"
+    },
+    "expected": {
+      "admission": "missing-return-tail",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "tail-semicolon",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1; }"
+    },
+    "expected": {
+      "admission": "missing-return-tail",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "tail-explicit-return",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { return 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "tail-default-unit",
+    "before": {
+      "lib.rs": "fn n() {}"
+    },
+    "after": {
+      "lib.rs": "fn n() { let x = 1; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "tail-explicit-unit",
+    "before": {
+      "lib.rs": "fn n() -> () {}"
+    },
+    "after": {
+      "lib.rs": "fn n() -> () { let x = 1; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "tail-existing-violation",
+    "before": {
+      "lib.rs": "fn n() -> u8 {}"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { let x = 1; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "exp119-false-reject-panic-semicolon",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { panic!(); }"
+    },
+    "expected": {
+      "admission": "missing-return-tail",
+      "class": "restart",
+      "reason": "macro-body"
+    },
+    "comment": "Known EXP-119 false rejection: diverging macro with semicolon is valid Rust.",
+    "stock": "valid"
+  },
+  {
+    "id": "panic-tail-no-semicolon",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { panic!() }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "exp119-false-accept-wrong-tail-type",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { \"wrong\" }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "comment": "Known EXP-119 false acceptance: syntax-only gate does not type-check tails.",
+    "stock": "invalid"
+  },
+  {
+    "id": "tail-method",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() -> u8 { 1 } }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { fn n() -> u8 {} }"
+    },
+    "expected": {
+      "admission": "missing-return-tail",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "tail-outranks-bare",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { let x = fixture_factory; }"
+    },
+    "expected": {
+      "admission": "missing-return-tail",
+      "class": "live"
+    }
+  },
+  {
+    "id": "bare-function-value",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_factory }"
+    },
+    "expected": {
+      "admission": "bare-function-reference",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "exp119-false-reject-function-pointer",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { let pointer_value: fn() -> u8 = fixture_factory; pointer_value() }"
+    },
+    "expected": {
+      "admission": "bare-function-reference",
+      "class": "live"
+    },
+    "comment": "Known EXP-119 false rejection: first-class fn values are valid.",
+    "stock": "valid"
+  },
+  {
+    "id": "bare-argument",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { use_fn(fixture_factory) } fn use_fn(callback: fn() -> u8) -> u8 { callback() }"
+    },
+    "expected": {
+      "admission": "bare-function-reference",
+      "class": "live"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "bare-reference-existing",
+    "before": {
+      "lib.rs": "fn h() {} fn n() { let f = h; }"
+    },
+    "after": {
+      "lib.rs": "fn h() {} fn n() { let f = h; let x = 1; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "unknown-call",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { missing() }"
+    },
+    "expected": {
+      "admission": "unknown-call",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "unknown-call-existing",
+    "before": {
+      "lib.rs": "fn n() -> u8 { missing() }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { missing() + 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    }
+  },
+  {
+    "id": "known-call",
+    "before": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_factory() }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "new-local-call",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { helper() } fn helper() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::helper",
+        "::n"
+      ]
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "qualified-call-unchecked",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { module::missing() }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "method-call-unchecked",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1_u8.missing() }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "stock": "invalid"
+  },
+  {
+    "id": "unknown-closure-call-false-reject",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { let callback = || 2_u8; callback() }"
+    },
+    "expected": {
+      "admission": "unknown-call",
+      "class": "restart",
+      "reason": "macro-body"
+    },
+    "comment": "No binding resolution: a valid local closure call is treated as unknown.",
+    "stock": "valid"
+  },
+  {
+    "id": "unknown-outranks-removal",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 } fn removed() {}"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { missing() }"
+    },
+    "expected": {
+      "admission": "unknown-call",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "removed-function",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 } fn gone() {}"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "removed-function",
+      "class": "restart",
+      "reason": "macro-body"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "removed-inline-module-function",
+    "before": {
+      "lib.rs": "mod a { fn n() {} }"
+    },
+    "after": {
+      "lib.rs": "mod a {}"
+    },
+    "expected": {
+      "admission": "removed-function",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "removed-method-not-admission-fn",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() {} }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "signature-change",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u16 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    },
+    "stock": "valid"
+  },
+  {
+    "id": "visibility-change",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "pub fn n() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "struct-field",
+    "before": {
+      "lib.rs": "struct A { x: u8 }"
+    },
+    "after": {
+      "lib.rs": "struct A { x: u16 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "enum-variant",
+    "before": {
+      "lib.rs": "enum A { X }"
+    },
+    "after": {
+      "lib.rs": "enum A { X, Y }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "derive-change",
+    "before": {
+      "lib.rs": "struct A;"
+    },
+    "after": {
+      "lib.rs": "#[derive(Clone)] struct A;"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "const-change",
+    "before": {
+      "lib.rs": "const X: u8 = 1;"
+    },
+    "after": {
+      "lib.rs": "const X: u8 = 2;"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "static-change",
+    "before": {
+      "lib.rs": "static X: u8 = 1;"
+    },
+    "after": {
+      "lib.rs": "static X: u8 = 2;"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "import-change",
+    "before": {
+      "lib.rs": "use std::fmt::Debug; fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "use std::fmt::Display; fn n() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    },
+    "comment": "Actual prototype includes use items in structure, so changed imports restart."
+  },
+  {
+    "id": "impl-header",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() {} }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { pub fn n() {} }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "file-doc",
+    "before": {
+      "lib.rs": "//! first\nfn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "//! changed\nfn n() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "function-doc",
+    "before": {
+      "lib.rs": "/// first\nfn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "/// changed\nfn n() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "ordinary-method-body",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() -> u8 { 1 } }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { fn n() -> u8 { 2 } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  },
+  {
+    "id": "method-macro-body",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() { log!(1); } }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { fn n() { log!(2); } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "method-closure-body",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() { let x = || 1; } }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { fn n() { let x = || 2; } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "method-local-item",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() { struct B; } }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { fn n() { struct C; } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "async-post-await-string",
+    "before": {
+      "lib.rs": "async fn n() { tick().await; \"before\"; }"
+    },
+    "after": {
+      "lib.rs": "async fn n() { tick().await; \"after\"; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "async"
+    }
+  },
+  {
+    "id": "async-before-await-string",
+    "before": {
+      "lib.rs": "async fn n() { let s = \"before\"; tick().await; }"
+    },
+    "after": {
+      "lib.rs": "async fn n() { let s = \"after\"; tick().await; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "async"
+    }
+  },
+  {
+    "id": "async-local-across-await",
+    "before": {
+      "lib.rs": "async fn n() { tick().await; }"
+    },
+    "after": {
+      "lib.rs": "async fn n() { let value = [7_u64; 32]; tick().await; let _ = value; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "async"
+    }
+  },
+  {
+    "id": "async-comment-only",
+    "before": {
+      "lib.rs": "async fn n() { tick().await; }"
+    },
+    "after": {
+      "lib.rs": "async fn n() { /* comment */ tick().await; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  },
+  {
+    "id": "async-block-string",
+    "before": {
+      "lib.rs": "fn n() { let f = async { \"before\" }; }"
+    },
+    "after": {
+      "lib.rs": "fn n() { let f = async { \"after\" }; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "async-move-block-string",
+    "before": {
+      "lib.rs": "fn n() { let f = async move { \"before\" }; }"
+    },
+    "after": {
+      "lib.rs": "fn n() { let f = async move { \"after\" }; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "async-method-string",
+    "before": {
+      "lib.rs": "struct A; impl A { async fn n() { \"before\"; } }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { async fn n() { \"after\"; } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "async-block-in-method",
+    "before": {
+      "lib.rs": "struct A; impl A { fn n() { let f = async { \"before\" }; } }"
+    },
+    "after": {
+      "lib.rs": "struct A; impl A { fn n() { let f = async { \"after\" }; } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "async-trait-body",
+    "before": {
+      "lib.rs": "trait A { async fn n() { \"before\"; } }"
+    },
+    "after": {
+      "lib.rs": "trait A { async fn n() { \"after\"; } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "new-async-function",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } async fn other() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "new-complex-fn"
+    }
+  },
+  {
+    "id": "main-body",
+    "before": {
+      "lib.rs": "fn main() { let x = 1; }"
+    },
+    "after": {
+      "lib.rs": "fn main() { let x = 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "attributed-body",
+    "before": {
+      "lib.rs": "#[inline(never)] fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "#[inline(never)] fn n() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "doc-only-body",
+    "before": {
+      "lib.rs": "/// docs\nfn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "/// docs\nfn n() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::n"
+      ]
+    }
+  },
+  {
+    "id": "macro-tokens",
+    "before": {
+      "lib.rs": "fn n() { sqlx::query!(\"SELECT 1\"); }"
+    },
+    "after": {
+      "lib.rs": "fn n() { sqlx::query!(\"SELECT 2\"); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "macro-unchanged-nearby-body",
+    "before": {
+      "lib.rs": "fn n() { log!(\"same\"); let x = 1; }"
+    },
+    "after": {
+      "lib.rs": "fn n() { log!(\"same\"); let x = 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::n"
+      ]
+    }
+  },
+  {
+    "id": "nested-item-change",
+    "before": {
+      "lib.rs": "fn n() { fn inner() -> u8 { 1 } }"
+    },
+    "after": {
+      "lib.rs": "fn n() { fn inner() -> u8 { 2 } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "closure-body-change",
+    "before": {
+      "lib.rs": "fn n() { let callback = || 1; }"
+    },
+    "after": {
+      "lib.rs": "fn n() { let callback = || 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "macro-body"
+    }
+  },
+  {
+    "id": "new-simple-fn",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } fn added() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::added"
+      ]
+    }
+  },
+  {
+    "id": "new-const-fn",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } const fn added() -> u8 { 1 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::added"
+      ]
+    }
+  },
+  {
+    "id": "new-generic-fn",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } fn added<T>() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "new-complex-fn"
+    }
+  },
+  {
+    "id": "new-unsafe-fn",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } unsafe fn added() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "new-complex-fn"
+    }
+  },
+  {
+    "id": "new-extern-fn",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } extern \"C\" fn added() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "new-complex-fn"
+    }
+  },
+  {
+    "id": "new-attributed-fn",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } #[inline] fn added() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "new-complex-fn"
+    }
+  },
+  {
+    "id": "new-doc-fn",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 }\n/// docs\nfn added() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::added"
+      ]
+    }
+  },
+  {
+    "id": "new-fn-with-closure",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } fn added() { let f = || 1; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "new-complex-fn"
+    }
+  },
+  {
+    "id": "new-fn-with-macro",
+    "before": {
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n() -> u8 { 1 } fn added() { log!(\"hello\"); }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "new-complex-fn"
+    }
+  },
+  {
+    "id": "existing-generic-body",
+    "before": {
+      "lib.rs": "fn n<T>() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "fn n<T>() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::n"
+      ]
+    }
+  },
+  {
+    "id": "existing-unsafe-body",
+    "before": {
+      "lib.rs": "unsafe fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "unsafe fn n() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::n"
+      ]
+    }
+  },
+  {
+    "id": "existing-extern-body",
+    "before": {
+      "lib.rs": "extern \"C\" fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "lib.rs": "extern \"C\" fn n() -> u8 { 2 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "::n"
+      ]
+    }
+  },
+  {
+    "id": "module-qualified-functions",
+    "before": {
+      "lib.rs": "mod a { fn n() -> u8 { 1 } } mod b { fn n() -> u8 { 2 } }"
+    },
+    "after": {
+      "lib.rs": "mod a { fn n() -> u8 { 3 } } mod b { fn n() -> u8 { 2 } }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": [
+        "a::n"
+      ]
+    }
+  },
+  {
+    "id": "manifest-Cargo.toml",
+    "before": {
+      "Cargo.toml": "# before"
+    },
+    "after": {
+      "Cargo.toml": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-add-Cargo.toml",
+    "before": {},
+    "after": {
+      "Cargo.toml": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-remove-Cargo.toml",
+    "before": {
+      "Cargo.toml": "# before"
+    },
+    "after": {},
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-Cargo.lock",
+    "before": {
+      "Cargo.lock": "# before"
+    },
+    "after": {
+      "Cargo.lock": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-add-Cargo.lock",
+    "before": {},
+    "after": {
+      "Cargo.lock": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-remove-Cargo.lock",
+    "before": {
+      "Cargo.lock": "# before"
+    },
+    "after": {},
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-build.rs",
+    "before": {
+      "build.rs": "fn main() { let value = 1; }"
+    },
+    "after": {
+      "build.rs": "fn main() { let value = 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-add-build.rs",
+    "before": {},
+    "after": {
+      "build.rs": "fn main() { let value = 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-remove-build.rs",
+    "before": {
+      "build.rs": "fn main() { let value = 1; }"
+    },
+    "after": {},
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-.cargo-config.toml",
+    "before": {
+      ".cargo/config.toml": "# before"
+    },
+    "after": {
+      ".cargo/config.toml": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-add-.cargo-config.toml",
+    "before": {},
+    "after": {
+      ".cargo/config.toml": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-remove-.cargo-config.toml",
+    "before": {
+      ".cargo/config.toml": "# before"
+    },
+    "after": {},
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-.cargo-config",
+    "before": {
+      ".cargo/config": "# before"
+    },
+    "after": {
+      ".cargo/config": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-add-.cargo-config",
+    "before": {},
+    "after": {
+      ".cargo/config": "# after"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-remove-.cargo-config",
+    "before": {
+      ".cargo/config": "# before"
+    },
+    "after": {},
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "identical-manifest",
+    "before": {
+      "Cargo.toml": "[package]"
+    },
+    "after": {
+      "Cargo.toml": "[package]"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  },
+  {
+    "id": "file-add",
+    "before": {},
+    "after": {
+      "new.rs": "fn n() {}"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "file-set"
+    }
+  },
+  {
+    "id": "file-remove",
+    "before": {
+      "gone.rs": "struct A;"
+    },
+    "after": {},
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "file-set"
+    }
+  },
+  {
+    "id": "manifest-before-file-set",
+    "before": {
+      "Cargo.toml": "before"
+    },
+    "after": {
+      "Cargo.toml": "after",
+      "new.rs": ""
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "manifest-before-parse",
+    "before": {
+      "Cargo.toml": "before",
+      "lib.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "Cargo.toml": "after",
+      "lib.rs": "fn n( {"
+    },
+    "expected": {
+      "admission": "parse",
+      "class": "stock",
+      "reason": "manifest"
+    }
+  },
+  {
+    "id": "layout-before-async-global",
+    "before": {
+      "a.rs": "async fn n() { 1; }",
+      "z.rs": "struct A;"
+    },
+    "after": {
+      "a.rs": "async fn n() { 2; }",
+      "z.rs": "struct A { x: u8 }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "layout"
+    }
+  },
+  {
+    "id": "async-before-macro-global",
+    "before": {
+      "a.rs": "fn n() { log!(1); }",
+      "z.rs": "async fn n() { 1; }"
+    },
+    "after": {
+      "a.rs": "fn n() { log!(2); }",
+      "z.rs": "async fn n() { 2; }"
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart",
+      "reason": "async"
+    }
+  },
+  {
+    "id": "parse-before-prefix-global",
+    "before": {
+      "a.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { 1 }",
+      "z.rs": "fn n() -> u8 { 1 }"
+    },
+    "after": {
+      "a.rs": "fn fixture_factory() -> u8 { 1 } fn n() -> u8 { fixture_fa }",
+      "z.rs": "fn n( {"
+    },
+    "expected": {
+      "admission": "parse",
+      "class": "stock",
+      "reason": "parse"
+    }
+  },
+  {
+    "id": "empty-scope",
+    "before": {},
+    "after": {},
+    "expected": {
+      "admission": "admit",
+      "class": "live",
+      "changed_fns": []
+    }
+  }
+]

@@ -1,0 +1,807 @@
+[
+  {
+    "id": "fixture-game-S1",
+    "before": {
+      "crates/sim-systems/src/gameplay.rs": {
+        "file": "sources/f0f4ca0097edb6cffed4fc70ce2f362a7ee6217faecafacf63f76d23bc25bf9c.rs"
+      }
+    },
+    "after": {
+      "crates/sim-systems/src/gameplay.rs": {
+        "file": "sources/8fb93c0600944d1a74dd911f60b463eed2f52adb7bff1de534d8f9cd75ee679e.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/game/fixture.toml:S1",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-game-S2",
+    "before": {
+      "crates/sim-systems/src/gameplay.rs": {
+        "file": "sources/f0f4ca0097edb6cffed4fc70ce2f362a7ee6217faecafacf63f76d23bc25bf9c.rs"
+      }
+    },
+    "after": {
+      "crates/sim-systems/src/gameplay.rs": {
+        "file": "sources/09f6c6fbe24518c4429ac5d6dbb5fbf248d0a1884b36aeaa4a2817938e69cafa.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/game/fixture.toml:S2",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-game-S3",
+    "before": {
+      "crates/sim-core/src/lib.rs": {
+        "file": "sources/6e0b9e267fef3b44b1401f03a12b09d60c85d6410c10765c7d24f5752903418d.rs"
+      }
+    },
+    "after": {
+      "crates/sim-core/src/lib.rs": {
+        "file": "sources/dbe6ff327be4937e0afa097fe5a16ff840f4e1333e0d776e7f371ddd249c9ef3.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/game/fixture.toml:S3",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-game-S4",
+    "before": {
+      "crates/sim-core/src/lib.rs": {
+        "file": "sources/6e0b9e267fef3b44b1401f03a12b09d60c85d6410c10765c7d24f5752903418d.rs"
+      }
+    },
+    "after": {
+      "crates/sim-core/src/lib.rs": {
+        "file": "sources/e7b4bb0faf06a0790c10ec535858d1ef6c7556cf2e2c9b3b2f0f3b4cbb317a6a.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/game/fixture.toml:S4",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-game-S5",
+    "before": {
+      "crates/sim-systems/src/snapshot.rs": {
+        "file": "sources/ead181c3f2d0dafba74086ff306244a157a7a73039cdc0b01268cb40bd7c7a10.rs"
+      }
+    },
+    "after": {
+      "crates/sim-systems/src/snapshot.rs": {
+        "file": "sources/ce37b64a96feee826c75146492e638cd206b426b624a89ebd7ecbdcbed2d915b.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/game/fixture.toml:S5",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-game-S6",
+    "before": {
+      "crates/sim-systems/src/gameplay.rs": {
+        "file": "sources/f0f4ca0097edb6cffed4fc70ce2f362a7ee6217faecafacf63f76d23bc25bf9c.rs"
+      }
+    },
+    "after": {
+      "crates/sim-systems/src/gameplay.rs": {
+        "file": "sources/f0f4ca0097edb6cffed4fc70ce2f362a7ee6217faecafacf63f76d23bc25bf9c.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/game/fixture.toml:S6",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-game-S7",
+    "before": {
+      "crates/sim-systems/src/arena_rules.rs": {
+        "file": "sources/91dd7f4f0ecda79b5e3f9444dd94487ab3ae780cce7e22f4e333a940b2144340.rs"
+      }
+    },
+    "after": {
+      "crates/sim-systems/src/arena_rules.rs": {
+        "file": "sources/aaa789ece06ecb1e21870ca9360228f3137273ebdf054fcf8d3b06ce7ef1fb2c.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/game/fixture.toml:S7",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S1",
+    "before": {
+      "crates/rust-analyzer/src/version.rs": {
+        "file": "sources/60fc97270de56433d42470f3ea02d5cc6ed3c87b8e2f15d6270d4d41a49380d3.rs"
+      }
+    },
+    "after": {
+      "crates/rust-analyzer/src/version.rs": {
+        "file": "sources/4a3534d146f45b0bcb794c2399d9b2515b77ced633257717d6a71740f5f0e88c.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S1",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S2",
+    "before": {
+      "crates/rust-analyzer/src/cli/flags.rs": {
+        "file": "sources/fa1c9011a1e1a1665db8f1df178da001a6ad67be774eebf654da5e300f65522c.rs"
+      }
+    },
+    "after": {
+      "crates/rust-analyzer/src/cli/flags.rs": {
+        "file": "sources/0df2e78a842c24ba6e19af80da3ec75abac96f4530e2f811377e8327b230fc50.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S2",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S3",
+    "before": {
+      "crates/stdx/src/lib.rs": {
+        "file": "sources/f446733f5bdb045691bd8f25ad4a3186404ef956c9e5b7eebd6f1025395dbfd1.rs"
+      }
+    },
+    "after": {
+      "crates/stdx/src/lib.rs": {
+        "file": "sources/dc9f738b67175c2a71616ee83d6fb6cb12033c636607f2ea8c4f448c936c25d4.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S3",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S4",
+    "before": {
+      "crates/profile/src/memory_usage.rs": {
+        "file": "sources/6e89c5c294641f915b6a9ac4f3058a57a1fd89697404deeec06136642391589d.rs"
+      }
+    },
+    "after": {
+      "crates/profile/src/memory_usage.rs": {
+        "file": "sources/2dbe2693624af3734944ec4991f4ca18cf5b9c3edaa86a12d86d42efa01f3401.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S4",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S5",
+    "before": {
+      "crates/rust-analyzer/src/lsp/ext.rs": {
+        "file": "sources/8c9f2c07b4561053943f7a4986fb0afcd38c8d6dca5e5bfd0123e6b9415a4fc2.rs"
+      }
+    },
+    "after": {
+      "crates/rust-analyzer/src/lsp/ext.rs": {
+        "file": "sources/5c15a5dc4be662fb6b29884970e8ff4cf99bc8372a55682280e88551d9e03736.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S5",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S6",
+    "before": {
+      "crates/rust-analyzer/src/version.rs": {
+        "file": "sources/60fc97270de56433d42470f3ea02d5cc6ed3c87b8e2f15d6270d4d41a49380d3.rs"
+      }
+    },
+    "after": {
+      "crates/rust-analyzer/src/version.rs": {
+        "file": "sources/60fc97270de56433d42470f3ea02d5cc6ed3c87b8e2f15d6270d4d41a49380d3.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S6",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S7",
+    "before": {
+      "crates/rust-analyzer/src/config.rs": {
+        "file": "sources/922f6ce569589a533f0b0dc77ff5a228349c3680e202f8e0fcd6fdb198a2c74b.rs"
+      }
+    },
+    "after": {
+      "crates/rust-analyzer/src/config.rs": {
+        "file": "sources/948f07cb2d09b2209313e08117c908036f47a15fbe82fbc5fd23ee66c5b913c7.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S7",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-oss-rust-analyzer-S8",
+    "before": {
+      "crates/rust-analyzer/src/version.rs": {
+        "file": "sources/60fc97270de56433d42470f3ea02d5cc6ed3c87b8e2f15d6270d4d41a49380d3.rs"
+      }
+    },
+    "after": {
+      "crates/rust-analyzer/src/version.rs": {
+        "file": "sources/1ccb301f0c44c33c4e051e56fd1a1a70dd5002c32f4b14fa9679f6d3c6e5aceb.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/oss-rust-analyzer/fixture.toml:S8",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-stub-S1",
+    "before": {
+      "src/main.rs": {
+        "file": "sources/4b4284b006e7a4afb51ac99cfef589e46896fc51531cdd583ad7b4ad2f4bcb36.rs"
+      }
+    },
+    "after": {
+      "src/main.rs": {
+        "file": "sources/34e840c5e215b3cb87e43c65031ee8c0eac0e907b7a17d6449948a56e9e9419a.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/stub/fixture.toml:S1",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-stub-S2",
+    "before": {
+      "src/main.rs": {
+        "file": "sources/4b4284b006e7a4afb51ac99cfef589e46896fc51531cdd583ad7b4ad2f4bcb36.rs"
+      }
+    },
+    "after": {
+      "src/main.rs": {
+        "file": "sources/38712c49c5635c3f5add250c2882d71b68a34da11b6172826acf0d6679810408.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/stub/fixture.toml:S2",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-stub-S4",
+    "before": {
+      "src/main.rs": {
+        "file": "sources/4b4284b006e7a4afb51ac99cfef589e46896fc51531cdd583ad7b4ad2f4bcb36.rs"
+      }
+    },
+    "after": {
+      "src/main.rs": {
+        "file": "sources/33a510dc58d785e2ebc5c6e3c1c238e406a7cb0c7646f9064ca0ed07326de480.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/stub/fixture.toml:S4",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-stub-S6",
+    "before": {
+      "src/main.rs": {
+        "file": "sources/4b4284b006e7a4afb51ac99cfef589e46896fc51531cdd583ad7b4ad2f4bcb36.rs"
+      }
+    },
+    "after": {
+      "src/main.rs": {
+        "file": "sources/4b4284b006e7a4afb51ac99cfef589e46896fc51531cdd583ad7b4ad2f4bcb36.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/stub/fixture.toml:S6",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-stub-S7",
+    "before": {
+      "src/main.rs": {
+        "file": "sources/4b4284b006e7a4afb51ac99cfef589e46896fc51531cdd583ad7b4ad2f4bcb36.rs"
+      }
+    },
+    "after": {
+      "src/main.rs": {
+        "file": "sources/ac3969e49cd6f9abdd63f67ac984c78cb92bf9be28b12a62fa3abeb05ef78329.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/stub/fixture.toml:S7",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-web-S1",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e074e8141d9feb474e2ce60e85a7e8436b9eed19289dbc30a3ebdccd1e4f43e8.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/4ffb3ddcf9e878861e86e64729d0ea610fd1b3f675d769fc7ca29ddab28b9677.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/web/fixture.toml:S1",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-web-S2",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e074e8141d9feb474e2ce60e85a7e8436b9eed19289dbc30a3ebdccd1e4f43e8.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/1cd9458b78dcd2528a045ca35b2a23b4e5fdd041dabed85a9dc2e3cbca0a0cc0.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/web/fixture.toml:S2",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-web-S3",
+    "before": {
+      "crates/domain/src/lib.rs": {
+        "file": "sources/932c9fc822a3f53a060fb95fc974e0aa2837f0ace4e007f12c26addd2388f09d.rs"
+      }
+    },
+    "after": {
+      "crates/domain/src/lib.rs": {
+        "file": "sources/9ccce384aa6c7c06c7ee8cb78f6458d33504b97668fd5021b4d21a8db557dfea.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/web/fixture.toml:S3",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-web-S4",
+    "before": {
+      "crates/domain/src/lib.rs": {
+        "file": "sources/932c9fc822a3f53a060fb95fc974e0aa2837f0ace4e007f12c26addd2388f09d.rs"
+      }
+    },
+    "after": {
+      "crates/domain/src/lib.rs": {
+        "file": "sources/0e2d6ef15b3ae96564fc504aebe3073568a93f01bb295ea60c904fb968427224.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/web/fixture.toml:S4",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-web-S5",
+    "before": {
+      "crates/domain/src/lib.rs": {
+        "file": "sources/932c9fc822a3f53a060fb95fc974e0aa2837f0ace4e007f12c26addd2388f09d.rs"
+      }
+    },
+    "after": {
+      "crates/domain/src/lib.rs": {
+        "file": "sources/42d069e2c1ec358af6efc198e8dc62a13118365730f1f010a809518cb39c0e2c.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/web/fixture.toml:S5",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-web-S6",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e074e8141d9feb474e2ce60e85a7e8436b9eed19289dbc30a3ebdccd1e4f43e8.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e074e8141d9feb474e2ce60e85a7e8436b9eed19289dbc30a3ebdccd1e4f43e8.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/web/fixture.toml:S6",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-web-S7",
+    "before": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/e074e8141d9feb474e2ce60e85a7e8436b9eed19289dbc30a3ebdccd1e4f43e8.rs"
+      }
+    },
+    "after": {
+      "crates/api/src/handlers.rs": {
+        "file": "sources/24b5f3befddc0cdcc56fc3ead286e2ec5063630e0ae5b55541151ca1aa6fe451.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/web/fixture.toml:S7",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S1",
+    "before": {
+      "crates/node_029/src/main.rs": {
+        "file": "sources/3336949a2b4fd9d141ac1fb39aa649ce889b741bce0693d5ddcf84498949e806.rs"
+      }
+    },
+    "after": {
+      "crates/node_029/src/main.rs": {
+        "file": "sources/7892d32ebde204ea0cc513a66af9205a70173522de8e6b6059b78878bc809b4f.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S1",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S2",
+    "before": {
+      "crates/node_029/src/main.rs": {
+        "file": "sources/3336949a2b4fd9d141ac1fb39aa649ce889b741bce0693d5ddcf84498949e806.rs"
+      }
+    },
+    "after": {
+      "crates/node_029/src/main.rs": {
+        "file": "sources/db232c575f307805e7d7fca952449de771b340fc58f16f1e7bb916d82f574917.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S2",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S3",
+    "before": {
+      "crates/node_000/src/lib.rs": {
+        "file": "sources/2a753b41faa8e9fc8b5d510f907b059d51d6d78ac19fe9e4d4feac335d909f56.rs"
+      }
+    },
+    "after": {
+      "crates/node_000/src/lib.rs": {
+        "file": "sources/0714bff1d70b87d4ed23f88e27f4a6eacae1b2aa4ee31b315b0d7ae260e87d09.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S3",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S4",
+    "before": {
+      "crates/node_008/src/lib.rs": {
+        "file": "sources/a85978fa1ab9f8b720336f21ec22ba1d92a18f9a5fdb14c5168a8e56e7bdfa1e.rs"
+      }
+    },
+    "after": {
+      "crates/node_008/src/lib.rs": {
+        "file": "sources/18150b6d38805dd4598b12d66839cbb79e75f8fcff2359ec8600d9124820080d.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S4",
+    "prototype": {
+      "class": "restart",
+      "reason": "non-async header/local/macro change: ::signature_token",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S5",
+    "before": {
+      "crates/node_008/src/lib.rs": {
+        "file": "sources/a85978fa1ab9f8b720336f21ec22ba1d92a18f9a5fdb14c5168a8e56e7bdfa1e.rs"
+      }
+    },
+    "after": {
+      "crates/node_008/src/lib.rs": {
+        "file": "sources/cef1cc730d21cab24372bb0e53536b01ca53ab05901732de518f237bc4e8691f.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S5",
+    "prototype": {
+      "class": "restart",
+      "reason": "layout/attribute/macro structure changed",
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S6",
+    "before": {
+      "crates/node_029/src/main.rs": {
+        "file": "sources/3336949a2b4fd9d141ac1fb39aa649ce889b741bce0693d5ddcf84498949e806.rs"
+      }
+    },
+    "after": {
+      "crates/node_029/src/main.rs": {
+        "file": "sources/3336949a2b4fd9d141ac1fb39aa649ce889b741bce0693d5ddcf84498949e806.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S6",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S7",
+    "before": {
+      "crates/node_029/src/workload.rs": {
+        "file": "sources/15b033725d0f911ba44143ce033ecab486c99d0993a8399b2b3dcc51017b2177.rs"
+      }
+    },
+    "after": {
+      "crates/node_029/src/workload.rs": {
+        "file": "sources/32240e7aeb12186fa87fa1afae0f7a843847e2bced77ce2af34d356209e5a913.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S7",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  },
+  {
+    "id": "fixture-workspace-S8",
+    "before": {
+      "crates/node_008/src/lib.rs": {
+        "file": "sources/a85978fa1ab9f8b720336f21ec22ba1d92a18f9a5fdb14c5168a8e56e7bdfa1e.rs"
+      }
+    },
+    "after": {
+      "crates/node_008/src/lib.rs": {
+        "file": "sources/5e6407dc38eaee8f9d7035c1580934a186dec48d01e01034c03c7c8f314707aa.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "live"
+    },
+    "origin": "fixtures/workspace/fixture.toml:S8",
+    "prototype": {
+      "class": "live",
+      "reason": null,
+      "owners": []
+    }
+  }
+]

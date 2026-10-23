@@ -4,3 +4,16 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+
+[dependencies]
+blake3.workspace = true
+# This is an ordinary library, not a compiler procedural macro. Avoid the
+# proc_macro2 compiler/fallback wrappers on every token in the hot parser path.
+quote = { version = "1", default-features = false }
+proc-macro2 = { version = "1", default-features = false }
+rustc_lexer = "0.1"
+syn = { version = "2", default-features = false, features = ["full", "parsing", "printing", "clone-impls", "visit", "visit-mut"] }
+
+[dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true

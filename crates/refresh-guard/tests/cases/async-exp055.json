@@ -1,0 +1,698 @@
+[
+  {
+    "id": "exp055-timer-a",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/8b1be127f99a3640448293fc9d72b6552e6ecaae42ec63a55056a85d25d7a3de.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py timer/a",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::timer_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-timer-b",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/044f795740ab51d4f76536982231320a62740a7e29d6dbcec7743940446dc1fc.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py timer/b",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::timer_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-timer-c",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/7cf8fb8fddc6113e060a58b38b260eb39d97e269e374d1d483bbc142d6469f0c.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py timer/c",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::timer_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-timer-d_add",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/f6be2b4397e2a38a95bc46334ca425dc4f2e4eec7738eab9165ad5331681722f.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py timer/d_add",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::timer_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-timer-d_remove",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/33544fa1520150546676d09421bba7dcc60ffbb2e56b39d8a97ee8e00ae67fd4.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py timer/d_remove",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::timer_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-timer-f",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/66958e9b3abad1d1ecb69af62468e53ba6269a62813f456e4fd506511b468ec0.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py timer/f",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::timer_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-stream-a",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/f6f88343224e5506acf71bd702d874105f1664d2be86f312877b0024191daada.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py stream/a",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::stream_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-stream-b",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/ea8493b940f291589701b9c2fae2192133a9a48d399cc1da76b791540e07c80f.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py stream/b",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::stream_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-stream-c",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/6be595050da6c0de44c2cc523d58c3edb226928a2fb6b2bb524d187d9a3ef2e4.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py stream/c",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::stream_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-stream-d_add",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/fad16e50bb9fb7d1c4c5753c2153022387e60158bf2ce66a4c00ff67e1885f48.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py stream/d_add",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::stream_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-stream-d_remove",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/6fd8e4b196239f516b88eb5a0027345618c7333ed2adaf8409eb6df42c8c6d37.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py stream/d_remove",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::stream_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-stream-f",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/a50a867679f820040ceb4036cdfb708588c361dbfc9c18594dd1eaad962827d0.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py stream/f",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::stream_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-select-a",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/4d8362d1c0fa97e8f2fffed24496ee0b1a23944abae26e23ebb48fc0f2bc9217.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py select/a",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::select_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-select-b",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/ebb84d2b36d383631a4bb623d4564a05ccd9a8ee00881a025741258953225c05.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py select/b",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::select_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-select-c",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/8db058f2869295d39cf70554131fd127f0e0215a3c59486900ef127ab98da5ff.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py select/c",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::select_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-select-d_add",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/68894195671c5030300c0dc246fc7f876978723792f6c4eae79a64b7a725fc54.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py select/d_add",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::select_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-select-d_remove",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/16f80fc4d24283c00e47ebe351f83659e9079383b4d6c5d14996acd8ba1799ab.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py select/d_remove",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::select_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-select-f",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/997144fa8473f5388f156b7845eb072b3f3a8e312907c9121d194c4026fbd3ce.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py select/f",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::select_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-background-a",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/ff512ee6143fe8387f839f0a986a9715d407899435c9fb4fb18ccaebf06f0abf.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py background/a",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::background_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-background-b",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/dfbfdc2fc46ab8f3ac740cd23965181541be8e235145b46a13fb8cb94b719f00.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py background/b",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::background_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-background-c",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/0ecfecee1e293964e3fcf84fcc403b6945ef83339cc0122493816233fd190eca.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py background/c",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::background_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-background-d_add",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/5c1d0bc3abc32370edf6963c822bd75995d12e189cfbe30b9ae07b35f26651cb.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py background/d_add",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::background_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-background-d_remove",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/18efe95e1a6887fbc9da58a4e71f87c337227155ab344980c4966883664340f2.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py background/d_remove",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::background_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-background-f",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/6c7597b5ef966501d7d6d1e70745b85a6877fcf0fd815579e6a7d93c971e7254.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py background/f",
+    "prototype": {
+      "class": "restart",
+      "reason": "async owner refused (M0_CERTS=0)",
+      "owners": [
+        [
+          "async_cases.rs",
+          "::background_task"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "exp055-helper-e",
+    "before": {
+      "async_cases.rs": {
+        "file": "sources/aa92db7467a79deb2eebdb3be7c02aac1d1729c586b8d477f50ba5e21f77e74c.rs"
+      }
+    },
+    "after": {
+      "async_cases.rs": {
+        "file": "sources/9366c5217bcebe97b7bc7282ff39db32fa17bd0fe44541bfa5485441575e4761.rs"
+      }
+    },
+    "expected": {
+      "admission": "admit",
+      "class": "restart"
+    },
+    "origin": "EXP-055 cases.py helper/e",
+    "prototype": {
+      "class": "restart",
+      "reason": "non-async header/local/macro change: ::helper",
+      "owners": []
+    },
+    "comment": "The helper is #[inline(never)]; its attributed body is guarded even though synchronous."
+  }
+]
