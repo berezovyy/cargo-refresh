@@ -9,13 +9,14 @@ VERSION=$1
 RESEARCH=${REFRESH_RESEARCH_ROOT:-/path/to/research}
 RUSTD=${REFRESH_RUSTD_SOURCE:-rustd}
 LANE=${REFRESH_LANE:-$RESEARCH/tools/lane.sh}
+[[ -z $(git -C "$ROOT" status --porcelain -- agent) ]] || { echo 'Commit agent changes before release' >&2; exit 1; }
 export RUSTUP_TOOLCHAIN=1.99.0
 export CARGO_BUILD_JOBS=4
 unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTC_WRAPPER RUSTC_WORKSPACE_WRAPPER CARGO_BUILD_TARGET
 COMMIT=$(rustc -Vv | sed -n 's/^commit-hash: //p')
 [[ $COMMIT == b940084d7eb6a299eb4bfeb8e34901bc051e7ac4 ]] || { echo 'Unqualified rustc commit; run manual qualification first' >&2; exit 1; }
 [[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'Only Linux x86_64 releases are supported' >&2; exit 1; }
-for tool in zstd tar objdump sha256sum python3 make; do command -v "$tool" >/dev/null; done
+for tool in zstd tar objdump nm sha256sum python3 make cc; do command -v "$tool" >/dev/null; done
 [[ $(git -C "$RUSTD" branch --show-current) == refresh/m1 ]] || { echo 'rustd must be on refresh/m1' >&2; exit 1; }
 # Check the compiler and RA together inside their resource lane, before compiling.
 "$LANE" rustd -- bash -c 'test -z "$(git -C "$1" status --porcelain)" && test -z "$(git -C "$1/vendor/rust-analyzer" status --porcelain)"' _ "$RUSTD" || {
@@ -39,7 +40,7 @@ done
 # A failed static attempt never changes the production Makefile's dynamic default.
 STATIC=0
 if [[ -f $(cc -print-file-name=libunwind.a) && -f $(cc -print-file-name=libunwind-x86_64.a) ]]; then
-  if nice -n 19 make -C "$ROOT/agent" release \
+  if nice -n 19 make -B -C "$ROOT/agent" release \
       LDLIBS='-Wl,-z,now -Wl,-Bstatic -lunwind -lunwind-x86_64 -Wl,-Bdynamic -ldl -lpthread'; then
     STATIC=1
   else
@@ -48,12 +49,11 @@ if [[ -f $(cc -print-file-name=libunwind.a) && -f $(cc -print-file-name=libunwin
 fi
 if (( ! STATIC )); then
   # Avoid reusing the static attempt or an older library with other link flags.
-  rm -f "$ROOT/agent/build-release/librefresh.so"
-  nice -n 19 make -C "$ROOT/agent" release
+  nice -n 19 make -B -C "$ROOT/agent" release
 fi
 install -m 755 "$ROOT/agent/build-release/librefresh.so" "$STAGE/librefresh.so"
 "$ROOT/scripts/new-toolchain.sh" 1.99.0 --dry-run
-QUAL=$WORK/qualification/$COMMIT
+QUAL=${REFRESH_QUALIFICATION_OUT:-$WORK/qualification/$COMMIT}
 install -m 644 "$QUAL/abi-facts.bundle" "$STAGE/abi-facts.bundle"
 python3 "$ROOT/scripts/qualification/runtime-requirements.py" "$STAGE" > "$STAGE/RUNTIME.txt"
 cat "$STAGE/RUNTIME.txt"
@@ -67,10 +67,10 @@ target=x86_64-unknown-linux-gnu
 agent_static_libunwind=$STATIC
 METADATA
 mkdir "$STAGE/licenses"
+"$LANE" rustd -- bash -c 'for file in LICENSE-MIT LICENSE-APACHE; do install -m 644 "$1/vendor/rust-analyzer/$file" "$2/licenses/rust-analyzer-$file"; done' _ "$RUSTD" "$STAGE"
 for file in LICENSE-MIT LICENSE-APACHE; do
   install -m 644 "$ROOT/$file" "$STAGE/licenses/cargo-refresh-$file"
   install -m 644 "$RUSTD/$file" "$STAGE/licenses/rustd-$file"
-  "$LANE" rustd -- install -m 644 "$RUSTD/vendor/rust-analyzer/$file" "$STAGE/licenses/rust-analyzer-$file"
 done
 # A concurrent source change would make the recorded source identity misleading.
 [[ $(git -C "$RUSTD" rev-parse HEAD) == "$RUSTD_COMMIT" ]] || { echo 'Compiler changed during release' >&2; exit 1; }
