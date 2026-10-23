@@ -27,9 +27,12 @@ int prepare_stacks(void){
     int count=0;for(int i=0;i<nhaz;i++){if(count && hazards[i].a<=hazards[count-1].b){if(hazards[i].b>hazards[count-1].b)hazards[count-1].b=hazards[i].b;}else hazards[count++]=hazards[i];}nhaz=count;
     nmaps=0;FILE *f=fopen("/proc/self/maps","re");if(!f)return -1;
     char line[1024],perms[8];unsigned long a,b;
-    while(fgets(line,sizeof(line),f))if(sscanf(line,"%lx-%lx %7s",&a,&b,perms)==3 && perms[2]=='x'){
-        if(nmaps==16384){fclose(f);return -1;}maps[nmaps++]=(struct range){a,b};
-    }fclose(f);return 0;
+    while(fgets(line,sizeof(line),f)){
+        if(sscanf(line,"%lx-%lx %7s",&a,&b,perms)==3 && perms[2]=='x'){
+            if(nmaps==16384){fclose(f);return -1;}maps[nmaps++]=(struct range){a,b};
+        }
+    }
+    fclose(f);return 0;
 }
 
 int check_stacks(void){
