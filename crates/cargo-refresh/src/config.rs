@@ -43,6 +43,8 @@ pub struct RefreshMetadata {
     pub edit: Vec<String>,
     pub allow_tracing_metadata: bool,
     pub after_patch_hook: bool,
+    pub after_patch_touch: Vec<PathBuf>,
+    pub after_patch_http: Option<String>,
     pub strict: bool,
 }
 
@@ -52,6 +54,8 @@ impl Default for RefreshMetadata {
             edit: Vec::new(),
             allow_tracing_metadata: true,
             after_patch_hook: false,
+            after_patch_touch: Vec::new(),
+            after_patch_http: None,
             strict: false,
         }
     }
@@ -66,6 +70,8 @@ pub struct Config {
     pub edit: Vec<String>,
     pub allow_tracing_metadata: bool,
     pub after_patch_hook: bool,
+    pub after_patch_touch: Vec<PathBuf>,
+    pub after_patch_http: Option<String>,
     pub strict: bool,
     pub check: bool,
     pub events: PathBuf,
@@ -90,10 +96,14 @@ fn serialize_args<S: serde::Serializer>(
 impl Config {
     pub fn load(args: RunArgs) -> Result<Self> {
         let cwd = std::env::current_dir().context("get current directory")?;
-        let output = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+        let mut command = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()));
+        command
             .args(["metadata", "--format-version", "1"])
-            .output()
-            .context("run cargo metadata")?;
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+        let output = crate::process::spawn(&mut command).context("run cargo metadata")?;
+        let output = output.wait_with_output()?;
         if !output.status.success() {
             bail!(
                 "cargo metadata failed: {}",
@@ -148,6 +158,24 @@ impl Config {
             .transpose()
             .context("parse [package.metadata.refresh]")?
             .unwrap_or_default();
+        if let Some(url) = &settings.after_patch_http {
+            crate::triggers::Http::parse(url)?;
+        }
+        let package_root = package
+            .manifest_path
+            .parent()
+            .context("manifest has no parent")?;
+        let after_patch_touch = settings
+            .after_patch_touch
+            .iter()
+            .map(|path| {
+                if path.is_absolute() {
+                    path.clone()
+                } else {
+                    package_root.join(path)
+                }
+            })
+            .collect();
         let bins: Vec<_> = package
             .targets
             .iter()
@@ -221,6 +249,8 @@ impl Config {
             edit,
             allow_tracing_metadata: settings.allow_tracing_metadata,
             after_patch_hook: settings.after_patch_hook,
+            after_patch_touch,
+            after_patch_http: settings.after_patch_http,
             strict: args.strict || settings.strict,
             check: !args.no_check,
             events: args
@@ -343,6 +373,38 @@ mod tests {
         ] {
             assert!(Config::resolve(args, &metadata(refresh), Path::new("/demo")).is_err());
         }
+    }
+
+    #[test]
+    fn external_triggers_resolve_from_selected_package() {
+        let config = Config::resolve(
+            RunArgs::default(),
+            &metadata(json!({"after_patch_hook": true,
+                "after_patch_touch": ["book/src/chapter.md", "/tmp/site/config.toml"],
+                "after_patch_http": "http://127.0.0.1:8080/rebuild"})),
+            Path::new("/demo/src"),
+        )
+        .unwrap();
+        assert_eq!(
+            config.after_patch_touch,
+            [
+                PathBuf::from("/demo/book/src/chapter.md"),
+                PathBuf::from("/tmp/site/config.toml")
+            ]
+        );
+        assert_eq!(
+            config.after_patch_http.as_deref(),
+            Some("http://127.0.0.1:8080/rebuild")
+        );
+        assert!(config.after_patch_hook);
+        assert!(
+            Config::resolve(
+                RunArgs::default(),
+                &metadata(json!({"after_patch_http": "https://host/"})),
+                Path::new("/demo")
+            )
+            .is_err()
+        );
     }
 
     #[test]

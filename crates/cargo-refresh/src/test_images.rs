@@ -15,7 +15,7 @@ pub fn program(typ: u32, flags: u32, offset: u64, addr: u64, len: u64) -> Progra
 }
 pub fn image() -> Image {
     Image {
-        data: vec![0; 0x3000],
+        data: vec![0; 0x3000].into(),
         typ: 3,
         phoff: 64,
         headers: vec![program(1, 4, 0, 0x1000, 0x1000)],

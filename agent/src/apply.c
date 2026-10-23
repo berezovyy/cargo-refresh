@@ -95,7 +95,7 @@ int adopt_inherited(const char *spec) {
 /* Preserve the conflict's actual owner so placement failures are diagnosable. */
 static void mapping_conflict(uintptr_t address, char error[160]) {
     apply_conflict.address = address;
-    FILE *f = fopen("/proc/self/maps", "r");
+    FILE *f = fopen("/proc/self/maps", "re");
     char line[1024], perms[8], name[512];
     unsigned long start, end;
     if (f) {
@@ -165,7 +165,7 @@ static enum refresh_code prepare_undo(struct undo_record *undo, unsigned char *b
             undo[i].pages[undo[i].npages++].address = a;
         }
     }
-    FILE *f = fopen("/proc/self/maps", "r");
+    FILE *f = fopen("/proc/self/maps", "re");
     if (!f) return fail(error, REFRESH_INTERNAL, "cannot read original mappings");
     char line[1024], perms[8];
     unsigned long start, end, offset, inode;

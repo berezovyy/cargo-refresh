@@ -84,6 +84,7 @@ pub struct Pipeline {
     recovery_restart: bool,
     view_dirty: BTreeSet<PathBuf>,
     session_home: PathBuf,
+    triggers: crate::triggers::Triggers,
 }
 fn mark(phases: &mut BTreeMap<Phase, f64>, phase: Phase) {
     phases.insert(phase, monotonic_seconds().unwrap_or(0.0) * 1000.0);
@@ -216,6 +217,10 @@ impl Pipeline {
             None
         };
         Ok(Self {
+            triggers: crate::triggers::Triggers::new(
+                config.after_patch_touch.clone(),
+                config.after_patch_http.as_deref(),
+            )?,
             config,
             runtime,
             fast: None,
@@ -281,7 +286,7 @@ impl Pipeline {
                 .get("callback_present")
                 .and_then(|v| v.as_bool())
                 != Some(true);
-        if self.hook_missing {
+        if self.hook_missing && !self.triggers.configured() {
             self.event(
                 "hook_unavailable",
                 "after-patch callback is missing; edits require a restart",
@@ -366,6 +371,10 @@ impl Pipeline {
             .any(|c| c.kind == PathKind::Manifest);
         if manifest_change {
             self.config = Config::load(self.config.invocation.clone())?;
+            self.triggers = crate::triggers::Triggers::new(
+                self.config.after_patch_touch.clone(),
+                self.config.after_patch_http.as_deref(),
+            )?;
             self.runtime
                 .configure(self.config.after_patch_hook, self.config.bin.clone().into());
             self.sender.send(Update::Reconfigure(
@@ -475,6 +484,7 @@ impl Pipeline {
         self.unchecked.clear();
     }
     pub fn process(&mut self, mut job: Job) -> Result<()> {
+        mark(&mut job.phases, Phase::WorkerStart);
         self.fence.revision = job.changes.revision;
         if let Some((mut old, _)) = self.checker.take() {
             old.cancel();
@@ -529,6 +539,7 @@ impl Pipeline {
         if let Some(workspace) = &self.workspace {
             workspace.update(&job.changes)?;
         }
+        mark(&mut job.phases, Phase::MirrorEnd);
         let (before, after) = self.snapshots(&job.changes);
         let admission = self.guard.admit(&before, &after);
         mark(&mut job.phases, Phase::Gate);
@@ -600,7 +611,7 @@ impl Pipeline {
             Class::Restart { reason } => Some(reason_text(&reason)),
             Class::Stock { reason } => return self.stock(&mut job, reason_text(&reason)),
             Class::LiveEligible { .. } => {
-                if self.hook_missing {
+                if self.hook_missing && !self.triggers.configured() {
                     Some("after-patch callback is unavailable".into())
                 } else if self.recovery_restart {
                     Some("compiler recovered; establishing the live baseline".into())
@@ -651,7 +662,11 @@ impl Pipeline {
                 fast.manifest.update(&build.manifest)?,
                 "stale compiler manifest"
             );
-            let candidate = Image::parse(fs::read(&build.candidate_path)?, false)?;
+            mark(&mut job.phases, Phase::ManifestEnd);
+            // SAFETY: worker builds are serialized here. The completed candidate
+            // is dropped at the end of this closure, before any next build/reset.
+            let candidate = unsafe { Image::map_candidate(&build.candidate_path)? };
+            mark(&mut job.phases, Phase::CandidateEnd);
             mark(&mut job.phases, Phase::ExtractStart);
             let patch = fast.extractor.extract(&fast.manifest, &candidate)?;
             mark(&mut job.phases, Phase::ExtractEnd);
@@ -723,8 +738,27 @@ impl Pipeline {
                 })?;
                 match agent::action(&reply) {
                     agent::Action::Applied => {
+                        let notification = self.triggers.fire();
+                        mark(&mut job.phases, Phase::TriggerEnd);
+                        // APPLY already mutated the runtime, even if a newer
+                        // save arrived during notification. Commit and publish
+                        // that fact so the watcher can reconcile its hashes.
                         self.fast.as_mut().unwrap().extractor.commit(patch)?;
-                        self.publish(&job, SavePath::Live, String::new(), true)?;
+                        mark(&mut job.phases, Phase::CommitEnd);
+                        if let Err(error) = notification {
+                            self.event("after_patch_failed", format!("{error:#}"));
+                            self.runtime.start(&build.candidate_path)?;
+                            mark(&mut job.phases, Phase::SpawnEnd);
+                            self.recovery_restart = false;
+                            self.publish(
+                                &job,
+                                SavePath::Restart,
+                                format!("after-patch notification failed: {error:#}"),
+                                true,
+                            )?;
+                        } else {
+                            self.publish(&job, SavePath::Live, String::new(), true)?;
+                        }
                     }
                     agent::Action::Intact => {
                         self.publish(

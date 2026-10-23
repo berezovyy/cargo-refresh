@@ -123,7 +123,7 @@ pub fn run(
     fs::create_dir_all(log.parent().context("log has no parent")?)?;
     let output = fs::File::create(log)?;
     command.stdout(output.try_clone()?).stderr(output);
-    let mut child = command.spawn().context("start stock Cargo")?;
+    let mut child = crate::process::spawn(&mut command).context("start stock Cargo")?;
     let deadline = Instant::now() + Duration::from_secs(240);
     loop {
         if !fence.current() {

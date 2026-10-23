@@ -205,7 +205,7 @@ impl Client {
             let log = File::create(self.config.home.join("daemon.log"))?;
             let mut cmd = self.command(&self.config.rustd);
             cmd.arg("daemon").stdout(log.try_clone()?).stderr(log);
-            self.daemon = Some(cmd.spawn().context("start rustd daemon")?);
+            self.daemon = Some(crate::process::spawn(&mut cmd).context("start rustd daemon")?);
             self.initialize()?;
             if let Ok(path) = newest_manifest(&self.config.project) {
                 self.last_manifest = fs::read(path)?;
@@ -305,7 +305,7 @@ impl Client {
             .join(format!("command-{}.log", self.commands));
         let log = File::create(&path)?;
         command.stdout(log.try_clone()?).stderr(log);
-        let mut child = command.spawn()?;
+        let mut child = crate::process::spawn(&mut command)?;
         let deadline = Instant::now() + timeout;
         let result = (|| -> Result<_> {
             loop {
@@ -368,7 +368,7 @@ impl Client {
         cmd.args(["rustd", "stop"])
             .stdout(Stdio::null())
             .stderr(Stdio::null());
-        if let Ok(mut child) = cmd.spawn() {
+        if let Ok(mut child) = crate::process::spawn(&mut cmd) {
             let deadline = Instant::now() + Duration::from_secs(5);
             while Instant::now() < deadline {
                 match child.try_wait() {

@@ -38,7 +38,7 @@ static void prepare_scan123(void){
         if(!pthread_attr_getstack(&at,&base,&size)){scan_stack_lo123=(uintptr_t)base;scan_stack_hi123=(uintptr_t)base+size;}
         pthread_attr_destroy(&at);
     }
-    nroots123=0;FILE *f=fopen("/proc/self/maps","r");if(!f)return;
+    nroots123=0;FILE *f=fopen("/proc/self/maps","re");if(!f)return;
     char line[1024],perms[8];unsigned long a,b;
     while(fgets(line,sizeof(line),f))if(sscanf(line,"%lx-%lx %7s",&a,&b,perms)==3 && perms[0]=='r' && perms[1]=='w'){
         // Omit the scanner DSO's metadata and its executing stack; retain heap

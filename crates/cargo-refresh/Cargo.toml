@@ -20,6 +20,7 @@ serde.workspace = true
 serde_json.workspace = true
 walkdir.workspace = true
 tempfile.workspace = true
+memmap2 = "0.9.11"
 
 [dev-dependencies]
 flate2 = "1"

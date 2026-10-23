@@ -28,12 +28,26 @@ class Session:
             if float(load.split()[0])<=2:break
             time.sleep(5)
         self.proc=subprocess.Popen(command,cwd=self.project,env=self.env,stdout=self.log,stderr=subprocess.STDOUT)
-        self.wait(lambda:any(r['event']=='ready' for r in self.read()),300)
+        try:self.wait(lambda:any(r['event']=='ready' for r in self.read()),300)
+        except BaseException:self.close();raise
     def read(self):
         if not self.events.exists():return []
         text=self.events.read_text();lines=text.splitlines()
         if not text.endswith('\n'):lines=lines[:-1]
         return [json.loads(line) for line in lines]
+    def application_pid(self):
+        children=set()
+        for path in pathlib.Path(f'/proc/{self.proc.pid}/task').glob('*/children'):
+            try:children.update(path.read_text().split())
+            except FileNotFoundError:pass
+        found=[]
+        for pid in children:
+            try:
+                executable=os.readlink(f'/proc/{pid}/exe')
+                if executable.startswith('/tmp/refresh-run-') and executable.endswith('/app'):found.append(int(pid))
+            except FileNotFoundError:pass
+        assert len(found)==1,found
+        return found[0]
     def wait(self,predicate,timeout=120):
         end=time.monotonic()+timeout
         while time.monotonic()<end:
@@ -189,23 +203,37 @@ def web(args):
     finally:s.close()
 
 def mdbook(args):
+    rendered(args, 'mdbook')
+
+def zola(args):
+    rendered(args, 'zola')
+
+def rendered(args, app):
     import tomllib
     session=tomllib.loads(args.session.read_text());steps=session['saves'];assert len(steps)==30
     book=args.book.resolve()
-    s=Session(args,app_args=['serve',str(book),'--hostname','127.0.0.1','--port','{PORT}'],env={'CFLAGS':'-std=gnu17','CARGO_PROFILE_DEV_DEBUG':'0','RUST_LOG':'off'})
+    if app=='mdbook':
+        app_args=['serve',str(book),'--hostname','127.0.0.1','--port','{PORT}'];probe='/chapter.html'
+    else:
+        app_args=['--root',str(book),'serve','--interface','127.0.0.1','--port','{PORT}','--output-dir',str(book/'output'),'--force'];probe='/'
+    s=Session(args,app_args=app_args,env={'CFLAGS':'-std=gnu17','CARGO_PROFILE_DEV_DEBUG':'0','RUST_LOG':'off'})
     try:
-        s.wait(lambda:http(s.port,'/chapter.html'))
+        s.wait(lambda:http(s.port,probe))
         for step in steps:
+            previous_pid=s.application_pid()
             files={}
             for edit in step['edits']:
                 path=edit['file'];text=files.get(path,(s.project/path).read_text());assert text.count(edit['find'])==1,(step['id'],edit)
                 files[path]=text.replace(edit['find'],edit['replace'],1)
-            row=s.save(files,step['kind'],step['observation']['contains'],step.get('expect_build')=='error',path='/chapter.html')
+            row=s.save(files,step['kind'],step['observation']['contains'],step.get('expect_build')=='error',path=probe)
             expected=json.loads((args.expected/f"{step['id']:02d}.json").read_text())
-            observed=http(s.port,'/chapter.html');assert observed==(expected['observations'][0]['status'],expected['observations'][0]['body']),(step['id'],'response differs from stock')
+            observed=http(s.port,probe);assert observed==(expected['observations'][0]['status'],expected['observations'][0]['body']),(step['id'],'response differs from stock',observed)
+            row['application_pid']=s.application_pid()
+            if step.get('expect_build')!='error':
+                assert (row['application_pid']==previous_pid)==(row['path']=='live'),(step['id'],row['path'],previous_pid,row['application_pid'])
             row['oracle_match']=True;s.flush();print(step['id'],step['kind'],row['path'],'PASS',flush=True)
         assert not any(r['event']=='application_exit' for r in s.read()),'application crashed'
-        (s.out/'completed.json').write_text(json.dumps({'saves':30,'valid':28,'oracle_matches':30,'missing_hook':True,'paths':{path:sum(r['path']==path for r in s.rows) for path in set(r['path'] for r in s.rows)}}))
+        (s.out/'completed.json').write_text(json.dumps({'saves':30,'valid':28,'oracle_matches':30,'paths':{path:sum(r['path']==path for r in s.rows) for path in set(r['path'] for r in s.rows)}}))
     finally:s.close()
 
 def resilience(args):
@@ -253,6 +281,49 @@ def strict(args):
         (s.out/'completed.json').write_text(json.dumps({'strict_borrow_error_blocked_before_build':True,'editor_preserved':True,'oracle_matches':2}))
     finally:s.close()
 
+def triggers(args):
+    """Exercise post-ACK ordering, rejection/skip, and failed notification restart."""
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    import threading
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            assert self.path=='/refresh',self.path
+            server.observed.append(http(server.app_port))
+            self.send_response(server.status);self.end_headers()
+        def log_message(self,*unused):pass
+    server=HTTPServer(('127.0.0.1',0),Handler)
+    server.status=204;server.observed=[]
+    task=threading.Thread(target=server.serve_forever,daemon=True);task.start()
+    source=(args.project/'src/main.rs').read_text();manifest=args.project/'Cargo.toml'
+    manifest.write_text(manifest.read_text()+f'\n[package.metadata.refresh]\nafter_patch_touch = ["refresh-input.md"]\nafter_patch_http = "http://127.0.0.1:{server.server_port}/refresh"\n')
+    touched=args.project/'refresh-input.md';touched.write_bytes(b'Unchanged input.\n')
+    s=None
+    try:
+        s=Session(args);server.app_port=s.port;s.wait(lambda:http(s.port)==(200,'1'))
+        for value,status,path in [(2,204,'live'),(3,503,'restart'),(4,204,'live')]:
+            server.status=status
+            row=s.save({'src/main.rs':source.replace('number: 1',f'number: {value}')},'notification',str(value))
+            assert row['path']==path,row
+            assert server.observed[-1]==(200,str(value)),server.observed
+            assert touched.read_bytes()==b'Unchanged input.\n'
+            s.oracle_tiny(row,value)
+        assert len(server.observed)==3,server.observed
+        current=(s.project/'src/main.rs').read_text()
+        rejected=s.save({'src/main.rs':current+'\nfn incomplete( {\n'},'syntax-error','4',True)
+        assert rejected['path']=='waiting',rejected;s.oracle_tiny(rejected,4,True)
+        restored=s.save({'src/main.rs':current},'identical','4');assert restored['path']=='skip',restored
+        assert len(server.observed)==3,server.observed
+        touched.unlink()
+        failed=s.save({'src/main.rs':source.replace('number: 1','number: 5')},'missing-touch','5')
+        assert failed['path']=='restart',failed;s.oracle_tiny(failed,5)
+        assert len(server.observed)==3 and not touched.exists()
+        assert sum(r['event']=='after_patch_failed' for r in s.read())==2
+        assert not any(r['event']=='application_exit' for r in s.read())
+        (s.out/'completed.json').write_text(json.dumps({'post_ack_gets':server.observed,'failure_restarts':2,'rejected_and_skip_did_not_notify':True,'touch_content_preserved':True,'oracle_matches':5}))
+    finally:
+        if s:s.close()
+        server.shutdown();server.server_close();task.join()
+
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','resilience','strict']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
+    parser=argparse.ArgumentParser();parser.add_argument('mode',choices=['tiny','web','mdbook','zola','resilience','strict','triggers']);parser.add_argument('--controller',type=pathlib.Path,required=True);parser.add_argument('--project',type=pathlib.Path,required=True);parser.add_argument('--out',type=pathlib.Path,required=True);parser.add_argument('--edit',default='');parser.add_argument('--strict',action='store_true');parser.add_argument('--bin');parser.add_argument('--scenarios',type=pathlib.Path);parser.add_argument('--session',type=pathlib.Path);parser.add_argument('--expected',type=pathlib.Path);parser.add_argument('--book',type=pathlib.Path);args=parser.parse_args();globals()[args.mode](args)
 if __name__=='__main__':main()
