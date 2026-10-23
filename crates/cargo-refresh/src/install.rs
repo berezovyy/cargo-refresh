@@ -385,6 +385,16 @@ pub fn install_archive(archive: &Path, cache: &Path, toolchain: &Toolchain) -> R
 pub fn memory_allows(available: u64, peak: u64) -> bool {
     crate::memory::allows(available, peak)
 }
+pub fn memory_warning(available: u64, peak: u64) -> String {
+    let shortfall = (u128::from(peak) + u128::from(crate::memory::RESERVE))
+        .saturating_sub(u128::from(available))
+        .div_ceil(1024 * 1024);
+    format!(
+        "Live patching needs an estimated {:.3} GiB + 1 GiB reserve; {:.3} GiB effective memory is available ({shortfall} MiB short). Continuing in cargo mode. Close other large processes or narrow --edit; the fast path will retry when memory recovers.",
+        peak as f64 / GIB as f64,
+        available as f64 / GIB as f64
+    )
+}
 fn qualified_profile(text: &str) -> Result<()> {
     let manifest: toml::Value = toml::from_str(text)?;
     fn qualify(value: &toml::Value, prefix: &str) -> Result<()> {
@@ -562,13 +572,6 @@ pub fn prepare(config: &mut Config) {
             },
             available as f64 / GIB as f64
         );
-        if !memory_allows(available, peak) {
-            eprintln!(
-                "[refresh] Live patching needs an estimated {:.1} GiB plus 1 GiB reserve; {:.1} GiB effective memory is available. Continuing in cargo mode. Close other large processes or narrow --edit; the fast path will retry when memory recovers.",
-                peak as f64 / GIB as f64,
-                available as f64 / GIB as f64
-            );
-        }
         let cache = cache_root()?;
         let local = std::env::var_os("CARGO_REFRESH_SUPPORT").map(PathBuf::from);
         let mut root = local

@@ -152,9 +152,11 @@ fn start_fast(
         .support
         .as_ref()
         .context("live patching disabled; using stock Cargo")?;
+    let available = rustd::memory_available()?;
     ensure!(
-        crate::install::memory_allows(rustd::memory_available()?, support.warm_peak_bytes),
-        "insufficient memory for compiler warm-up"
+        crate::install::memory_allows(available, support.warm_peak_bytes),
+        "{}",
+        crate::install::memory_warning(available, support.warm_peak_bytes)
     );
     let control = session_home.join(format!("promote-{seq}"));
     fs::create_dir_all(control.parent().unwrap())?;
