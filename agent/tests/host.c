@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <locale.h>
+#include <malloc.h>
+#include <string.h>
 #ifndef F_VALUE
 #define F_VALUE 1
 #endif
@@ -49,6 +51,21 @@ int main(int argc,char **argv) {
     char c;
     while(read(STDIN_FILENO,&c,1)==1) {
         if(c=='q')break;
+        if(c=='m') {
+            /* Force small allocations to try brk before mmap fallback. */
+            unsigned char *chunks[320];
+            mallopt(M_MMAP_THRESHOLD, 16*1024*1024);
+            for (int i=0;i<320;++i) {
+                chunks[i]=malloc(1024*1024);
+                if(!chunks[i])return 6;
+                memset(chunks[i],i,1024*1024);
+            }
+            for (int i=0;i<320;++i) {
+                if(chunks[i][0]!=(unsigned char)i || chunks[i][1024*1024-1]!=(unsigned char)i)return 7;
+                free(chunks[i]);
+            }
+            puts("allocated 335544320");
+        }
         if(c=='l'){
             const char *name=getenv("REFRESH_TEST_LOCALE");
             if(!name || !setlocale(LC_NUMERIC,name))puts("locale unavailable");

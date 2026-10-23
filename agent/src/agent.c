@@ -3,6 +3,7 @@
 #include "park.h"
 #include "hazard.h"
 #include "apply.h"
+#include "region.h"
 #include "unwind.h"
 #include <sys/time.h>
 #include <locale.h>
@@ -52,6 +53,7 @@ static void send_reply(int fd, const struct refresh_message *message,
         "\"pages\":%d,\"patch_bytes_total\":%llu,\"patch_count\":%llu,"
         "\"retained_bytes\":%llu,\"unwind_copies\":%d,\"near_slots_used\":%d,\"pressure\":%s,"
         "\"conflict_address\":%llu,\"conflict_start\":%llu,\"conflict_end\":%llu,"
+        "\"region_ok\":%s,\"region_start\":%llu,\"region_end\":%llu,\"region_used\":%llu,"
         "\"load_base\":%llu,\"mode\":%d,\"attempts\":%llu,\"retries\":%llu,"
         "\"pc_hits\":%llu,\"fp_hits\":%llu,\"scan_hits\":%llu,\"fp_frames\":%llu,"
         "\"fp_incomplete\":%llu,\"scan_words\":%llu,\"cfi_frames\":%llu,\"cfi_fail\":%llu,"
@@ -71,6 +73,8 @@ static void send_reply(int fd, const struct refresh_message *message,
          nframes > REFRESH_NEAR_SLOTS * 3 / 4) ? "true" : "false",
         (unsigned long long)apply_conflict.address, (unsigned long long)apply_conflict.start,
         (unsigned long long)apply_conflict.end,
+        region_ok ? "true" : "false", (unsigned long long)region_start,
+        (unsigned long long)region_end, (unsigned long long)region_used(),
         (unsigned long long)load_base, mode, (unsigned long long)attempts,
         (unsigned long long)retries, (unsigned long long)pc_hits,
         (unsigned long long)fp_hits, (unsigned long long)scan_hits,
@@ -176,9 +180,12 @@ __attribute__((constructor)) static void init(void) {
     use_safepoint = getenv("E054_SAFEPOINT") && atoi(getenv("E054_SAFEPOINT"));
     disable_unwind = getenv("E121_DISABLE_UNWIND") != NULL;
 #endif
+    /* Reserve before dlsym, inherited-list parsing or unwind setup can initialize
+       a randomized brk heap inside the window. This path performs no malloc. */
+    dl_iterate_phdr(base_cb, NULL);
+    region_init();
     after_patch = (refresh_callback)dlsym(RTLD_DEFAULT, "fast_refresh_after_patch");
     callback_enabled = hook && !strcmp(hook, "1");
-    dl_iterate_phdr(base_cb, NULL);
     if (adopt_inherited(inherited)) {
         fputs("cargo-refresh: invalid REFRESH_INHERITED; agent disabled\n", stderr);
         return;
