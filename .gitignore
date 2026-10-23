@@ -2,3 +2,5 @@
 /dist/
 /.release-work/
 /agent/build-release/
+
+/agent/build-portable/
