@@ -70,6 +70,17 @@ for OPT in 0 3; do
 
 done
 cmp "$OUT/typeids-0.txt" "$OUT/typeids-3.txt"
+python3 - "$OUT" <<'PY_CHECK_PERSONALITY'
+import json, subprocess, sys
+from pathlib import Path
+out = Path(sys.argv[1])
+personality = json.loads((out / 'abi-facts.bundle').read_text())['personality']
+symbols = subprocess.check_output(['nm', '-a', str(out / 'typeids-0')], text=True)
+if personality not in {line.split()[-1] for line in symbols.splitlines() if line.split()}:
+    raise SystemExit('EH personality not found in actual matching-stock ELF: ' + personality)
+print('PASS: actual matching-stock ELF contains EH personality ' + personality)
+PY_CHECK_PERSONALITY
+
 echo 'PASS: stock TypeId matrix stable across debug/optimized builds (primitive, external/own/private ADT, str/String, function pointer/item)'
 cat > "$OUT/intrinsic-audit.md" <<'AUDIT'
 # Intrinsic and adapter audit — MANUAL, NOT PASSED
