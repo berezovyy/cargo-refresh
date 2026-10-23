@@ -29,4 +29,4 @@ args.work.mkdir(parents=True, exist_ok=True)
 result = (runner.run_stock(ROOT / "fixture", args.work, True, False) if args.stock else
           runner.run_refresh(ROOT / "fixture", args.work, args))
 (args.work / ("stock.json" if args.stock else "refresh.json")).write_text(json.dumps(result, indent=2) + "\n")
-sys.exit(result["result"] != "PASS")
+sys.exit(result["result"] != "PASS" or (not args.stock and not result.get("path-match", False)))
