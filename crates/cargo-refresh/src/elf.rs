@@ -192,6 +192,15 @@ impl Image {
         let bytes = unsafe { memmap2::MmapOptions::new().map_copy(&file)? };
         Self::parse_bytes(ImageBytes::Mapped(bytes), false)
     }
+    /// Map and normalize a promotion baseline privately, without copying sparse holes.
+    ///
+    /// # Safety
+    /// The file must never be changed or truncated while this Image exists.
+    pub unsafe fn map_baseline(path: &std::path::Path) -> Result<Self> {
+        let mut image = unsafe { Self::map_candidate(path)? };
+        image.read_relocations(true)?;
+        Ok(image)
+    }
     fn parse_bytes(data: ImageBytes, normalize: bool) -> Result<Self> {
         ensure!(
             data.get(..6) == Some(b"\x7fELF\x02\x01"),
