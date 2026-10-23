@@ -27,9 +27,8 @@ rustc -Vv > "$OUT/rustc.txt"
 cargo -Vv > "$OUT/cargo.txt"
 echo "Candidate $TC ($COMMIT); output $OUT; dry-run=$DRY"
 SYSROOT=$(rustc --print sysroot)
-[[ -f $SYSROOT/lib/librustc_driver* || -d $SYSROOT/lib/rustlib/x86_64-unknown-linux-gnu/lib ]] || exit 1
 EXTRA=()
-[[ $TC != *nightly* ]] || EXTRA+=(--cfg abi_nightly)
+[[ $(sed -n 's/^release: //p' "$OUT/rustc.txt") != *nightly* ]] || EXTRA+=(--cfg abi_nightly)
 # Matching rustc-dev must already be installed; never modify global defaults/config.
 ABI_FACTS_RUSTC="$(cat "$OUT/rustc.txt")" RUSTC_BOOTSTRAP=1 \
   python3 "$ROOT/scripts/run-guarded.py" nice -n 19 rustc "$EXP/helper/main.rs" "${EXTRA[@]}" \
