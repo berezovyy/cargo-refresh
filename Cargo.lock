@@ -101,6 +101,7 @@ dependencies = [
  "libc",
  "notify",
  "object",
+ "refresh-guard",
  "refresh-proto",
  "serde",
  "serde_json",

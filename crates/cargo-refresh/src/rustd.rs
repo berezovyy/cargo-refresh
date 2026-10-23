@@ -25,18 +25,23 @@ const SCRUB: &[&str] = &[
     "CARGO_TARGET_DIR",
     "LD_PRELOAD",
     "E077_AGENT",
+    "REFRESH_AGENT_SOCKET",
+    "REFRESH_HOST_EXE",
 ];
 #[derive(Clone, Debug)]
 pub struct Config {
     pub project: PathBuf,
     pub rustd: PathBuf,
     pub binary: String,
+    pub package: Option<String>,
+    pub edit: Vec<String>,
     pub toolchain: String,
     pub home: PathBuf,
     pub memory_min_bytes: u64,
     pub ready_timeout: Duration,
     pub command_timeout: Duration,
     pub extra_env: BTreeMap<OsString, OsString>,
+    pub cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
 }
 impl Config {
     pub fn new(
@@ -51,11 +56,14 @@ impl Config {
             project,
             rustd,
             binary: binary.into(),
+            package: None,
+            edit: Vec::new(),
             toolchain: "1.99.0".into(),
             memory_min_bytes: 2 * 1024 * 1024 * 1024,
             ready_timeout: Duration::from_secs(240),
             command_timeout: Duration::from_secs(240),
             extra_env: BTreeMap::new(),
+            cancel: None,
         })
     }
     pub fn command(&self, program: impl AsRef<std::ffi::OsStr>) -> Command {
@@ -144,6 +152,14 @@ impl Client {
         }
     }
     pub fn guard_memory(&mut self) -> Result<()> {
+        ensure!(
+            !self
+                .config
+                .cancel
+                .as_ref()
+                .is_some_and(|c| c.load(std::sync::atomic::Ordering::SeqCst)),
+            "compiler operation cancelled"
+        );
         let available = memory_available()?;
         if available < self.config.memory_min_bytes {
             self.stop()?;
@@ -221,7 +237,14 @@ impl Client {
         }
         // cargo-rustd captures the rustc invocation using its workspace wrapper.
         // Setup builds are low priority; saves below bypass Cargo entirely.
-        let mut capture = self.command("nice");
+        let mut capture = if let Some(lane) = std::env::var_os("REFRESH_LANE_TOOL") {
+            let mut c = self.command(lane);
+            c.args(["build", "--"]);
+            c.arg("nice");
+            c
+        } else {
+            self.command("nice")
+        };
         capture.args([
             "-n",
             "19",
@@ -233,6 +256,16 @@ impl Client {
             "--bin",
             &self.config.binary,
         ]);
+        if let Some(package) = &self.config.package {
+            capture.args(["--package", package]);
+        }
+        // M1-T2 owns the full closure. M1-T3 exposes frontier selection; opt in
+        // only when using a compiler whose interface supports it.
+        if std::env::var_os("REFRESH_RUSTD_FRONTIER").is_some() {
+            for edit in &self.config.edit {
+                capture.args(["--edit", edit]);
+            }
+        }
         self.run(capture, self.config.command_timeout)?;
         while Instant::now() < deadline {
             self.check_daemon()?;

@@ -59,6 +59,8 @@ impl Default for RefreshMetadata {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Config {
+    #[serde(skip)]
+    pub invocation: RunArgs,
     pub package: String,
     pub bin: String,
     pub edit: Vec<String>,
@@ -73,6 +75,8 @@ pub struct Config {
     pub workspace_root: PathBuf,
     pub target_directory: PathBuf,
     pub source_roots: Vec<PathBuf>,
+    pub frontier_roots: Vec<PathBuf>,
+    pub package_roots: Vec<PathBuf>,
     pub input_files: Vec<PathBuf>,
 }
 
@@ -102,6 +106,7 @@ impl Config {
     }
 
     pub fn resolve(args: RunArgs, metadata: &Metadata, cwd: &Path) -> Result<Self> {
+        let invocation = args.clone();
         let local: Vec<_> = metadata
             .packages
             .iter()
@@ -169,6 +174,16 @@ impl Config {
                 bail!("editable crate {name} is not a local package in cargo metadata");
             }
         }
+        let frontier_roots = local
+            .iter()
+            .filter(|p| p.name == package.name || edit.contains(&p.name))
+            .flat_map(|p| {
+                p.targets
+                    .iter()
+                    .filter(|t| !t.kind.iter().any(|k| k == "custom-build"))
+                    .filter_map(|t| t.src_path.parent().map(Path::to_path_buf))
+            })
+            .collect();
         let mut source_roots = BTreeSet::new();
         let mut input_files = BTreeSet::from([
             metadata.workspace_root.join("Cargo.toml"),
@@ -200,6 +215,7 @@ impl Config {
             ]);
         }
         Ok(Self {
+            invocation,
             package: package.name.clone(),
             bin,
             edit,
@@ -216,6 +232,11 @@ impl Config {
             workspace_root: metadata.workspace_root.clone(),
             target_directory: metadata.target_directory.clone(),
             source_roots: source_roots.into_iter().collect(),
+            frontier_roots,
+            package_roots: local
+                .iter()
+                .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
+                .collect(),
             input_files: input_files.into_iter().collect(),
         })
     }

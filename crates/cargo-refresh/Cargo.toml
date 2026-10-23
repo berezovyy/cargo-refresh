@@ -8,6 +8,7 @@ description = "Fast Refresh for Rust: development controller"
 
 [dependencies]
 anyhow.workspace = true
+refresh-guard = { path = "../refresh-guard" }
 refresh-proto = { path = "../refresh-proto" }
 object = { version = "0.39.1", default-features = false, features = ["read", "elf", "std"] }
 blake3.workspace = true

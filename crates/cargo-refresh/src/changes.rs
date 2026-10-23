@@ -86,6 +86,25 @@ impl ChangeTracker {
         Ok(tracker)
     }
 
+    /// A runtime rollback changes the applied baseline without touching editor files.
+    pub fn restore_applied(&mut self, paths: &[(PathBuf, Option<Arc<[u8]>>)]) -> io::Result<()> {
+        for (path, content) in paths {
+            if let Some(content) = content {
+                self.applied.insert(path.clone(), blake3::hash(content));
+            } else {
+                self.applied.remove(path);
+            }
+            self.unread.insert(path.clone());
+        }
+        // Keep the editor's still-invalid bytes pending after runtime revert.
+        // Do not manufacture a save/revision or automatically reapply them.
+        self.refresh_pending()
+    }
+
+    pub fn set_build_inputs(&mut self, inputs: BTreeSet<PathBuf>) {
+        self.build_inputs = inputs;
+    }
+
     pub fn revision(&self) -> u64 {
         self.revision
     }
@@ -102,6 +121,19 @@ impl ChangeTracker {
             .checked_add(1)
             .expect("source revision exhausted");
         self.unread.extend(paths);
+        self.refresh_pending()?;
+        Ok(ChangeSet {
+            revision: self.revision,
+            disposition: if self.pending.is_empty() {
+                Disposition::Skip
+            } else {
+                Disposition::Changed
+            },
+            changes: self.pending.values().cloned().collect(),
+        })
+    }
+
+    fn refresh_pending(&mut self) -> io::Result<()> {
         let snapshots: io::Result<Vec<_>> = self
             .unread
             .iter()
@@ -124,15 +156,7 @@ impl ChangeTracker {
             }
         }
         self.unread.clear();
-        Ok(ChangeSet {
-            revision: self.revision,
-            disposition: if self.pending.is_empty() {
-                Disposition::Skip
-            } else {
-                Disposition::Changed
-            },
-            changes: self.pending.values().cloned().collect(),
-        })
+        Ok(())
     }
 
     /// Overflow recovery must also revisit known paths that have disappeared since the last scan.
@@ -351,6 +375,51 @@ mod tests {
         assert_eq!(
             classify(Path::new("src/data.txt"), &inputs),
             PathKind::Other
+        );
+    }
+    #[test]
+    fn runtime_revert_keeps_unfixed_editor_bytes_pending_for_other_file_saves() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a.rs");
+        let b = dir.path().join("b.rs");
+        fs::write(&a, "checked").unwrap();
+        fs::write(&b, "old b").unwrap();
+        let mut tracker = ChangeTracker::new([a.clone(), b.clone()], BTreeSet::new()).unwrap();
+        fs::write(&a, "invalid but optimistically applied").unwrap();
+        let applied = tracker.observe([a.clone()]).unwrap();
+        assert!(tracker.mark_applied(&applied));
+        tracker
+            .restore_applied(&[(a.clone(), Some(Arc::from(b"checked".as_slice())))])
+            .unwrap();
+        assert_eq!(fs::read(&a).unwrap(), b"invalid but optimistically applied");
+        fs::write(&b, "new b").unwrap();
+        let changes = tracker.observe([b]).unwrap();
+        assert_eq!(changes.changes.len(), 2);
+        assert!(changes.changes.iter().any(|c| c.path == a
+            && c.content.as_deref() == Some(b"invalid but optimistically applied".as_slice())));
+    }
+    #[test]
+    fn late_runtime_commit_reconciles_a_round_trip_to_the_old_baseline() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a.rs");
+        fs::write(&a, "one").unwrap();
+        let mut tracker = ChangeTracker::new([a.clone()], BTreeSet::new()).unwrap();
+        fs::write(&a, "two").unwrap();
+        let committing = tracker.observe([a.clone()]).unwrap();
+        fs::write(&a, "one").unwrap();
+        assert_eq!(
+            tracker.observe([a.clone()]).unwrap().disposition,
+            Disposition::Skip
+        );
+        assert!(!tracker.mark_applied(&committing));
+        tracker
+            .restore_applied(&[(a.clone(), Some(Arc::from(b"two".as_slice())))])
+            .unwrap();
+        let reconciled = tracker.observe([a]).unwrap();
+        assert_eq!(reconciled.disposition, Disposition::Changed);
+        assert_eq!(
+            reconciled.changes[0].content.as_deref(),
+            Some(b"one".as_slice())
         );
     }
 }
