@@ -18,7 +18,7 @@ pub struct Supervisor {
     pub socket: PathBuf,
     project: PathBuf,
     args: Vec<OsString>,
-    library: PathBuf,
+    library: Option<PathBuf>,
     hook: bool,
     name: OsString,
     exit_reported: bool,
@@ -66,11 +66,15 @@ impl Supervisor {
             socket: PathBuf::new(),
             project: project.into(),
             args,
-            library: library.canonicalize()?,
+            library: Some(library.canonicalize()?),
             hook,
             name,
             exit_reported: false,
         })
+    }
+    /// Use only the validated release agent, or no injection in stock mode.
+    pub fn configure_agent(&mut self, library: Option<&Path>) {
+        self.library = library.map(Path::to_path_buf);
     }
     pub fn configure(&mut self, hook: bool, name: OsString) {
         self.hook = hook;
@@ -90,17 +94,32 @@ impl Supervisor {
             .arg0(&self.name)
             .current_dir(&self.project)
             .args(&self.args)
-            .process_group(0)
-            .env("LD_PRELOAD", &self.library)
-            .env("REFRESH_AGENT_SOCKET", &socket)
-            .env("REFRESH_HOST_EXE", &executable)
-            .env("REFRESH_AFTER_PATCH", if self.hook { "1" } else { "0" });
+            .process_group(0);
+        if let Some(library) = &self.library {
+            command
+                .env("LD_PRELOAD", library)
+                .env("REFRESH_AGENT_SOCKET", &socket)
+                .env("REFRESH_HOST_EXE", &executable)
+                .env("REFRESH_AFTER_PATCH", if self.hook { "1" } else { "0" });
+        } else {
+            for name in [
+                "LD_PRELOAD",
+                "REFRESH_AGENT_SOCKET",
+                "REFRESH_HOST_EXE",
+                "REFRESH_AFTER_PATCH",
+            ] {
+                command.env_remove(name);
+            }
+        }
         let child = crate::process::spawn(&mut command).context("start application")?;
         self.child = Some(child);
         self.exit_reported = false;
         self.executable = executable;
         self.socket = socket;
         self.run = Some(run);
+        if self.library.is_none() {
+            return Ok(());
+        }
         let deadline = Instant::now() + Duration::from_secs(5);
         loop {
             ensure!(

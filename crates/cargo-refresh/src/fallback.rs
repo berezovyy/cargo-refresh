@@ -49,15 +49,10 @@ pub fn cargo(config: &Config, project: &Path, target: &Path, verb: &str) -> Comm
             &config.bin,
             "--message-format=json",
         ])
-        .env("RUSTUP_TOOLCHAIN", "1.99.0")
         .env("CARGO_TARGET_DIR", target)
         .process_group(0)
         .stdin(Stdio::null());
     for key in [
-        "RUSTC_WRAPPER",
-        "RUSTC_WORKSPACE_WRAPPER",
-        "RUSTFLAGS",
-        "CARGO_ENCODED_RUSTFLAGS",
         "LD_PRELOAD",
         "REFRESH_AGENT_SOCKET",
         "REFRESH_HOST_EXE",

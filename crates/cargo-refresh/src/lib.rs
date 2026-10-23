@@ -23,3 +23,5 @@ pub mod process;
 pub mod supervisor;
 pub mod triggers;
 pub mod ui;
+
+pub mod install;

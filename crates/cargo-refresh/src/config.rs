@@ -64,6 +64,8 @@ impl Default for RefreshMetadata {
 #[derive(Debug, Clone, Serialize)]
 pub struct Config {
     #[serde(skip)]
+    pub support: Option<std::sync::Arc<crate::install::Support>>,
+    #[serde(skip)]
     pub invocation: RunArgs,
     pub package: String,
     pub bin: String,
@@ -216,6 +218,8 @@ impl Config {
         let mut input_files = BTreeSet::from([
             metadata.workspace_root.join("Cargo.toml"),
             metadata.workspace_root.join("Cargo.lock"),
+            metadata.workspace_root.join("rust-toolchain"),
+            metadata.workspace_root.join("rust-toolchain.toml"),
         ]);
         for p in &local {
             let root = p.manifest_path.parent().context("manifest has no parent")?;
@@ -243,6 +247,7 @@ impl Config {
             ]);
         }
         Ok(Self {
+            support: None,
             invocation,
             package: package.name.clone(),
             bin,

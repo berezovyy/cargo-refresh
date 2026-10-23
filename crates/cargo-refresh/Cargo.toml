@@ -21,6 +21,9 @@ serde_json.workspace = true
 walkdir.workspace = true
 tempfile.workspace = true
 memmap2 = "0.9.11"
+sha2 = "0.10"
+tar = "0.4"
+zstd = "0.13"
 
 [dev-dependencies]
 flate2 = "1"
