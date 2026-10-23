@@ -94,6 +94,8 @@ pub struct Pipeline {
     triggers: crate::triggers::Triggers,
     last_save: Instant,
     epoch_idle_safe: bool,
+    memory_poll: Instant,
+    memory_recovery: crate::memory::Recovery,
 }
 fn mark(phases: &mut BTreeMap<Phase, f64>, phase: Phase) {
     phases.insert(phase, monotonic_seconds().unwrap_or(0.0) * 1000.0);
@@ -255,7 +257,7 @@ impl Pipeline {
         let floor = std::env::var("REFRESH_MEMORY_MIN_BYTES")
             .ok()
             .and_then(|s| s.parse().ok())
-            .unwrap_or(2 * 1024 * 1024 * 1024);
+            .unwrap_or(crate::memory::RESERVE);
         let mut runtime = Supervisor::new(
             &config.workspace_root,
             &config.target_directory.join("refresh"),
@@ -306,6 +308,8 @@ impl Pipeline {
             session_home,
             last_save: Instant::now(),
             epoch_idle_safe: false,
+            memory_poll: Instant::now(),
+            memory_recovery: crate::memory::Recovery::new(Instant::now()),
         })
     }
     fn event(&self, name: &'static str, message: impl Into<String>) {
@@ -332,6 +336,7 @@ impl Pipeline {
                 self.fast = Some(fast);
             }
             Err(error) => {
+                self.recovery_restart = true;
                 self.event("fast_unavailable", format!("{error:#}"));
                 let result = fallback::build(
                     &self.config,
@@ -342,6 +347,7 @@ impl Pipeline {
                 ensure!(result.success, "{}", result.diagnostic);
                 self.runtime
                     .start(&result.executable.context("stock build has no executable")?)?;
+                self.checked_available = true;
             }
         }
         if self.config.support.is_some() {
@@ -359,7 +365,9 @@ impl Pipeline {
                 );
             }
         }
-        if let Some(workspace) = &self.workspace {
+        if self.fast.is_some()
+            && let Some(workspace) = &self.workspace
+        {
             let mut check = Checker::start(&self.config, workspace, self.fence.clone(), self.floor);
             let result = check.finish()?;
             ensure!(result.success, "initial cargo check: {}", result.diagnostic);
@@ -401,9 +409,17 @@ impl Pipeline {
             || self.reset.is_some()
             || self.fast.is_some()
             || !self.fence.current()
+            || !self.memory_recovery.can_start(Instant::now())
         {
             return;
         }
+        let peak = self.config.support.as_ref().unwrap().warm_peak_bytes;
+        if !crate::memory::sample().is_ok_and(|sample| {
+            crate::memory::allows(sample.available, peak) && !sample.pressured(self.floor)
+        }) {
+            return;
+        }
+        self.memory_recovery.cooldown(Instant::now());
         self.reset_seq += 1;
         let seq = self.reset_seq;
         let config = self.config.clone();
@@ -619,11 +635,15 @@ impl Pipeline {
             }
             self.view_dirty = current;
         }
-        if self.config.support.is_none() && job.changes.disposition != Disposition::Skip {
-            return self.stock(
-                &mut job,
-                "live patching disabled; using normal cargo builds + restart".into(),
-            );
+        if (self.config.support.is_none() || self.fast.is_none())
+            && job.changes.disposition != Disposition::Skip
+        {
+            let reason = if self.config.support.is_none() {
+                "live patching disabled; using normal cargo builds + restart"
+            } else {
+                "compiler unavailable or recovering; using normal cargo builds + restart"
+            };
+            return self.stock(&mut job, reason.into());
         }
         if job.changes.disposition == Disposition::Skip {
             if let Some(workspace) = &self.workspace {
@@ -804,6 +824,16 @@ impl Pipeline {
                 let detail = format!("{error:#}");
                 if user_error(&detail) {
                     return self.publish(&job, SavePath::Error, detail, false);
+                }
+                if detail.contains("effective available")
+                    || detail.contains("effective memory budget")
+                {
+                    self.memory_recovery.cooldown(Instant::now());
+
+                    self.event(
+                        "fast_unavailable",
+                        format!("[refresh] {detail}. Retrying when memory recovers."),
+                    );
                 }
                 return self.stock(
                     &mut job,
@@ -1022,12 +1052,7 @@ impl Pipeline {
         if let Some(status) = self.runtime.poll_exit()? {
             self.event("application_exit", format!("application exited: {status}"));
         }
-        if let Some(fast) = self.fast.as_mut()
-            && let Err(error) = fast.client.guard_memory()
-        {
-            self.fast = None;
-            self.event("fast_unavailable", error.to_string());
-        }
+        self.poll_memory();
         if let Some(reset) = &self.reset
             && reset.task.is_finished()
         {
@@ -1049,10 +1074,14 @@ impl Pipeline {
                         self.fast = Some(fast);
                         self.event("worker_reset", "fast path ready");
                     }
-                    Err(error) => self.event(
-                        "worker_reset_failed",
-                        format!("fast path unavailable: {error:#}"),
-                    ),
+                    Err(_) if reset.cancel.load(std::sync::atomic::Ordering::SeqCst) => {}
+                    Err(error) => {
+                        self.memory_recovery.cooldown(Instant::now());
+                        self.event(
+                            "worker_reset_failed",
+                            format!("fast path unavailable: {error:#}"),
+                        );
+                    }
                 }
             }
         }
@@ -1134,6 +1163,63 @@ impl Pipeline {
         }
         self.poll_epoch()?;
         Ok(())
+    }
+
+    /// Idle and reset checks share the same cadence as blocking compiler work.
+    /// Recovery needs five stable seconds and 512 MiB additional headroom; a
+    /// failed/degraded attempt has a 30-second cooldown to prevent thrashing.
+    fn poll_memory(&mut self) {
+        if self.memory_poll.elapsed() < crate::memory::INTERVAL {
+            return;
+        }
+        self.memory_poll = Instant::now();
+        let sample = match crate::memory::sample() {
+            Ok(sample) => sample,
+            Err(error) => {
+                if self.fast.is_some()
+                    || self
+                        .reset
+                        .as_ref()
+                        .is_some_and(|r| !r.cancel.load(std::sync::atomic::Ordering::SeqCst))
+                {
+                    self.quarantine();
+                    self.recovery_restart = true;
+                    self.memory_recovery.cooldown(Instant::now());
+                    self.event("fast_unavailable", format!("[refresh] Cannot read memory budget: {error}; continuing in cargo mode."));
+                }
+                return;
+            }
+        };
+        if sample.pressured(self.floor) {
+            self.memory_recovery.reset_stability();
+            if self.fast.is_some()
+                || self
+                    .reset
+                    .as_ref()
+                    .is_some_and(|r| !r.cancel.load(std::sync::atomic::Ordering::SeqCst))
+            {
+                self.quarantine();
+                self.recovery_restart = true;
+                self.memory_recovery.cooldown(Instant::now());
+                self.event("fast_unavailable", format!(
+                    "[refresh] Memory pressure: {:.1} GiB effective available (reserve {:.1} GiB); stopped rustd, continuing in cargo mode. Retrying when memory recovers.",
+                    sample.available as f64 / crate::memory::GIB as f64,
+                    self.floor as f64 / crate::memory::GIB as f64));
+            }
+            return;
+        }
+        let Some(support) = &self.config.support else {
+            return;
+        };
+        if self.fast.is_some() || self.reset.is_some() {
+            return;
+        }
+        if self
+            .memory_recovery
+            .observe(Instant::now(), sample, support.warm_peak_bytes, self.floor)
+        {
+            self.begin_reset();
+        }
     }
 
     /// Maintenance has no editor revision of its own. Only restart a fully

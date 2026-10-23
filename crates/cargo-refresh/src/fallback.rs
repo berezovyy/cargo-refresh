@@ -126,7 +126,7 @@ pub fn run(
             terminate(&mut child, Duration::from_millis(100));
             bail!("superseded");
         }
-        let available = match crate::rustd::memory_available() {
+        let available = match crate::memory::host_available() {
             Ok(value) => value,
             Err(error) => {
                 terminate(&mut child, Duration::from_millis(100));

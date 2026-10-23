@@ -1,7 +1,7 @@
 //! Owned daemon lifecycle and Cargo-lock-free worker requests.
 //!
 //! The caller must hold the research `rustd` lane for integration runs. The
-//! product memory floor defaults to 2 GiB; research callers should use 6 GiB.
+//! product memory floor defaults to 1 GiB; research callers should use 6 GiB.
 use anyhow::{Context, Result, bail, ensure};
 use std::{
     collections::BTreeMap,
@@ -59,7 +59,7 @@ impl Config {
             package: None,
             edit: Vec::new(),
             features: crate::cli::Features::default(),
-            memory_min_bytes: 2 * 1024 * 1024 * 1024,
+            memory_min_bytes: crate::memory::RESERVE,
             ready_timeout: Duration::from_secs(240),
             command_timeout: Duration::from_secs(240),
             extra_env: BTreeMap::new(),
@@ -92,17 +92,9 @@ impl Config {
     }
 }
 pub fn memory_available() -> Result<u64> {
-    let text = fs::read_to_string("/proc/meminfo")?;
-    let kb = text
-        .lines()
-        .find_map(|l| {
-            l.strip_prefix("MemAvailable:")
-                .and_then(|s| s.split_whitespace().next())
-        })
-        .context("MemAvailable missing")?
-        .parse::<u64>()?;
-    kb.checked_mul(1024).context("MemAvailable overflow")
+    Ok(crate::memory::sample()?.available)
 }
+
 fn terminate(child: &mut Child, grace: Duration) {
     if child.try_wait().ok().flatten().is_some() {
         return;
@@ -183,6 +175,7 @@ pub struct Client {
     last_manifest: Vec<u8>,
     commands: u64,
     socket_alias: Option<SocketAlias>,
+    memory_checked: Option<Instant>,
 }
 impl Client {
     pub fn new(config: Config) -> Self {
@@ -192,6 +185,7 @@ impl Client {
             last_manifest: vec![],
             commands: 0,
             socket_alias: None,
+            memory_checked: None,
         }
     }
     pub fn guard_memory(&mut self) -> Result<()> {
@@ -203,11 +197,27 @@ impl Client {
                 .is_some_and(|c| c.load(std::sync::atomic::Ordering::SeqCst)),
             "compiler operation cancelled"
         );
-        let available = memory_available()?;
-        if available < self.config.memory_min_bytes {
+        if self
+            .memory_checked
+            .is_some_and(|at| at.elapsed() < crate::memory::INTERVAL)
+        {
+            return Ok(());
+        }
+        self.memory_checked = Some(Instant::now());
+        let sample = match crate::memory::sample() {
+            Ok(sample) => sample,
+            Err(error) => {
+                self.stop()?;
+                return Err(
+                    error.context("cannot read effective memory budget; continuing in cargo mode")
+                );
+            }
+        };
+        let available = sample.available;
+        if sample.pressured(self.config.memory_min_bytes) {
             self.stop()?;
             bail!(
-                "rustd stopped: MemAvailable {available} below {} bytes; switch to stock Cargo",
+                "rustd stopped: effective available {available} bytes, reserve {} bytes (or sustained memory pressure); continuing in cargo mode",
                 self.config.memory_min_bytes
             );
         }
@@ -215,6 +225,7 @@ impl Client {
     }
     pub fn start(&mut self) -> Result<()> {
         ensure!(self.daemon.is_none(), "daemon already started");
+        self.memory_checked = None;
         self.guard_memory()?;
         ensure!(
             !self.config.home.join("daemon.sock").exists(),
@@ -708,11 +719,12 @@ else:raise Exception(sys.argv)
         );
         assert!(c.build().unwrap_err().to_string().contains("no fresh"));
         c.config.memory_min_bytes = u64::MAX;
+        c.memory_checked = None;
         assert!(
             c.guard_memory()
                 .unwrap_err()
                 .to_string()
-                .contains("MemAvailable")
+                .contains("effective available")
         );
         assert!(c.daemon.is_none());
         assert!(!transport.exists(), "owned socket alias must be removed");
