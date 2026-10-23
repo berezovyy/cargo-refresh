@@ -174,13 +174,28 @@ pub struct AsyncRuntime {
     uncertified: BTreeSet<String>,
     unknown_owners: BTreeSet<(std::path::PathBuf, String)>,
 }
+fn owner_identity(name: &str) -> String {
+    name.strip_prefix("@line:")
+        .and_then(|s| s.split_once("::"))
+        .map_or_else(|| name.to_owned(), |(_, method)| format!("::{method}"))
+}
 fn covers(d: &refresh_proto::async_certs::Descriptor, owner: &refresh_guard::ChangedFn) -> bool {
+    let method = if let Some(s) = owner.name.strip_prefix("@line:") {
+        let Some((line, method)) = s.split_once("::") else {
+            return false;
+        };
+        if line.parse::<u32>().ok() != Some(d.owner_line) || d.owner_line == 0 {
+            return false;
+        }
+        method
+    } else {
+        owner.name.trim_start_matches(':')
+    };
     d.kind == 1
         && !d.owner_file.is_empty()
         && (owner.path == std::path::Path::new(&d.owner_file)
             || owner.path.ends_with(std::path::Path::new(&d.owner_file)))
-        && d.owner_path
-            .ends_with(&format!("::{}", owner.name.trim_start_matches(':')))
+        && d.owner_path.ends_with(&format!("::{method}"))
 }
 impl AsyncRuntime {
     pub fn observe(&mut self, bytes: &[u8]) -> Result<()> {
@@ -208,7 +223,7 @@ impl AsyncRuntime {
         for owner in owners {
             if self
                 .unknown_owners
-                .contains(&(owner.path.clone(), owner.name.clone()))
+                .contains(&(owner.path.clone(), owner_identity(&owner.name)))
             {
                 return Err(format!(
                     "async owner needs a fresh compiler baseline: {}",
@@ -265,7 +280,7 @@ impl AsyncRuntime {
                     .any(|r| r.new.as_ref().is_some_and(|d| covers(d, owner)))
             {
                 self.unknown_owners
-                    .insert((owner.path.clone(), owner.name.clone()));
+                    .insert((owner.path.clone(), owner_identity(&owner.name)));
             }
         }
         for (_, row) in std::mem::take(&mut self.pending) {
@@ -290,6 +305,7 @@ mod async_tests {
             kind: 1,
             owner_file: "src/main.rs".into(),
             owner_path: "app::handler".into(),
+            owner_line: 42,
             frame: [1; 16],
             entry: [2; 16],
             resumes: vec![(3, [resume; 16])],
@@ -339,6 +355,16 @@ mod async_tests {
         s.pending.insert("poll".into(), row(1, 1));
         s.missing = true;
         assert!(s.decide(&[owner()]).is_err());
+    }
+    #[test]
+    fn method_coverage_requires_the_compiler_declaration_line() {
+        let mut s = AsyncRuntime::default();
+        s.pending.insert("poll".into(), row(1, 1));
+        let mut method = owner();
+        method.name = "@line:42::handler".into();
+        assert!(s.decide(&[method.clone()]).is_ok());
+        method.name = "@line:43::handler".into();
+        assert!(s.decide(&[method]).is_err());
     }
     #[test]
     fn uncertified_runtime_cannot_reuse_the_original_baseline() {

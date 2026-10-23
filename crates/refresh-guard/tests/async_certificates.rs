@@ -42,3 +42,37 @@ fn certificates_never_relax_structure_signatures_or_nonasync_hazards() {
         assert!(!matches!(classify(old, new).0, Class::LiveEligible { .. }));
     }
 }
+
+#[test]
+fn unique_async_methods_require_declaration_location_coverage() {
+    let old = "struct Service;\nimpl ExternalTrait for Service {\n #[instrument(skip(self))]\n async fn call(&self) { tick().await; println!(\"old\"); }\n}";
+    let new = old.replace("old", "new");
+    let (class, owners) = classify(old, &new);
+    assert!(matches!(class, Class::LiveEligible { .. }), "{class:?}");
+    assert_eq!(owners.len(), 1);
+    assert_eq!(owners[0].name, "@line:4::call");
+    assert!(matches!(
+        Guard::default().classify(
+            &[FileSnapshot::new("src/lib.rs", old)],
+            &[FileSnapshot::new("src/lib.rs", new.as_str())]
+        ),
+        Class::Restart { .. }
+    ));
+}
+#[test]
+fn ambiguous_methods_and_method_header_changes_keep_restart() {
+    let old = "struct A; struct B; impl A { async fn call(&self) { 1; } } impl B { async fn call(&self) { 2; } }";
+    assert!(!matches!(
+        classify(old, &old.replace("1;", "3;")).0,
+        Class::LiveEligible { .. }
+    ));
+    let old = "struct A; impl A { async fn call(&self) { 1; } }";
+    assert!(!matches!(
+        classify(old, &old.replace("&self", "&mut self")).0,
+        Class::LiveEligible { .. }
+    ));
+    assert!(!matches!(
+        classify(old, &old.replace("struct A;", "struct A(u64);")).0,
+        Class::LiveEligible { .. }
+    ));
+}

@@ -10,6 +10,7 @@ pub struct Descriptor {
     pub kind: u8,
     pub owner_file: String,
     pub owner_path: String,
+    pub owner_line: u32,
     pub frame: [u8; 16],
     pub entry: [u8; 16],
     pub resumes: Vec<(u32, [u8; 16])>,
@@ -43,6 +44,7 @@ fn descriptor(r: &mut Reader<'_>) -> Result<Option<Descriptor>> {
     }
     let owner_file = string(r)?;
     let owner_path = string(r)?;
+    let owner_line = r.u32()?;
     let frame = r.take(16)?.try_into().unwrap();
     let entry = r.take(16)?.try_into().unwrap();
     let mut resumes = Vec::new();
@@ -65,6 +67,7 @@ fn descriptor(r: &mut Reader<'_>) -> Result<Option<Descriptor>> {
         kind,
         owner_file,
         owner_path,
+        owner_line,
         frame,
         entry,
         resumes,
@@ -100,6 +103,7 @@ pub(crate) mod tests {
         b.push(kind);
         blob(b, b"src/lib.rs");
         blob(b, b"app::handler");
+        b.extend(42u32.to_le_bytes());
         b.extend([7; 16]);
         b.extend([0; 16]);
         b.extend((states.len() as u32).to_le_bytes());
@@ -121,6 +125,8 @@ pub(crate) mod tests {
         let rows = parse(&b).unwrap();
         let old = rows[0].old.as_ref().unwrap();
         let mut new = rows[0].new.clone().unwrap();
+        assert!(old.protected_eq(&new));
+        new.owner_line += 1;
         assert!(old.protected_eq(&new));
         new.entry[0] = 9;
         assert!(old.protected_eq(&new));

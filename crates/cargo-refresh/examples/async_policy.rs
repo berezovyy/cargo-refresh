@@ -71,7 +71,7 @@ fn main() -> Result<()> {
         .collect();
     println!(
         "{}",
-        serde_json::json!({"action":if refusal.is_some() {"restart-state"} else {"live"}, "refusal":refusal,"rows":rows,"binary":m.async_certificates.is_some(),"generation":m.generation})
+        serde_json::json!({"action":if refusal.is_some() {"restart-state"} else {"live"}, "refusal":refusal,"rows":rows,"binary":m.async_certificates.is_some(),"owner_locations":m.async_certificates.as_deref().unwrap_or_default().iter().map(|r|serde_json::json!([r.symbol,r.new.as_ref().map(|d|(&d.owner_file,d.owner_line,&d.owner_path))])).collect::<Vec<_>>(),"generation":m.generation})
     );
     Ok(())
 }

@@ -11,6 +11,7 @@
 
 mod admission;
 mod analysis;
+mod async_methods;
 
 use analysis::Analysis;
 use std::{
@@ -240,8 +241,15 @@ impl Guard {
         before: &[FileSnapshot],
         after: &[FileSnapshot],
     ) -> (Class, Vec<ChangedFn>) {
+        let (before, _) = async_methods::view(before);
+        let (after, methods) = async_methods::view(after);
         let mut owners = Vec::new();
-        let class = self.classify_inner(before, after, true, &mut owners);
+        let class = self.classify_inner(&before, &after, true, &mut owners);
+        for owner in &mut owners {
+            if let Some(line) = methods.get(&(owner.path.clone(), owner.name.clone())) {
+                owner.name = format!("@line:{line}{}", owner.name);
+            }
+        }
         (class, owners)
     }
 
