@@ -187,9 +187,20 @@ pub struct Estimate {
 }
 impl Estimate {
     pub fn from_counts(rust_lines: u64, dependencies: usize) -> Self {
-        let peak_bytes = (2_u64 * GIB)
+        // First 300 packages approximate graph/bootstrap cost; marginal cost
+        // falls for the larger observed dependency closures. LOC remains linear.
+        let dependencies_u64 = dependencies as u64;
+        let dependency_bytes = dependencies_u64
+            .min(300)
+            .saturating_mul(16 * 1024 * 1024)
+            .saturating_add(
+                dependencies_u64
+                    .saturating_sub(300)
+                    .saturating_mul(4 * 1024 * 1024),
+            );
+        let peak_bytes = (5_u64 * GIB / 2)
             .saturating_add(rust_lines.saturating_mul(192 * 1024))
-            .saturating_add((dependencies as u64).saturating_mul(6 * 1024 * 1024));
+            .saturating_add(dependency_bytes);
         Self {
             rust_lines,
             dependencies,

@@ -419,7 +419,9 @@ impl Pipeline {
         }) {
             return;
         }
-        self.memory_recovery.cooldown(Instant::now());
+        // Ordinary recaptures can resume immediately after a superseded
+        // attempt. Only an actual memory stop/failure starts the cooldown.
+        self.memory_recovery.reset_stability();
         self.reset_seq += 1;
         let seq = self.reset_seq;
         let config = self.config.clone();
