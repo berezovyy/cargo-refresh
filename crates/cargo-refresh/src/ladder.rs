@@ -623,7 +623,7 @@ impl Pipeline {
         let fast = self.fast.as_mut().unwrap();
         let promote = restart_reason.is_some()
             && fast.promotions < 10
-            && fs::metadata(&self.runtime.executable)?.len() < 256 * 1024 * 1024;
+            && crate::elf::loaded_bytes(&self.runtime.executable)? < 256 * 1024 * 1024;
         fs::write(&fast.control, if promote { "1" } else { "0" })?;
         mark(&mut job.phases, Phase::BuildStart);
         let build = fast.client.build();
@@ -674,7 +674,7 @@ impl Pipeline {
         };
         if let Some(reason) = restart_reason {
             if !promote {
-                if fs::metadata(&build.candidate_path)?.len() >= 256 * 1024 * 1024 {
+                if crate::elf::loaded_bytes(&build.candidate_path)? >= 256 * 1024 * 1024 {
                     return self.stock(
                         &mut job,
                         format!("{reason}; executable needs a native rebase"),
@@ -926,7 +926,7 @@ impl Pipeline {
         );
         // Bound the loader's retained headers/tables too. A native recapture is
         // quarantined from the current runtime until the next save establishes it.
-        if fs::metadata(&self.runtime.executable)?.len() >= 256 * 1024 * 1024 {
+        if crate::elf::loaded_bytes(&self.runtime.executable)? >= 256 * 1024 * 1024 {
             self.quarantine();
             self.recovery_restart = true;
             self.epoch_idle_safe = false;
@@ -960,7 +960,7 @@ impl Pipeline {
         fs::write(&fast.control, "0")?;
         let build = build?;
         ensure!(
-            fs::metadata(&build.candidate_path)?.len() < 256 * 1024 * 1024,
+            crate::elf::loaded_bytes(&build.candidate_path)? < 256 * 1024 * 1024,
             "epoch candidate requires a native rebase"
         );
         ensure!(
