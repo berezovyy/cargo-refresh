@@ -34,6 +34,53 @@ pub(crate) struct Analysis {
     pub hazards: Vec<String>,
 }
 impl Analysis {
+    /// Ignore only newly introduced private identity aliases, with no prior
+    /// references/bindings and no uses outside bodies. Arbitrary import edits
+    /// still change the layout outline. Function headers/hazards are checked
+    /// independently by the classifier.
+    pub fn only_body_imports_added(&self, old: &Self) -> bool {
+        if !self.structure.contains("identity") {
+            return false;
+        }
+        let Ok(mut tree) = syn::parse_file(&self.structure) else {
+            return false;
+        };
+        let tokens: TokenStream = match self.structure.parse() {
+            Ok(tokens) => tokens,
+            Err(_) => return false,
+        };
+        fn count(tokens: TokenStream, name: &str) -> usize {
+            tokens
+                .into_iter()
+                .map(|token| match token {
+                    TokenTree::Ident(id) => usize::from(id == name),
+                    TokenTree::Group(g) => count(g.stream(), name),
+                    _ => 0,
+                })
+                .sum()
+        }
+        fn remove(items: &mut Vec<syn::Item>, old: &Analysis, tokens: &TokenStream) {
+            items.retain(|item| {
+                let syn::Item::Use(item) = item else {
+                    return true;
+                };
+                let Some(alias) = identity_alias(item) else {
+                    return true;
+                };
+                old.names.mentions(&alias) || count(tokens.clone(), &alias) != 1
+            });
+            for item in items {
+                if let syn::Item::Mod(module) = item
+                    && let Some((_, items)) = &mut module.content
+                {
+                    remove(items, old, tokens);
+                }
+            }
+        }
+        remove(&mut tree.items, old, &tokens);
+        tree.to_token_stream().to_string() == old.structure
+    }
+
     pub fn parse(bytes: &[u8]) -> Result<Self, String> {
         let source = std::str::from_utf8(bytes).map_err(|error| error.to_string())?;
         if source.len() >= 8192
@@ -182,6 +229,28 @@ impl Analysis {
                 })
                 .sum::<usize>()
     }
+}
+
+pub(crate) fn identity_alias(item: &syn::ItemUse) -> Option<String> {
+    if !item.attrs.is_empty() || !matches!(item.vis, syn::Visibility::Inherited) {
+        return None;
+    }
+    let syn::UseTree::Path(root) = &item.tree else {
+        return None;
+    };
+    if root.ident != "std" && root.ident != "core" {
+        return None;
+    }
+    let syn::UseTree::Path(module) = &*root.tree else {
+        return None;
+    };
+    if module.ident != "convert" {
+        return None;
+    }
+    let syn::UseTree::Rename(rename) = &*module.tree else {
+        return None;
+    };
+    (rename.ident == "identity").then(|| rename.rename.to_string())
 }
 
 /// The compiler lexer supplies byte boundaries only; syn still validates every

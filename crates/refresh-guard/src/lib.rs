@@ -298,7 +298,9 @@ impl Guard {
             pairs.push((path.to_path_buf(), a, b));
         }
         for (path, a, b) in &pairs {
-            if a.structure != b.structure || a.hazards != b.hazards {
+            if (a.structure != b.structure && !b.only_body_imports_added(a))
+                || a.hazards != b.hazards
+            {
                 return Class::Restart {
                     reason: Reason::Layout { path: path.clone() },
                 };

@@ -17,6 +17,7 @@ use refresh_guard::{Admission, AdmissionRule, Class, FileSnapshot, Guard, Reason
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
+    os::unix::fs::MetadataExt,
     path::PathBuf,
     sync::Arc,
     thread::{self, JoinHandle},
@@ -58,6 +59,8 @@ pub struct Fast {
     control: PathBuf,
     promotions: u32,
     pressure: bool,
+    /// Compiler image, before the runtime snapshot copy expands sparse holes.
+    binary: PathBuf,
 }
 struct Reset {
     task: JoinHandle<Result<Fast>>,
@@ -92,6 +95,14 @@ pub struct Pipeline {
 }
 fn mark(phases: &mut BTreeMap<Phase, f64>, phase: Phase) {
     phases.insert(phase, monotonic_seconds().unwrap_or(0.0) * 1000.0);
+}
+fn executable_bytes(path: &std::path::Path) -> Result<u64> {
+    // Promoted ELFs contain a sparse gap for the reserved code region. Its
+    // virtual/file offsets do not consume the retained executable budget.
+    fs::metadata(path)?
+        .blocks()
+        .checked_mul(512)
+        .context("executable allocation overflow")
 }
 fn compiler_path() -> Result<PathBuf> {
     if let Some(path) = std::env::var_os("REFRESH_RUSTD") {
@@ -156,6 +167,7 @@ fn start_fast(
     );
     cfg.package = Some(config.package.clone());
     cfg.edit = config.edit.clone();
+    cfg.features = config.features.clone();
     let mut client = rustd::Client::new(cfg);
     client.start()?;
     let binary = native_binary(config)?;
@@ -172,6 +184,7 @@ fn start_fast(
         control,
         promotions: 0,
         pressure: false,
+        binary,
     })
 }
 fn reason_text(reason: &Reason) -> String {
@@ -634,7 +647,8 @@ impl Pipeline {
         let fast = self.fast.as_mut().unwrap();
         let promote = restart_reason.is_some()
             && fast.promotions < 10
-            && crate::elf::loaded_bytes(&self.runtime.executable)? < 256 * 1024 * 1024;
+            && crate::elf::loaded_bytes(&self.runtime.executable)? < 256 * 1024 * 1024
+            && executable_bytes(&fast.binary)? < 256 * 1024 * 1024;
         fs::write(&fast.control, if promote { "1" } else { "0" })?;
         mark(&mut job.phases, Phase::BuildStart);
         let build = fast.client.build();
@@ -667,6 +681,14 @@ impl Pipeline {
                 );
             }
         };
+        // Fresh manifest != delivered edit. An untracked callback can produce
+        // a successful zero-function splice of old code.
+        // No compiler no-op classification is currently supported here.
+        if let Err(error) = build.ensure_compiled_change(&self.fast.as_ref().unwrap().manifest) {
+            self.event("compiler_no_change", error.to_string());
+            return self.stock(&mut job, error.to_string());
+        }
+        self.fast.as_mut().unwrap().binary = build.candidate_path.clone();
         let result = (|| -> Result<_> {
             let fast = self.fast.as_mut().unwrap();
             ensure!(
@@ -689,7 +711,9 @@ impl Pipeline {
         };
         if let Some(reason) = restart_reason {
             if !promote {
-                if crate::elf::loaded_bytes(&build.candidate_path)? >= 256 * 1024 * 1024 {
+                if crate::elf::loaded_bytes(&build.candidate_path)? >= 256 * 1024 * 1024
+                    || executable_bytes(&build.candidate_path)? >= 256 * 1024 * 1024
+                {
                     return self.stock(
                         &mut job,
                         format!("{reason}; executable needs a native rebase"),
@@ -1045,5 +1069,25 @@ impl Drop for Pipeline {
                 .store(true, std::sync::atomic::Ordering::SeqCst);
             let _ = reset.task.join();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn promotion_budget_excludes_sparse_reserved_region() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write_all(&[1; 4096]).unwrap();
+        file.as_file().set_len(300 * 1024 * 1024).unwrap();
+        assert!(fs::metadata(file.path()).unwrap().len() > 256 * 1024 * 1024);
+        assert!(executable_bytes(file.path()).unwrap() < 256 * 1024 * 1024);
+        let snapshot = tempfile::NamedTempFile::new().unwrap();
+        fs::copy(file.path(), snapshot.path()).unwrap();
+        // The policy must read the compiler file: copying may fill all holes.
+        assert!(fs::metadata(snapshot.path()).unwrap().len() > 256 * 1024 * 1024);
+        assert!(executable_bytes(file.path()).unwrap() < 256 * 1024 * 1024);
     }
 }

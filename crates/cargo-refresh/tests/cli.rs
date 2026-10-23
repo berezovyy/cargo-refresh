@@ -186,6 +186,7 @@ fn status_stop_and_help_are_available_in_both_forms() {
     for cargo_style in [false, true] {
         for subcommand in ["status", "stop", "--help"] {
             let mut command = Command::new(env!("CARGO_BIN_EXE_cargo-refresh"));
+            command.env_remove("CARGO_TARGET_DIR");
             if cargo_style {
                 command.arg("refresh");
             }
@@ -199,4 +200,190 @@ fn status_stop_and_help_are_available_in_both_forms() {
             }));
         }
     }
+}
+
+#[test]
+fn feature_selection_reaches_metadata_initial_and_stock_builds() {
+    let directory = fixture();
+    let root = directory.path();
+    let manifest = root.join("Cargo.toml");
+    let mut text = fs::read_to_string(&manifest).unwrap();
+    text.push_str("\n[features]\ndefault = [\"unwanted\"]\nunwanted = []\nchosen = []\n");
+    fs::write(manifest, text).unwrap();
+    let source = root.join("src/main.rs");
+    let initial = "#[cfg(any(feature = \"unwanted\", not(feature = \"chosen\")))] compile_error!(\"wrong feature selection\");\nfn main() { loop { println!(\"chosen-before\"); std::thread::sleep(std::time::Duration::from_millis(20)); } }\n";
+    fs::write(&source, initial).unwrap();
+    let events = root.join("events.jsonl");
+    let stdout = root.join("stdout");
+    let stderr = root.join("stderr");
+    let mut running = Running {
+        child: Command::new(env!("CARGO_BIN_EXE_cargo-refresh"))
+            .env_remove("CARGO_TARGET_DIR")
+            .current_dir(root)
+            .env("RUSTUP_TOOLCHAIN", "1.99.0")
+            .env("REFRESH_RUSTD", "/nonexistent/feature-test-rustd")
+            .args([
+                "run",
+                "--no-default-features",
+                "--features=chosen",
+                "--events",
+            ])
+            .arg(&events)
+            .stdout(fs::File::create(&stdout).unwrap())
+            .stderr(fs::File::create(&stderr).unwrap())
+            .spawn()
+            .unwrap(),
+    };
+    wait_until(|| {
+        assert!(
+            running.child.try_wait().unwrap().is_none(),
+            "{}",
+            fs::read_to_string(&stderr).unwrap()
+        );
+        rows(&events).iter().any(|r| r["event"] == "ready")
+    });
+    wait_until(|| {
+        fs::read_to_string(&stdout)
+            .unwrap()
+            .contains("chosen-before")
+    });
+    fs::write(&source, initial.replace("chosen-before", "chosen-after")).unwrap();
+    wait_until(|| rows(&events).iter().any(|r| r["path"] == "stock"));
+    wait_until(|| {
+        fs::read_to_string(&stdout)
+            .unwrap()
+            .contains("chosen-after")
+    });
+    // The same edited source, using stock Cargo and the same selection.
+    let stock = Command::new("cargo")
+        .current_dir(root)
+        .env("RUSTUP_TOOLCHAIN", "1.99.0")
+        .args([
+            "check",
+            "--offline",
+            "--no-default-features",
+            "--features=chosen",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        stock.status.success(),
+        "{}",
+        String::from_utf8_lossy(&stock.stderr)
+    );
+}
+
+#[test]
+fn zero_output_worker_routes_changed_source_to_stock_and_delivers_edit() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = fixture();
+    let root = directory.path();
+    let bin = root.join("tools");
+    fs::create_dir(&bin).unwrap();
+    let write_executable = |name: &str, source: &str| {
+        let path = bin.join(name);
+        fs::write(&path, source).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        path
+    };
+    let real_cargo = Command::new("rustup")
+        .env("RUSTUP_TOOLCHAIN", "1.99.0")
+        .args(["which", "cargo"])
+        .output()
+        .unwrap();
+    assert!(real_cargo.status.success());
+    let cargo = write_executable(
+        "cargo",
+        r#"#!/usr/bin/env python3
+import json,os,pathlib,signal,subprocess,sys
+args=sys.argv[1:]
+if args[:2]==['rustd','status']:print(str(pathlib.Path.cwd())+': ready')
+elif args[:2]==['rustd','stop']:
+ p=pathlib.Path(os.environ['RUSTD_HOME'])/'owned.pid'
+ if p.exists():
+  try:os.kill(int(p.read_text()),signal.SIGTERM)
+  except ProcessLookupError:pass
+elif args[:2]==['rustd','build']:
+ out=subprocess.check_output([os.environ['FIX1_REAL_CARGO'],'build','--offline','-j','4','--message-format=json'],stderr=sys.stderr)
+ artifacts=[json.loads(line) for line in out.splitlines()]
+ exe=next(x['executable'] for x in artifacts if x.get('executable'))
+ p=pathlib.Path.cwd()/'target/rustd/fake/programs/watch_fixture-fake';p.mkdir(parents=True,exist_ok=True)
+ import shutil
+ shutil.copyfile(exe,p/'bin');(p/'bin').chmod(0o755)
+else:sys.exit(subprocess.call([os.environ['FIX1_REAL_CARGO'],*args]))
+"#,
+    );
+    let rustd = write_executable(
+        "rustd",
+        r#"#!/usr/bin/env python3
+import os,pathlib,socket,struct,sys,time
+home=pathlib.Path(os.environ['RUSTD_HOME'])
+if sys.argv[1]=='daemon':
+ (home/'workers').mkdir(exist_ok=True)
+ a=socket.socket(socket.AF_UNIX);a.bind(str(home/'daemon.sock'))
+ b=socket.socket(socket.AF_UNIX);b.bind(str(home/'workers/worker.sock'))
+ (home/'owned.pid').write_text(str(os.getpid()))
+ while True:time.sleep(.1)
+elif sys.argv[1]=='sync':
+ p=pathlib.Path.cwd()/'target/rustd/fake/programs/watch_fixture-fake'
+ (p/'patch.manifest').write_bytes(b'RDM09001'+struct.pack('<Q',1)+bytes(40))
+else:raise RuntimeError(sys.argv)
+"#,
+    );
+    let source = root.join("src/main.rs");
+    let initial = "fn value() -> u64 { 1 }\nfn main() { loop { println!(\"value={}\", value()); std::thread::sleep(std::time::Duration::from_millis(20)); } }\n";
+    fs::write(&source, initial).unwrap();
+    let events = root.join("events.jsonl");
+    let stdout = root.join("stdout");
+    let stderr = root.join("stderr");
+    let path = std::iter::once(bin)
+        .chain(std::env::split_paths(&std::env::var_os("PATH").unwrap()))
+        .collect::<Vec<_>>();
+    let mut running = Running {
+        child: Command::new(env!("CARGO_BIN_EXE_cargo-refresh"))
+            .env_remove("CARGO_TARGET_DIR")
+            .current_dir(root)
+            .env("RUSTUP_TOOLCHAIN", "1.99.0")
+            .env("PATH", std::env::join_paths(path).unwrap())
+            .env("CARGO", cargo)
+            .env(
+                "FIX1_REAL_CARGO",
+                String::from_utf8(real_cargo.stdout).unwrap().trim(),
+            )
+            .env("REFRESH_RUSTD", rustd)
+            .env_remove("REFRESH_LANE_TOOL")
+            .args(["run", "--no-check", "--events"])
+            .arg(&events)
+            .stdout(fs::File::create(&stdout).unwrap())
+            .stderr(fs::File::create(&stderr).unwrap())
+            .spawn()
+            .unwrap(),
+    };
+    wait_until(|| {
+        assert!(
+            running.child.try_wait().unwrap().is_none(),
+            "{}",
+            fs::read_to_string(&stderr).unwrap()
+        );
+        rows(&events).iter().any(|r| r["event"] == "ready")
+    });
+    wait_until(|| fs::read_to_string(&stdout).unwrap().contains("value=1"));
+    fs::write(&source, initial.replace("{ 1 }", "{ 2 }")).unwrap();
+    wait_until(|| rows(&events).iter().any(|r| r["event"] == "save"));
+    let saves = rows(&events);
+    let save = saves.iter().find(|r| r["event"] == "save").unwrap();
+    assert_eq!(save["path"], "stock", "{saves:#?}");
+    assert!(
+        save["reason"]
+            .as_str()
+            .unwrap()
+            .contains("no compiled change")
+    );
+    assert!(saves.iter().any(|r| r["event"] == "compiler_no_change"));
+    wait_until(|| fs::read_to_string(&stdout).unwrap().contains("value=2"));
+    assert!(
+        !rows(&events)
+            .iter()
+            .any(|r| r["path"] == "live" || r["path"] == "restart")
+    );
 }

@@ -35,6 +35,7 @@ pub struct Config {
     pub binary: String,
     pub package: Option<String>,
     pub edit: Vec<String>,
+    pub features: crate::cli::Features,
     pub toolchain: String,
     pub home: PathBuf,
     pub memory_min_bytes: u64,
@@ -58,6 +59,7 @@ impl Config {
             binary: binary.into(),
             package: None,
             edit: Vec::new(),
+            features: crate::cli::Features::default(),
             toolchain: "1.99.0".into(),
             memory_min_bytes: 2 * 1024 * 1024 * 1024,
             ready_timeout: Duration::from_secs(240),
@@ -128,6 +130,34 @@ pub struct Build {
     pub manifest_path: PathBuf,
     pub candidate_path: PathBuf,
     pub manifest: Vec<u8>,
+}
+impl Build {
+    /// A new generation number is not evidence that an admitted source edit
+    /// reached machine code. Manifests carry delta pages but cumulative writes;
+    /// old redirects must not make an empty build look successful.
+    pub fn ensure_compiled_change(&self, previous: &crate::manifest::State) -> Result<()> {
+        let manifest = refresh_proto::manifest::parse(&self.manifest)?;
+        let code_page = manifest.pages.iter().any(|page| {
+            page.prot & 4 != 0
+                && previous
+                    .pages
+                    .get(&page.addr)
+                    .is_none_or(|old| **old != *page)
+        });
+        let redirect = manifest
+            .writes
+            .iter()
+            .any(|write| write.kind == 1 && previous.writes.get(&write.addr) != Some(write));
+        let restore = manifest
+            .restores
+            .iter()
+            .any(|write| write.kind == 1 && previous.writes.contains_key(&write.addr));
+        ensure!(
+            code_page || redirect || restore,
+            "compiler produced no compiled change for changed Rust source; using Cargo"
+        );
+        Ok(())
+    }
 }
 struct SocketAlias {
     _dir: tempfile::TempDir,
@@ -258,6 +288,7 @@ impl Client {
         if let Some(package) = &self.config.package {
             capture.args(["--package", package]);
         }
+        capture.args(self.config.features.cargo_args());
         // M1-T2 owns the full closure. M1-T3 exposes frontier selection; opt in
         // only when using a compiler whose interface supports it.
         if std::env::var_os("REFRESH_RUSTD_FRONTIER").is_some() {
@@ -456,6 +487,89 @@ mod tests {
         );
     }
     #[test]
+    fn cumulative_redirects_do_not_count_as_a_new_compilation() {
+        use crate::manifest::{Page, State, Write};
+        use std::sync::Arc;
+        let page = Page {
+            addr: 0x4000,
+            prot: 5,
+            payload: vec![1; 4096],
+            fixups: vec![],
+        };
+        let write = Write {
+            addr: 0x1000,
+            kind: 1,
+            payload: vec![0xe9, 0, 0, 0, 0],
+            fixups: vec![],
+            name: vec![],
+        };
+        let mut previous = State::default();
+        previous.pages.insert(page.addr, Arc::new(page.clone()));
+        previous.writes.insert(write.addr, write.clone());
+        let encode = |page: Option<&Page>, write: Option<&Write>, restore: Option<&Write>| {
+            let mut bytes = b"RDM09001".to_vec();
+            bytes.extend(2_u64.to_le_bytes());
+            bytes.extend(0_u32.to_le_bytes()); // segments not needed for this policy check
+            bytes.extend(u32::from(page.is_some()).to_le_bytes());
+            if let Some(page) = page {
+                bytes.extend(page.addr.to_le_bytes());
+                bytes.extend(page.prot.to_le_bytes());
+                bytes.extend((page.payload.len() as u32).to_le_bytes());
+                bytes.extend(&page.payload);
+                bytes.extend(0_u32.to_le_bytes());
+            }
+            for (write, named) in [(write, true), (restore, false)] {
+                bytes.extend(u32::from(write.is_some()).to_le_bytes());
+                if let Some(write) = write {
+                    bytes.extend(write.addr.to_le_bytes());
+                    bytes.extend(write.kind.to_le_bytes());
+                    bytes.extend((write.payload.len() as u32).to_le_bytes());
+                    bytes.extend(&write.payload);
+                    bytes.extend(0_u32.to_le_bytes());
+                    if named {
+                        bytes.extend(0_u32.to_le_bytes());
+                    }
+                }
+            }
+            bytes.extend([0; 24]);
+            Build {
+                manifest: bytes,
+                manifest_path: "unused".into(),
+                candidate_path: "unused".into(),
+            }
+        };
+        assert!(
+            encode(None, Some(&write), None)
+                .ensure_compiled_change(&previous)
+                .is_err()
+        );
+        assert!(
+            encode(Some(&page), Some(&write), None)
+                .ensure_compiled_change(&previous)
+                .is_err()
+        );
+        let mut changed = page.clone();
+        changed.payload[0] = 2;
+        assert!(
+            encode(Some(&changed), Some(&write), None)
+                .ensure_compiled_change(&previous)
+                .is_ok()
+        );
+        let mut changed = write.clone();
+        changed.payload[1] = 2;
+        assert!(
+            encode(None, Some(&changed), None)
+                .ensure_compiled_change(&previous)
+                .is_ok()
+        );
+        assert!(
+            encode(None, None, Some(&write))
+                .ensure_compiled_change(&previous)
+                .is_ok()
+        );
+    }
+
+    #[test]
     fn fake_daemon_direct_build_stale_and_memory_stop() {
         // These executables simulate the command contract; no rustd or Cargo
         // build is started, and no shared compiler resource lane is needed.
@@ -487,7 +601,10 @@ else:raise Exception(sys.argv)
 import sys,os,pathlib,signal
 assert sys.argv[1]=='rustd'
 if sys.argv[2]=='status':print(str(pathlib.Path.cwd())+': ready')
-elif sys.argv[2]=='build':assert '-j' in sys.argv
+elif sys.argv[2]=='build':
+ assert '-j' in sys.argv
+ assert sys.argv[sys.argv.index('--features')+1]=='chosen,other'
+ assert '--no-default-features' in sys.argv and '--all-features' in sys.argv
 elif sys.argv[2]=='stop':
  p=pathlib.Path(os.environ['RUSTD_HOME'])/'owned.pid'
  if p.exists():
@@ -497,6 +614,11 @@ else:raise Exception(sys.argv)
 "#,
         );
         let mut cfg = Config::new(tmp.path(), bin.join("rustd"), "fake").unwrap();
+        cfg.features = crate::cli::Features {
+            features: vec!["chosen,other".into()],
+            no_default_features: true,
+            all_features: true,
+        };
         cfg.home = tmp.path().join("deep").join("x".repeat(150)).join("d");
         cfg.memory_min_bytes = 0;
         cfg.ready_timeout = Duration::from_secs(5);
@@ -513,6 +635,13 @@ else:raise Exception(sys.argv)
         );
         fs::write(c.config.home.join("retain"), b"persistent").unwrap();
         let build = c.build().unwrap();
+        assert!(
+            build
+                .ensure_compiled_change(&crate::manifest::State::default())
+                .unwrap_err()
+                .to_string()
+                .contains("no compiled change")
+        );
         assert_eq!(
             refresh_proto::manifest::parse(&build.manifest)
                 .unwrap()

@@ -49,6 +49,7 @@ pub fn cargo(config: &Config, project: &Path, target: &Path, verb: &str) -> Comm
             &config.bin,
             "--message-format=json",
         ])
+        .args(config.features.cargo_args())
         .env("RUSTUP_TOOLCHAIN", "1.99.0")
         .env("CARGO_TARGET_DIR", target)
         .process_group(0)
@@ -165,6 +166,32 @@ pub fn build(config: &Config, project: &Path, fence: &Fence, floor: u64) -> Resu
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicBool, AtomicU64};
+    #[test]
+    fn checks_and_stock_builds_share_feature_selection() {
+        let metadata: crate::config::Metadata = serde_json::from_value(serde_json::json!({
+            "packages": [{"id": "app", "name": "app", "source": null,
+                "manifest_path": "/demo/Cargo.toml", "metadata": {}, "default_run": null,
+                "targets": [{"name": "app", "kind": ["bin"], "src_path": "/demo/src/main.rs"}]}],
+            "workspace_root": "/demo", "target_directory": "/demo/target"
+        }))
+        .unwrap();
+        let args = crate::cli::RunArgs {
+            features: crate::cli::Features {
+                features: vec!["one,two".into(), "app/three".into()],
+                no_default_features: true,
+                all_features: true,
+            },
+            ..Default::default()
+        };
+        let config = Config::resolve(args, &metadata, Path::new("/demo")).unwrap();
+        for verb in ["check", "build"] {
+            let command = cargo(&config, Path::new("/demo"), Path::new("/demo/target"), verb);
+            let args: Vec<_> = command.get_args().collect();
+            let expected = config.features.cargo_args();
+            assert!(args.ends_with(&expected.iter().map(|s| s.as_os_str()).collect::<Vec<_>>()));
+        }
+    }
+
     #[test]
     fn newer_revision_cancels_an_owned_process_group() {
         let directory = tempfile::tempdir().unwrap();
