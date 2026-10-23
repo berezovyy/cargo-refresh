@@ -24,6 +24,13 @@ int main(void){
  memcpy(b,original,p);b[lsda_encoding]=0x3b;assert(rebase121(b,p,0x100)==-1);
  memcpy(b,original,p);assert(rebase121(b,p,INT64_C(0x100000000))==-1);
  memcpy(b,original,p);assert(rebase121(b,p-1,0x100)==-1);
+ unsigned char encoded[8];size_t offset=0;
+ int64_t signed_value=INT64_MIN;memcpy(encoded,&signed_value,8);
+ assert(pointer121(encoded,8,&offset,0x1c,1,1)==-1);
+ signed_value=INT64_MAX;memcpy(encoded,&signed_value,8);offset=0;
+ assert(pointer121(encoded,8,&offset,0x1c,-1,1)==-1);
+ int32_t small=1;memcpy(encoded,&small,4);offset=0;
+ assert(pointer121(encoded,4,&offset,0x1b,INT64_MIN,1)==-1);
  puts("unwind-copy: pcrel personality/PC/LSDA, null LSDA, invariant CIE/range, unsupported encoding, overflow, truncation PASS");
  return 0;
 }

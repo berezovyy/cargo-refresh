@@ -1,3 +1,5 @@
+#ifndef REFRESH_INTERNAL_H
+#define REFRESH_INTERNAL_H
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -21,20 +23,19 @@
 #include <time.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#ifdef REFRESH_TESTING
 #include <libunwind.h>
+#endif
 #include <link.h>
 #include <sys/prctl.h>
 
-#ifndef REFRESH_INTERNAL_H
-#define REFRESH_INTERNAL_H
 #ifndef FRESH_RO
 #define FRESH_RO 0
 #endif
-#define MAGIC 0x76313232
-#define MAX_RECORDS 8192
+#define MAX_RECORDS REFRESH_MAX_RECORDS
 #define MAX_THREADS 1024
 #define MAX_PAGES 65536
-struct rec { uint64_t address,length; uint32_t prot,kind; unsigned char *bytes; };
+#include "protocol.h"
 struct range {uintptr_t a,b;};
 typedef void (*refresh_callback)(void);
 extern uintptr_t load_base;
@@ -64,10 +65,15 @@ extern int read_errors,read_errno;
 extern struct range hazards[MAX_RECORDS],maps[16384];
 extern int nhaz,nmaps;
 extern uintptr_t context_low[MAX_THREADS],context_high[MAX_THREADS];
+#ifdef REFRESH_TESTING
 extern uintptr_t first_root123[1024];
 extern double scan_us123;
 extern uint64_t scan_bytes123,scan_hits123;
 extern int scan_retained123,scan_candidates123,scan_errors123,reclaimed123;
+#ifdef E123_TRACK_REGISTRY
+void registry_scope123(int enabled);
+#endif
+#endif
 int base_cb(struct dl_phdr_info *,size_t,void *);
 int register_stack(void);
 void handler(int,siginfo_t *,void *);

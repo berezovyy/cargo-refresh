@@ -1,8 +1,10 @@
 #ifndef REFRESH_UNWIND_H
 #define REFRESH_UNWIND_H
-#include <stddef.h>
-#include <stdint.h>
+#include "protocol.h"
 size_t unwind_bytes122(void);
+void unwind_init(void);
 void discard_staged(void);
-int prepare_frames(char *);
+enum refresh_code prepare_frames(char error[160]);
+void register_staged(void);
+void retain_staged(void);
 #endif

@@ -16,7 +16,7 @@ int hazard(uintptr_t p){int lo=0,hi=nhaz;while(lo<hi){int m=(lo+hi)/2;if(hazards
 static int executable(uintptr_t p){int lo=0,hi=nmaps;while(lo<hi){int m=(lo+hi)/2;if(maps[m].a<=p)lo=m+1;else hi=m;}return lo && p<maps[lo-1].b;}
 int prepare_stacks(void){
     nhaz=0;
-    for(int i=0;i<nrec;i++)if(recs[i].kind!=2 && recs[i].kind!=3){
+    for(int i=0;i<nrec;i++)if(recs[i].kind==1 || recs[i].kind==2){
         uintptr_t a=recs[i].address,b=a+recs[i].length;
         // Any permission restore without X affects the full mprotect page span.
         // Include every such record, even if a later record restores X again.
@@ -39,7 +39,7 @@ int check_stacks(void){
         if(hazard(pc)){pc_hits++;hit=1;}
         if(mode==0)continue;
         uintptr_t low=context_low[i],high=context_high[i];
-        if(!high || high-sp>64*1024*1024){badsp=sp;badhigh=high;fp_incomplete++;hit=1;continue;}
+        if(!high || sp<low || sp>high || high-sp>64*1024*1024){badsp=sp;badhigh=high;fp_incomplete++;hit=1;continue;}
         if(mode==1 || mode==4){
             unsigned depth=0;uintptr_t pair[2];
             while(bp>=sp && bp>=low && bp+16<=high && !(bp&7) && depth++<1024){
@@ -49,12 +49,14 @@ int check_stacks(void){
             }
             if(depth==0 || depth>=1024 || (bp && bp+16>high))fp_incomplete++;
         }
+        #ifdef REFRESH_TESTING
         if(mode==2){
             unw_cursor_t cursor;int rc=unw_init_local2(&cursor,(unw_context_t*)c,UNW_INIT_SIGNAL_FRAME),depth=0;
             if(rc<0){cfi_fail++;hit=1;continue;}
             while((rc=unw_step(&cursor))>0 && depth++<1024){unw_word_t ip=0;unw_get_reg(&cursor,UNW_REG_IP,&ip);cfi_frames++;if(hazard(ip)){fp_hits++;hit=1;}}
             if(rc<0 || depth>=1024){cfi_fail++;hit=1;}
         }
+        #endif
         if(mode==3 || mode==4){
             // A conservative superset: includes return addresses and false-positive data.
             uintptr_t words[512];uintptr_t pos=sp;

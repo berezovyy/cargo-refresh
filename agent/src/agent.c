@@ -4,105 +4,179 @@
 #include "hazard.h"
 #include "apply.h"
 #include "unwind.h"
+#include <sys/time.h>
+#include <locale.h>
+
 uintptr_t load_base;
-int base_cb(struct dl_phdr_info *i,size_t n,void *p){(void)n;(void)p;if(!i->dlpi_name || !i->dlpi_name[0]){load_base=i->dlpi_addr;return 1;}return 0;}
-
-
-
-pthread_rwlock_t tick_gate=PTHREAD_RWLOCK_INITIALIZER;
+pthread_rwlock_t tick_gate = PTHREAD_RWLOCK_INITIALIZER;
 int use_safepoint;
-_Atomic uint64_t tick_enter_count,tick_leave_count;
-void e054_tick_enter(void){pthread_rwlock_rdlock(&tick_gate);atomic_fetch_add(&tick_enter_count,1);}
-void e054_tick_leave(void){atomic_fetch_add(&tick_leave_count,1);pthread_rwlock_unlock(&tick_gate);}
-
+_Atomic uint64_t tick_enter_count, tick_leave_count;
 refresh_callback after_patch;
 int callback_enabled;
+static const char *socket_path;
+static int legacy_environment;
+static locale_t numeric_locale;
+
+__attribute__((visibility("default"))) void e054_tick_enter(void) {
+    pthread_rwlock_rdlock(&tick_gate);
+    atomic_fetch_add(&tick_enter_count, 1);
+}
+__attribute__((visibility("default"))) void e054_tick_leave(void) {
+    atomic_fetch_add(&tick_leave_count, 1);
+    pthread_rwlock_unlock(&tick_gate);
+}
+int base_cb(struct dl_phdr_info *i, size_t n, void *p) {
+    (void)n; (void)p;
+    if (!i->dlpi_name || !i->dlpi_name[0]) { load_base = i->dlpi_addr; return 1; }
+    return 0;
+}
+static const char *refresh_env(const char *name, const char *legacy) {
+    const char *value = getenv(name);
+    if (value) return value;
+    value = getenv(legacy);
+    if (value) legacy_environment = 1;
+    return value;
+}
+static void send_reply(int fd, const struct refresh_message *message,
+                       enum refresh_code code, const char *error,
+                       int threads, double elapsed, int callback_invoked) {
+    char escaped[1024], reply[4096];
+    struct refresh_scan_stats scan;
+    apply_scan_stats(&scan);
+    if (json_string(escaped, sizeof(escaped), code == REFRESH_OK ? "" : error) == SIZE_MAX)
+        strcpy(escaped, "\"message overflow\"");
+    locale_t previous_locale = uselocale(numeric_locale);
+    int len = snprintf(reply, sizeof(reply),
+        "{\"ok\":%s,\"code\":\"%s\",\"message\":%s,\"error\":%s,"
+        "\"txid\":%u,\"generation\":%llu,\"agent_us\":%.3f,\"threads\":%d,"
+        "\"pages\":%d,\"patch_bytes_total\":%llu,\"patch_count\":%llu,"
+        "\"load_base\":%llu,\"mode\":%d,\"attempts\":%llu,\"retries\":%llu,"
+        "\"pc_hits\":%llu,\"fp_hits\":%llu,\"scan_hits\":%llu,\"fp_frames\":%llu,"
+        "\"fp_incomplete\":%llu,\"scan_words\":%llu,\"cfi_frames\":%llu,\"cfi_fail\":%llu,"
+        "\"unwind_us\":%.3f,\"park_us\":%.3f,"
+        "\"scan_first_root123\":%llu,\"scan_us123\":%.3f,\"scan_bytes123\":%llu,"
+        "\"scan_hits123\":%llu,\"scan_retained123\":%d,\"scan_candidates123\":%d,"
+        "\"scan_errors123\":%d,\"reclaimed123\":%d,\"unwind_active\":%d,"
+        "\"unwind_retained_bytes\":%zu,\"unwind_registered_total\":%llu,"
+        "\"unwind_deregistered_total\":%llu,\"callback_present\":%s,"
+        "\"callback_invoked\":%s,\"callback\":%s,\"safe_point\":%s,"
+        "\"tick_enters\":%llu,\"tick_leaves\":%llu}\n",
+        code == REFRESH_OK ? "true" : "false", refresh_code_name(code), escaped, escaped,
+        message->txid, (unsigned long long)patch_count, elapsed, threads,
+        npages, (unsigned long long)patch_bytes_total, (unsigned long long)patch_count,
+        (unsigned long long)load_base, mode, (unsigned long long)attempts,
+        (unsigned long long)retries, (unsigned long long)pc_hits,
+        (unsigned long long)fp_hits, (unsigned long long)scan_hits,
+        (unsigned long long)fp_frames, (unsigned long long)fp_incomplete,
+        (unsigned long long)scan_words, (unsigned long long)cfi_frames,
+        (unsigned long long)cfi_fail, unwind_us, park_us,
+        (unsigned long long)scan.first_root, scan.us, (unsigned long long)scan.bytes,
+        (unsigned long long)scan.hits, scan.retained, scan.candidates, scan.errors, scan.reclaimed,
+        nframes, unwind_bytes122(),
+        (unsigned long long)frame_registrations, (unsigned long long)frame_deregistrations,
+        after_patch ? "true" : "false", callback_invoked ? "true" : "false",
+        callback_invoked ? "true" : "false", use_safepoint ? "true" : "false",
+        (unsigned long long)atomic_load(&tick_enter_count),
+        (unsigned long long)atomic_load(&tick_leave_count));
+    uselocale(previous_locale);
+    if (len < 0 || (size_t)len >= sizeof(reply)) return;
+    size_t pos = 0;
+    while (pos < (size_t)len) {
+        ssize_t sent = send(fd, reply + pos, (size_t)len - pos, MSG_NOSIGNAL);
+        if (sent < 0 && errno == EINTR) continue;
+        if (sent <= 0) return;
+        pos += (size_t)sent;
+    }
+}
 static void *server(void *unused) {
     (void)unused;
-    const char *path=getenv("E077_AGENT");if(!path)return NULL;
-    int fd=socket(AF_UNIX,SOCK_STREAM,0);struct sockaddr_un addr={.sun_family=AF_UNIX};
-    if(strlen(path)>=sizeof(addr.sun_path))return NULL;
-    strcpy(addr.sun_path,path);unlink(path);
-    if(bind(fd,(void*)&addr,sizeof(addr))||listen(fd,4))return NULL;
-    for(;;){
-        int c=accept(fd,NULL,NULL);if(c<0)continue;
-        uint32_t head[2];char err[160]="bad protocol";int ok=0,threads=0;
-        double start=stamp();
-        nrec=0;
-        int got_head=fullread(c,head,8);
-        if(!got_head && head[0]==0xE099CA11 && head[1]==0){
-            if(after_patch)after_patch();
-            const char *r=after_patch?"{\"ok\":true,\"callback\":true}\n":"{\"ok\":false,\"callback\":false}\n";
-            ssize_t sent=write(c,r,strlen(r));(void)sent;close(c);continue;
+    struct sockaddr_un addr = {.sun_family = AF_UNIX};
+    if (strlen(socket_path) >= sizeof(addr.sun_path)) return NULL;
+    int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    if (fd < 0) return NULL;
+    strcpy(addr.sun_path, socket_path);
+    unlink(socket_path);
+    if (bind(fd, (void *)&addr, sizeof(addr)) || listen(fd, 4)) { close(fd); return NULL; }
+    for (;;) {
+        int c = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
+        if (c < 0) continue;
+        struct ucred peer;
+        socklen_t peer_len = sizeof(peer);
+        struct timeval timeout = {.tv_sec = 5};
+        if (getsockopt(c, SOL_SOCKET, SO_PEERCRED, &peer, &peer_len) ||
+            peer_len != sizeof(peer) || peer.uid != getuid() ||
+            setsockopt(c, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) ||
+            setsockopt(c, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout))) {
+            close(c); continue;
         }
-        if(!got_head&&head[0]==MAGIC&&head[1]<=MAX_RECORDS){
-            ok=1;nrec=head[1];
-            for(int i=0;i<nrec;i++){
-                unsigned char wire[28];recs[i].bytes=NULL;
-                if(fullread(c,wire,28)){ok=0;break;}
-                memcpy(&recs[i],wire,24);
-                uint32_t nfix;memcpy(&nfix,wire+24,4);
-                if(nfix>recs[i].length/8){ok=0;break;}
-                if(recs[i].address>UINTPTR_MAX-load_base){ok=0;break;}
-                recs[i].address+=load_base;
-                if(!recs[i].length||recs[i].length>128*1024*1024||recs[i].kind>3 || (recs[i].kind==3 && (recs[i].prot!=1 || recs[i].length!=8 || nfix)) || (recs[i].kind==1 && (recs[i].prot!=5 || recs[i].length!=5)) || (recs[i].kind==2 && (recs[i].prot!=1 || recs[i].length>4096))){ok=0;break;}
-                recs[i].bytes=malloc(recs[i].length);
-                if(!recs[i].bytes||fullread(c,recs[i].bytes,recs[i].length)){ok=0;break;}
-                uint32_t prior=0;
-                for(uint32_t j=0;j<nfix;j++){
-                    uint32_t off;uint64_t value;
-                    if(fullread(c,&off,4)||off+8ULL>recs[i].length||(j && off<prior+8)){ok=0;break;}
-                    memcpy(&value,recs[i].bytes+off,8);
-                    if(value>UINT64_MAX-load_base){ok=0;break;}
-                    value+=load_base;memcpy(recs[i].bytes+off,&value,8);prior=off;
+        char error[160] = "";
+        int threads = 0, invoked = 0;
+        double start = stamp();
+        struct refresh_message message;
+        enum refresh_code code = protocol_read(c, load_base, &message, error);
+        if (code == REFRESH_OK) {
+            if (message.type == REFRESH_HOOK) {
+                if (after_patch) { after_patch(); invoked = 1; }
+                else { code = REFRESH_INTERNAL; strcpy(error, "after-patch callback is unavailable"); }
+            } else if (message.type == REFRESH_APPLY) {
+                if (use_safepoint) pthread_rwlock_wrlock(&tick_gate);
+                code = apply(error, &threads);
+                if (use_safepoint) pthread_rwlock_unlock(&tick_gate);
+                if (code == REFRESH_OK) {
+                    for (int i = 0; i < nrec; ++i) patch_bytes_total += recs[i].length;
+                    ++patch_count;
+                    if (callback_enabled && after_patch) { after_patch(); invoked = 1; }
                 }
-                if(!ok)break;
-            }
-            if(ok){
-                if(use_safepoint)pthread_rwlock_wrlock(&tick_gate);
-                ok=apply(err,&threads)==0;
-                if(use_safepoint)pthread_rwlock_unlock(&tick_gate);
             }
         }
-        uint64_t patch_bytes=0;
-        if(ok){for(int i=0;i<nrec;i++)patch_bytes+=recs[i].length;patch_bytes_total+=patch_bytes;patch_count++;}
-        int callback_invoked=ok && callback_enabled && after_patch;
-        if(callback_invoked)after_patch();
-        double elapsed=stamp()-start;char reply[2048];
-        int len=snprintf(reply,sizeof(reply),"{\"ok\":%s,\"agent_us\":%.3f,\"threads\":%d,\"pages\":%d,\"patch_bytes_total\":%llu,\"patch_count\":%llu,\"error\":\"%s\",\"load_base\":%llu,\"mode\":%d,\"attempts\":%llu,\"retries\":%llu,\"pc_hits\":%llu,\"fp_hits\":%llu,\"scan_hits\":%llu,\"fp_frames\":%llu,\"fp_incomplete\":%llu,\"scan_words\":%llu,\"cfi_frames\":%llu,\"cfi_fail\":%llu,\"unwind_us\":%.3f,\"park_us\":%.3f,\"scan_first_root123\":%llu,\"scan_us123\":%.3f,\"scan_bytes123\":%llu,\"scan_hits123\":%llu,\"scan_retained123\":%d,\"scan_candidates123\":%d,\"scan_errors123\":%d,\"reclaimed123\":%d,\"unwind_active\":%d,\"unwind_retained_bytes\":%zu,\"unwind_registered_total\":%llu,\"unwind_deregistered_total\":%llu}\n",ok?"true":"false",elapsed,threads,npages,(unsigned long long)patch_bytes_total,(unsigned long long)patch_count,ok?"":err,(unsigned long long)load_base,mode,(unsigned long long)attempts,(unsigned long long)retries,(unsigned long long)pc_hits,(unsigned long long)fp_hits,(unsigned long long)scan_hits,(unsigned long long)fp_frames,(unsigned long long)fp_incomplete,(unsigned long long)scan_words,(unsigned long long)cfi_frames,(unsigned long long)cfi_fail,unwind_us,park_us,(unsigned long long)first_root123[0],scan_us123,(unsigned long long)scan_bytes123,(unsigned long long)scan_hits123,scan_retained123,scan_candidates123,scan_errors123,reclaimed123,nframes,unwind_bytes122(),(unsigned long long)frame_registrations,(unsigned long long)frame_deregistrations);
-        if(len>2){len-=2;len+=snprintf(reply+len,sizeof(reply)-len,",\"callback_present\":%s,\"callback_invoked\":%s,\"safe_point\":%s,\"tick_enters\":%llu,\"tick_leaves\":%llu}\n",after_patch?"true":"false",callback_invoked?"true":"false",use_safepoint?"true":"false",(unsigned long long)atomic_load(&tick_enter_count),(unsigned long long)atomic_load(&tick_leave_count));}
-        ssize_t written=write(c,reply,len);(void)written;close(c);
-        for(int i=0;i<nrec;i++){free(recs[i].bytes);recs[i].bytes=NULL;}
-        discard_staged();nrec=0;
+        send_reply(c, &message, code, error, threads, stamp() - start, invoked);
+        close(c);
+        protocol_clear();
+        discard_staged();
     }
     return NULL;
 }
 __attribute__((constructor)) static void init(void) {
-    if(!getenv("E077_AGENT"))return;
-    const char *host=getenv("E106_HOST_EXE");
-    if(host) {
-        char exe[4096];ssize_t n=readlink("/proc/self/exe",exe,sizeof(exe)-1);
-        if(n<0 || n>=(ssize_t)sizeof(exe)-1)return;
-        exe[n]=0;if(strcmp(exe,host))return;
+    socket_path = refresh_env("REFRESH_AGENT_SOCKET", "E077_AGENT");
+    if (!socket_path || !socket_path[0]) return;
+    const char *host = refresh_env("REFRESH_HOST_EXE", "E106_HOST_EXE");
+    /* New deployments must select one executable; legacy clients retain v0 behavior. */
+    if (getenv("REFRESH_AGENT_SOCKET") && (!host || !host[0])) {
+        fputs("cargo-refresh: REFRESH_HOST_EXE is required\n", stderr); return;
     }
-    if(getenv("E121_DEBUG"))prctl(PR_SET_PTRACER,PR_SET_PTRACER_ANY,0,0,0);
-    const char *m=getenv("E084_MODE");
-    if(m){if(!strcmp(m,"ip"))mode=0;else if(!strcmp(m,"fp"))mode=1;else if(!strcmp(m,"cfi"))mode=2;else if(!strcmp(m,"scan"))mode=3;}
-    use_safepoint=getenv("E054_SAFEPOINT") && atoi(getenv("E054_SAFEPOINT"));
-    after_patch=(refresh_callback)dlsym(RTLD_DEFAULT,"fast_refresh_after_patch");
-    callback_enabled=getenv("E099_AUTO_HOOK") && !strcmp(getenv("E099_AUTO_HOOK"),"1");
-    dl_iterate_phdr(base_cb,NULL);
-    void *gcc=dlopen("libgcc_s.so.1",RTLD_NOW|RTLD_LOCAL);
-    if(gcc){register_frame=dlsym(gcc,"__register_frame");deregister_frame=dlsym(gcc,"__deregister_frame");}
-#if defined(REFRESH_TESTING) && defined(E123_OWN_REGISTRY)
-    register_info123=dlsym(gcc,"__register_frame_info");
-    if(register_info123){register_frame=register_owned123;deregister_frame=dlsym(gcc,"__deregister_frame_info");}
+    if (host) {
+        char exe[4096];
+        ssize_t n = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+        if (n < 0 || n >= (ssize_t)sizeof(exe) - 1) return;
+        exe[n] = 0;
+        if (strcmp(exe, host)) return;
+    }
+    const char *debug = refresh_env("REFRESH_DEBUG", "E121_DEBUG");
+    const char *hook = refresh_env("REFRESH_AFTER_PATCH", "E099_AUTO_HOOK");
+    /* Adoption is implemented by M3 section 3.5; recognize the rename here. */
+    (void)refresh_env("REFRESH_INHERITED", "E106_INHERITED_SEGMENTS");
+    if (legacy_environment)
+        fputs("cargo-refresh: legacy agent environment variables are deprecated; use REFRESH_*\n", stderr);
+    if (debug && strcmp(debug, "0")) prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0);
+#ifdef REFRESH_TESTING
+    const char *m = getenv("E084_MODE");
+    if (m) {
+        if (!strcmp(m, "ip")) mode = 0;
+        else if (!strcmp(m, "fp")) mode = 1;
+        else if (!strcmp(m, "cfi")) mode = 2;
+        else if (!strcmp(m, "scan")) mode = 3;
+    }
+    use_safepoint = getenv("E054_SAFEPOINT") && atoi(getenv("E054_SAFEPOINT"));
+    disable_unwind = getenv("E121_DISABLE_UNWIND") != NULL;
 #endif
-    disable_unwind=getenv("E121_DISABLE_UNWIND")!=NULL;
-    register_stack();
-    memfd=open("/proc/self/mem",O_RDONLY|O_CLOEXEC);if(memfd<0)return;
-    // Resolve unwind library lazy symbols before any app thread can be parked.
-    unw_context_t warm;unw_cursor_t cur;unw_getcontext(&warm);unw_init_local(&cur,&warm);unw_step(&cur);unw_word_t ip;unw_get_reg(&cur,UNW_REG_IP,&ip);
-    struct sigaction sa={.sa_sigaction=handler,.sa_flags=SA_SIGINFO|SA_RESTART};sigemptyset(&sa.sa_mask);
-    sigaction(SIGUSR2,&sa,NULL);pthread_t t;pthread_create(&t,NULL,server,NULL);pthread_detach(t);
+    after_patch = (refresh_callback)dlsym(RTLD_DEFAULT, "fast_refresh_after_patch");
+    callback_enabled = hook && !strcmp(hook, "1");
+    dl_iterate_phdr(base_cb, NULL);
+    unwind_init();
+    if (park_init()) return;
+    /* Application setlocale must not turn JSON decimals into comma decimals. */
+    numeric_locale = newlocale(LC_NUMERIC_MASK, "C", (locale_t)0);
+    if (!numeric_locale) return;
+    pthread_t t;
+    if (!pthread_create(&t, NULL, server, NULL)) pthread_detach(t);
 }

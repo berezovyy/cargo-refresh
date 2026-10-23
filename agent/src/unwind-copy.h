@@ -12,10 +12,13 @@ static int pointer121(unsigned char *b,size_t end,size_t *p,unsigned enc,int64_t
     unsigned fmt=enc&15,app=enc&0x70;size_t n=fmt==0?8:(fmt==3||fmt==11)?4:(fmt==4||fmt==12)?8:0;
     if(!n || *p+n>end || (app && app!=0x10) || (app==0x10 && fmt!=11 && fmt!=12))return -1;
     if(relocate && app==0x10){
-        if(n==4){int32_t old;memcpy(&old,b+*p,4);if(!old){*p+=n;return 0;}int64_t next=(int64_t)old-delta;
+        if(n==4){int32_t old;memcpy(&old,b+*p,4);if(!old){*p+=n;return 0;}if((delta>0 && (int64_t)old<INT64_MIN+delta) ||
+               (delta<0 && (int64_t)old>INT64_MAX+delta))return -1;
+            int64_t next=(int64_t)old-delta;
             if(next<INT32_MIN || next>INT32_MAX)return -1;
             int32_t val=next;memcpy(b+*p,&val,4);
-        }else{int64_t old;memcpy(&old,b+*p,8);if(!old){*p+=n;return 0;}old-=delta;memcpy(b+*p,&old,8);}
+        }else{int64_t old;memcpy(&old,b+*p,8);if(!old){*p+=n;return 0;}if((delta>0 && old<INT64_MIN+delta) || (delta<0 && old>INT64_MAX+delta))return -1;
+            old-=delta;memcpy(b+*p,&old,8);}
     }
     *p+=n;return 0;
 }
