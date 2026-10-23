@@ -200,6 +200,7 @@ changed-file entries after accepted saves. While any such source remains, it
 uses a stock Cargo baseline and stock rebuilds. It also recognizes uses inside
 macro definitions. This is deliberately conservative, including custom macros
 with those names and assertions with explicit messages. The compiler separately
-leaves resolved assertion-bearing roots and instances to rustc, covering macros
-and included/generated bodies beyond the controller's source scan. Remove this
+marks resolved assertion-bearing roots and instances unsupported and refuses
+refresh builds involving these roots. This covers aliases and included/generated
+bodies beyond the controller's source scan and prevents stale native copies. Remove this
 fence only after the AST printer has its own stock equivalence qualification.
