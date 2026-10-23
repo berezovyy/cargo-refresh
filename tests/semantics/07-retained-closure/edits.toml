@@ -1,0 +1,20 @@
+schema = 1
+case = "07-retained-closure"
+title = "Closure created before an edit"
+v0_1 = ["works"]
+state_rule = "A boxed closure captures a heap String before any probes. Retained closures must execute their original body; freshly created closures execute the edited body. Keep old closure code and its vtable alive."
+base_probes = ["probe=old=captured:1;new=captured:1", "probe=old=captured:1;new=captured:1"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=old=captured:2;new=captured:2", "probe=old=captured:2;new=captured:2"]
+live_expected = ["probe=old=captured:1;new=captured:2", "probe=old=captured:1;new=captured:2"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    Box::new(move || format!(\"{}:{}\", captured, 1))\n"
+replace = "    Box::new(move || format!(\"{}:{}\", captured, 2))\n"

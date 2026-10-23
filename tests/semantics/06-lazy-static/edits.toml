@@ -1,0 +1,20 @@
+schema = 1
+case = "06-lazy-static"
+title = "lazy_static storage"
+v0_1 = ["works"]
+state_rule = "Force the lazy_static value before the first command. The new probe marker must appear without rerunning its initializer."
+base_probes = ["probe=v1:7", "probe=v1:7"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=v2:70", "probe=v2:70"]
+live_expected = ["probe=v2:7", "probe=v2:7"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    7\n}\n#[inline(never)]\nfn probe() -> String {\n    format!(\"v1:{}\", *VALUE)\n"
+replace = "    70\n}\n#[inline(never)]\nfn probe() -> String {\n    format!(\"v2:{}\", *VALUE)\n"

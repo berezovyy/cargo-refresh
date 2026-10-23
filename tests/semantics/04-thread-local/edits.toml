@@ -1,0 +1,20 @@
+schema = 1
+case = "04-thread-local"
+title = "Retained thread-local storage on two threads"
+v0_1 = ["works", "restart"]
+state_rule = "Two persistent worker threads have distinct TLS seeds (100 and 200). Both workers run every probe in fixed order. The edited function must retain both TLS cells or explicitly refuse."
+base_probes = ["probe=101,201", "probe=102,202"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=110,210", "probe=120,220"]
+live_expected = ["probe=112,212", "probe=122,222"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    let delta = 1;\n"
+replace = "    let delta = 10;\n"

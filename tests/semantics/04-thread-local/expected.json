@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "04-thread-local",
+  "v0.1-allowed-outcomes": [
+    "works",
+    "restart"
+  ],
+  "state-rule": "Two persistent worker threads have distinct TLS seeds (100 and 200). Both workers run every probe in fixed order. The edited function must retain both TLS cells or explicitly refuse.",
+  "base": [
+    "probe=101,201",
+    "probe=102,202"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=110,210",
+        "probe=120,220"
+      ],
+      "live-expected": [
+        "probe=112,212",
+        "probe=122,222"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

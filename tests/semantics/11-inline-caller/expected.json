@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "11-inline-caller",
+  "v0.1-allowed-outcomes": [
+    "works",
+    "restart"
+  ],
+  "state-rule": "Two non-inlined callers use an inline(always) function. Both callers must update or the edit must be refused. Dev optimization level 1 ensures this is an actual optimized inlining fixture.",
+  "base": [
+    "probe=11,22",
+    "probe=11,22"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=20,40",
+        "probe=20,40"
+      ],
+      "live-expected": [
+        "probe=20,40",
+        "probe=20,40"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

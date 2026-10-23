@@ -1,0 +1,20 @@
+schema = 1
+case = "18-async-body"
+title = "Async body without await changes"
+v0_1 = ["restart"]
+state_rule = "The async function has one existing await; the edit changes only its return literal. v0.1 conservatively restarts even though its suspension structure is unchanged."
+base_probes = ["probe=1", "probe=1"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=2", "probe=2"]
+live_expected = ["probe=2", "probe=2"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    1\n"
+replace = "    2\n"

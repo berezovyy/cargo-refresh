@@ -1,0 +1,20 @@
+schema = 1
+case = "20-extern-c"
+title = "Exported extern C entry reached by a C caller"
+v0_1 = ["works", "restart"]
+state_rule = "Compile a tiny C object with the system cc, linked into the Rust app. Its indirect call uses a retained pointer to an exported no_mangle extern C Rust function. Both the C call and direct Rust call must reach new code, or refresh must refuse."
+base_probes = ["probe=c=1;rust=1", "probe=c=1;rust=1"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=c=2;rust=2", "probe=c=2;rust=2"]
+live_expected = ["probe=c=2;rust=2", "probe=c=2;rust=2"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    1\n"
+replace = "    2\n"

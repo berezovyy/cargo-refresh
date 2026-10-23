@@ -1,0 +1,20 @@
+schema = 1
+case = "13-tracing-lines"
+title = "Instrument span metadata after line insertion"
+v0_1 = ["works", "restart"]
+state_rule = "Warm the instrumented callsite twice before inserting three lines above the attribute. An EnvFilter plus fmt subscriber captures a formatted span location, and a custom Layer reads raw metadata.line(). Strict metadata policy may restart; accepted live updates must show the new location in both fields."
+base_probes = ["probe=value=1;line=49;fmt-line=49", "probe=value=1;line=49;fmt-line=49"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=value=1;line=52;fmt-line=52", "probe=value=1;line=52;fmt-line=52"]
+live_expected = ["probe=value=1;line=52;fmt-line=52", "probe=value=1;line=52;fmt-line=52"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "        LINE.store(attrs.metadata().line().unwrap(), Ordering::SeqCst);\n    }\n}\n"
+replace = "        LINE.store(attrs.metadata().line().unwrap(), Ordering::SeqCst);\n    }\n}\n// inserted 1\n// inserted 2\n// inserted 3\n"

@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "14-include-str",
+  "v0.1-allowed-outcomes": [
+    "stock",
+    "works"
+  ],
+  "state-rule": "Changing message.txt must change the embedded bytes. A watcher that only sees .rs edits would silently serve stale data. Stock fallback is the conservative route; live is acceptable only with correct input tracking.",
+  "base": [
+    "probe=message-v1",
+    "probe=message-v1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=message-v2",
+        "probe=message-v2"
+      ],
+      "live-expected": [
+        "probe=message-v2",
+        "probe=message-v2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

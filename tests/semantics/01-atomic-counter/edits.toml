@@ -1,0 +1,20 @@
+schema = 1
+case = "01-atomic-counter"
+title = "Atomic static storage"
+v0_1 = ["works"]
+state_rule = "Each probe increments the same AtomicU64, initially 10. Two probes precede each edit; live keeps the last value, while each stock restart starts at 10."
+base_probes = ["probe=11", "probe=12"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=20", "probe=30"]
+live_expected = ["probe=22", "probe=32"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    let delta = 1;\n"
+replace = "    let delta = 10;\n"

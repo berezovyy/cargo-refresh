@@ -1,0 +1,20 @@
+schema = 1
+case = "05-lazy-init"
+title = "OnceLock, LazyLock and once_cell::Lazy"
+v0_1 = ["works"]
+state_rule = "All three lazy values are forced before reading stdin. Editing their initializer and the probe marker must change the marker but never reinitialize retained storage."
+base_probes = ["probe=v1:7,7,7", "probe=v1:7,7,7"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=v2:70,70,70", "probe=v2:70,70,70"]
+live_expected = ["probe=v2:7,7,7", "probe=v2:7,7,7"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    7\n}\n#[inline(never)]\nfn probe() -> String {\n    format!(\"v1:{},{},{}\", ONCE.get().unwrap(), *LAZY, *EXTERNAL)\n"
+replace = "    70\n}\n#[inline(never)]\nfn probe() -> String {\n    format!(\"v2:{},{},{}\", ONCE.get().unwrap(), *LAZY, *EXTERNAL)\n"

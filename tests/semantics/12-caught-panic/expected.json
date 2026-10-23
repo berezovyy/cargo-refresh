@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "12-caught-panic",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "The edited function panics and catch_unwind must receive the exact edited payload on every probe. A quiet panic hook keeps the stdout protocol deterministic; panic=unwind is the default.",
+  "base": [
+    "probe=caught=panic-v1",
+    "probe=caught=panic-v1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=caught=panic-v2",
+        "probe=caught=panic-v2"
+      ],
+      "live-expected": [
+        "probe=caught=panic-v2",
+        "probe=caught=panic-v2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

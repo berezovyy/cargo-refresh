@@ -1,0 +1,14 @@
+[package]
+name = "m4-semantics-18"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[workspace]
+
+[profile.dev]
+debug = 0
+
+[dependencies]
+futures = { version = "=0.3.31", default-features = false, features = ["executor", "std"] }

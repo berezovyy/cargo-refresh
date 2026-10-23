@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "06-lazy-static",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "Force the lazy_static value before the first command. The new probe marker must appear without rerunning its initializer.",
+  "base": [
+    "probe=v1:7",
+    "probe=v1:7"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=v2:70",
+        "probe=v2:70"
+      ],
+      "live-expected": [
+        "probe=v2:7",
+        "probe=v2:7"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

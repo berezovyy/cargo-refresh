@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "17-sqlx-query",
+  "v0.1-allowed-outcomes": [
+    "restart",
+    "stock"
+  ],
+  "state-rule": "Compile and execute a real sqlx::query! against in-memory SQLite. Both query versions have committed SQLx offline describe data. Changing the SQL literal must yield the new row; compile-time DB-dependent macro edits are restart or stock.",
+  "base": [
+    "probe=1",
+    "probe=1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=2",
+        "probe=2"
+      ],
+      "live-expected": [
+        "probe=2",
+        "probe=2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

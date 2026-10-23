@@ -1,0 +1,20 @@
+schema = 1
+case = "12-caught-panic"
+title = "Unwind from edited code"
+v0_1 = ["works"]
+state_rule = "The edited function panics and catch_unwind must receive the exact edited payload on every probe. A quiet panic hook keeps the stdout protocol deterministic; panic=unwind is the default."
+base_probes = ["probe=caught=panic-v1", "probe=caught=panic-v1"]
+
+[environment]
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=caught=panic-v2", "probe=caught=panic-v2"]
+live_expected = ["probe=caught=panic-v2", "probe=caught=panic-v2"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    panic!(\"panic-v1\");\n"
+replace = "    panic!(\"panic-v2\");\n"

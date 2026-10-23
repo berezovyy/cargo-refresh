@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "10-cross-crate-generic",
+  "v0.1-allowed-outcomes": [
+    "works",
+    "stock"
+  ],
+  "state-rule": "Edit generic_lib::value<T>. The app and caller crate each instantiate u8 and u64, with different sizes. When all three crates are in the frontier all four values must change. With caller outside the frontier this same edit must use stock, updating the dependent crate too.",
+  "base": [
+    "probe=app=2,9;caller=2,9",
+    "probe=app=2,9;caller=2,9"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=app=11,18;caller=11,18",
+        "probe=app=11,18;caller=11,18"
+      ],
+      "live-expected": [
+        "probe=app=11,18;caller=11,18",
+        "probe=app=11,18;caller=11,18"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

@@ -1,0 +1,15 @@
+[package]
+name = "m4-semantics-13"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[workspace]
+
+[profile.dev]
+debug = 0
+
+[dependencies]
+tracing = { version = "=0.1.41", features = ["attributes"] }
+tracing-subscriber = { version = "=0.3.19", default-features = false, features = ["registry", "std", "fmt", "env-filter"] }

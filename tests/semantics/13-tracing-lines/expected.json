@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "case": "13-tracing-lines",
+  "v0.1-allowed-outcomes": [
+    "works",
+    "restart"
+  ],
+  "state-rule": "Warm the instrumented callsite twice before inserting three lines above the attribute. An EnvFilter plus fmt subscriber captures a formatted span location, and a custom Layer reads raw metadata.line(). Strict metadata policy may restart; accepted live updates must show the new location in both fields.",
+  "base": [
+    "probe=value=1;line=49;fmt-line=49",
+    "probe=value=1;line=49;fmt-line=49"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=value=1;line=52;fmt-line=52",
+        "probe=value=1;line=52;fmt-line=52"
+      ],
+      "live-expected": [
+        "probe=value=1;line=52;fmt-line=52",
+        "probe=value=1;line=52;fmt-line=52"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}

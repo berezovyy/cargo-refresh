@@ -1,0 +1,21 @@
+schema = 1
+case = "17-sqlx-query"
+title = "SQLx checked SQL text"
+v0_1 = ["restart", "stock"]
+state_rule = "Compile and execute a real sqlx::query! against in-memory SQLite. Both query versions have committed SQLx offline describe data. Changing the SQL literal must yield the new row; compile-time DB-dependent macro edits are restart or stock."
+base_probes = ["probe=1", "probe=1"]
+
+[environment]
+SQLX_OFFLINE = "true"
+
+[unset_environment]
+
+[[steps]]
+name = "edit-1"
+stock_after_restart = ["probe=2", "probe=2"]
+live_expected = ["probe=2", "probe=2"]
+
+[[steps.edits]]
+file = "src/main.rs"
+find = "    sqlx::query!(\"SELECT 1 AS value\")\n"
+replace = "    sqlx::query!(\"SELECT 2 AS value\")\n"

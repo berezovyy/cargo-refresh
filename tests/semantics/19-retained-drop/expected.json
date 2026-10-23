@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "case": "19-retained-drop",
+  "v0.1-allowed-outcomes": [
+    "works"
+  ],
+  "state-rule": "Allocate four Drop values before any probes. Each probe pops and drops one, observing its side effect. The two values alive at edit time must execute the new Drop body.",
+  "base": [
+    "probe=1",
+    "probe=1"
+  ],
+  "steps": [
+    {
+      "name": "edit-1",
+      "stock-after-restart": [
+        "probe=2",
+        "probe=2"
+      ],
+      "live-expected": [
+        "probe=2",
+        "probe=2"
+      ]
+    }
+  ],
+  "live-verification": "UNMEASURED: refresh adapter not yet implemented"
+}
