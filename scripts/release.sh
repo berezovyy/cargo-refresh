@@ -45,8 +45,13 @@ trap 'rm -rf "$STAGE"' EXIT
 # Zig is installed by the caller; no implicit network setup in release builds.
 # REFRESH_ZIG may point directly at the user-space Zig executable.
 if (( PORTABLE )); then
-  command -v cargo-zigbuild >/dev/null
+  command -v cargo-zigbuild >/dev/null || {
+    echo 'Missing portable prerequisite: cargo-zigbuild. Run: cargo +1.99.0 install cargo-zigbuild --locked -j 4 (or use --native for this host)' >&2; exit 1;
+  }
   export ZIG=${REFRESH_ZIG:-zig}
+  command -v "$ZIG" >/dev/null || {
+    echo 'Missing portable prerequisite: Zig. Put zig on PATH, set REFRESH_ZIG to its executable, or use --native for this host' >&2; exit 1;
+  }
   "$ZIG" version
   export CARGO_ZIGBUILD_ZIG_PATH="$ZIG"
   BUILD_TARGET=x86_64-unknown-linux-gnu.2.28
