@@ -458,12 +458,9 @@ impl Client {
             capture.args(["--package", package]);
         }
         capture.args(self.config.features.cargo_args());
-        // M1-T2 owns the full closure. M1-T3 exposes frontier selection; opt in
-        // only when using a compiler whose interface supports it.
-        if std::env::var_os("REFRESH_RUSTD_FRONTIER").is_some() {
-            for edit in &self.config.edit {
-                capture.args(["--edit", edit]);
-            }
+        // The bundled compiler supports bounded primary + explicit edit ownership.
+        for edit in &self.config.edit {
+            capture.args(["--edit", edit]);
         }
         let base_started = Instant::now();
         eprintln!("[refresh] base build (normal cargo, first run only)…");

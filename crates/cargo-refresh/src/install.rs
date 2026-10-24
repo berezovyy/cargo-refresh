@@ -395,9 +395,9 @@ pub fn memory_warning(available: u64, peak: u64) -> String {
         available as f64 / GIB as f64
     )
 }
-fn qualified_profile(text: &str) -> Result<()> {
+fn qualified_profile(text: &str, owned: &[&str]) -> Result<()> {
     let manifest: toml::Value = toml::from_str(text)?;
-    fn qualify(value: &toml::Value, prefix: &str) -> Result<()> {
+    fn qualify(value: &toml::Value, prefix: &str, owned: &[&str], precompiled: bool) -> Result<()> {
         let table = value.as_table().context("Cargo profile must be a table")?;
         for (key, value) in table {
             let path = format!("{prefix}.{key}");
@@ -411,24 +411,49 @@ fn qualified_profile(text: &str) -> Result<()> {
                         .as_table()
                         .context("profile package overrides must be a table")?
                     {
-                        qualify(profile, &format!("{path}.{name}"))?;
+                        let simple = name.split(':').next().unwrap_or("");
+                        let dependency = name != "*"
+                            && name.chars().all(|c| {
+                                c.is_ascii_alphanumeric()
+                                    || matches!(c, '_' | '-' | '.' | ':' | '+')
+                            })
+                            && simple
+                                .chars()
+                                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+                            && !owned.contains(&simple);
+                        qualify(profile, &format!("{path}.{name}"), owned, dependency)?;
                     }
                 }
-                "build-override" => qualify(value, &path)?,
+                "build-override" => qualify(value, &path, owned, true)?,
+                "opt-level" if precompiled => {}
                 _ => bail!("unqualified Cargo profile key {path}"),
             }
         }
         Ok(())
     }
     if let Some(dev) = manifest.get("profile").and_then(|p| p.get("dev")) {
-        qualify(dev, "profile.dev")?;
+        qualify(dev, "profile.dev", owned, false)?;
+    }
+    Ok(())
+}
+
+/// These tables cannot alter the selected rustc invocation. Environment entries
+/// are refused: we do not yet freeze/propagate Cargo's config environment into
+/// every daemon, checker, stock process and recovery session.
+fn qualified_cargo_config(text: &str) -> Result<()> {
+    let config: toml::Table = toml::from_str(text)?;
+    for (key, value) in config {
+        ensure!(
+            matches!(key.as_str(), "alias" | "term" | "net" | "http") && value.is_table(),
+            "unqualified Cargo config key {key}"
+        );
     }
     Ok(())
 }
 
 fn default_environment(config: &Config) -> Result<()> {
-    // No compiler/target/CPU overrides have been qualified. Cargo config may
-    // hide these too; conservatively choose stock for any nonempty config.
+    // Compiler/target/CPU overrides remain unqualified, including config aliases
+    // that expand to them (we invoke only built-in Cargo subcommands).
     for key in [
         "RUSTFLAGS",
         "CARGO_ENCODED_RUSTFLAGS",
@@ -463,8 +488,13 @@ fn default_environment(config: &Config) -> Result<()> {
         .filter(|p| p.file_name().is_some_and(|n| n == "Cargo.toml"))
     {
         if manifest.is_file() {
-            qualified_profile(&fs::read_to_string(manifest)?)
-                .with_context(|| format!("{}", manifest.display()))?;
+            qualified_profile(
+                &fs::read_to_string(manifest)?,
+                &std::iter::once(config.package.as_str())
+                    .chain(config.edit.iter().map(String::as_str))
+                    .collect::<Vec<_>>(),
+            )
+            .with_context(|| format!("{}", manifest.display()))?;
         }
     }
     let mut configs: Vec<_> = config
@@ -485,13 +515,8 @@ fn default_environment(config: &Config) -> Result<()> {
     for path in configs {
         if path.exists() {
             let content = fs::read_to_string(&path)?;
-            ensure!(
-                content
-                    .lines()
-                    .all(|line| line.trim().is_empty() || line.trim().starts_with('#')),
-                "Cargo config is not qualified: {}",
-                path.display()
-            );
+            qualified_cargo_config(&content)
+                .with_context(|| format!("Cargo config is not qualified: {}", path.display()))?;
         }
     }
     Ok(())
@@ -740,7 +765,7 @@ mod tests {
             ),
         ] {
             assert!(
-                qualified_profile(manifest)
+                qualified_profile(manifest, &["foo"])
                     .unwrap_err()
                     .to_string()
                     .contains(key)
@@ -755,9 +780,53 @@ mod tests {
             "[package]\nname = 'tiny'",
             "[profile.release]\nlto = true",
         ] {
-            qualified_profile(manifest).unwrap();
+            qualified_profile(manifest, &["foo"]).unwrap();
         }
-        assert!(qualified_profile("[invalid").is_err());
+        assert!(qualified_profile("[invalid", &["foo"]).is_err());
+    }
+
+    #[test]
+    fn dependency_optimization_is_safe_only_outside_owned_frontier() {
+        for selector in ["dep", "dep:1.0.0"] {
+            qualified_profile(
+                &format!("[profile.dev.package.\"{selector}\"]\nopt-level = 3"),
+                &["app", "editable"],
+            )
+            .unwrap();
+        }
+        for selector in ["app", "editable", "editable:1.0.0", "*"] {
+            assert!(
+                qualified_profile(
+                    &format!("[profile.dev.package.\"{selector}\"]\nopt-level = 3"),
+                    &["app", "editable"]
+                )
+                .is_err()
+            );
+        }
+        assert!(qualified_profile("[profile.dev.package.dep]\npanic = 'abort'", &["app"]).is_err());
+    }
+
+    #[test]
+    fn harmless_config_tables_accept_but_codegen_and_environment_stay_closed() {
+        for text in [
+            "",
+            "# comment",
+            "[alias]\nxtask = 'run --release -p xtask --'",
+            "[term]\ncolor = 'always'\n[net]\noffline = true\n[http]\ntimeout = 30",
+        ] {
+            qualified_cargo_config(text).unwrap();
+        }
+        for text in [
+            "[build]\nrustflags = ['-Ctarget-cpu=native']",
+            "[build]\ntarget = 'other'",
+            "[target.x86_64-unknown-linux-gnu]\nlinker = 'cc'",
+            "[env]\nFOO = 'fixed'",
+            "[profile.dev]\nopt-level = 3",
+            "[alias]\nx='check'\n[build]\nrustflags=[]",
+            "[invalid",
+        ] {
+            assert!(qualified_cargo_config(text).is_err(), "{text}");
+        }
     }
 
     #[test]

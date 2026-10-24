@@ -145,6 +145,29 @@ pub fn extend(config: &mut Config) -> Result<()> {
             if !entry.file_type().is_file() {
                 continue;
             }
+            if entry.file_name() == "output"
+                && entry
+                    .path()
+                    .parent()
+                    .and_then(|p| p.parent())
+                    .is_some_and(|p| p.file_name().is_some_and(|n| n == "build"))
+            {
+                for line in fs::read_to_string(entry.path())?.lines() {
+                    if let Some(input) = line
+                        .strip_prefix("cargo:rerun-if-changed=")
+                        .or_else(|| line.strip_prefix("cargo::rerun-if-changed="))
+                    {
+                        let input = PathBuf::from(input);
+                        if input.is_absolute() {
+                            files.insert(input);
+                        } else {
+                            for root in &config.package_roots {
+                                files.insert(root.join(&input));
+                            }
+                        }
+                    }
+                }
+            }
             if entry.path().extension().is_some_and(|ext| ext == "d") {
                 depfiles.push(entry.into_path());
             } else if entry.file_name() == "record.json"
@@ -185,6 +208,9 @@ pub fn extend(config: &mut Config) -> Result<()> {
             // Preserve the spelling for symlink replacement, and the resolved
             // path for events reported from canonical watched directories.
             for path in [path, canonical] {
+                if path.extension().is_some_and(|ext| ext == "rs") {
+                    config.captured_rust_inputs.insert(path.clone());
+                }
                 // Regular Rust inputs already watched by the compiler retain Rs classification.
                 if path.extension().is_some_and(|ext| ext == "rs")
                     && config
