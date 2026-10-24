@@ -205,9 +205,15 @@ refresh builds involving these roots. This covers aliases and included/generated
 bodies beyond the controller's source scan and prevents stale native copies. Remove this
 fence only after the AST printer has its own stock equivalence qualification.
 
-Changed async bodies inside macro arguments also require a stock rebuild when
-the guard reports `macro-body`. The macro campaign found that switching `vec!`
-between repeat and list forms could reuse coroutine bodies with stale constants
-after a compiler-backed restart. This narrow controller fence remains until
-coroutine identity invalidation is qualified; outer async code keeps its existing
-certificate policy.
+Changed opaque async macro arguments require a stock rebuild when the guard
+reports `macro-body`. With the M4-T8 rustd promotion fix, parsed standard `vec!`
+arguments in simple non-main free functions can instead request compiler frame
+and resume certificates. Both revisions must qualify, and every changed owner
+needs coverage. Local items, closures, unknown macros, custom macro shadowing
+and other async macro arguments retain their existing policy. Disabling
+certificates retains the strict stock fence. Compatible same-form edits can be
+live; list/repeat transitions still restart when the compiler reports a changed
+frame. This requires the matching M4-T8 compiler fix: promotion must account for
+new call edges before pruning changed dormant coroutine definitions. The
+controller checks `rustd --capabilities` once when selecting verified support;
+older or unknown compilers retain the async macro stock fence.

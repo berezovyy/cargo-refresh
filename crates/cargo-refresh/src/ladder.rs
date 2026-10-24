@@ -815,15 +815,17 @@ impl Pipeline {
         {
             return self.stock(&mut job, format!("guard internal error: {detail}"));
         }
-        if matches!(
+        let opaque_macro = matches!(
             class,
             Class::Restart {
                 reason: Reason::MacroBody { .. }
             }
-        ) && before
-            .iter()
-            .chain(after.iter())
-            .any(|snapshot| refresh_guard::has_async_macro_arguments(&snapshot.bytes))
+        );
+        let fixed_promotion = self.config.support.as_ref()
+            .is_some_and(|support| support.promotion_current_edges);
+        if (opaque_macro || !fixed_promotion)
+            && before.iter().chain(after.iter())
+                .any(|snapshot| refresh_guard::has_async_macro_arguments(&snapshot.bytes))
         {
             return self.stock(
                 &mut job,
