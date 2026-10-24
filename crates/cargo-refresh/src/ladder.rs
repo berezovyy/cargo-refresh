@@ -76,6 +76,7 @@ pub struct Pipeline {
     reset: Option<Reset>,
     reset_seq: u64,
     sources: Sources,
+    stock_stringification: BTreeSet<PathBuf>,
     checked: Sources,
     checked_available: bool,
     workspace: Option<Workspace>,
@@ -234,6 +235,7 @@ fn start_fast(
 }
 fn reason_text(reason: &Reason) -> String {
     match reason {
+        Reason::InternalError { detail } => format!("guard internal error: {detail}"),
         Reason::Layout { path } => format!("types or layout changed in {}", path.display()),
         Reason::Async { function, .. } => format!("async function {function} changed"),
         Reason::FileSet { .. } => "source files added or removed".into(),
@@ -286,6 +288,18 @@ impl Pipeline {
         } else {
             None
         };
+        let stock_stringification = sources
+            .iter()
+            .filter(|(path, bytes)| {
+                config
+                    .frontier_roots
+                    .iter()
+                    .any(|root| path.starts_with(root))
+                    && path.extension().is_some_and(|extension| extension == "rs")
+                    && refresh_guard::requires_stock_stringification(bytes)
+            })
+            .map(|(path, _)| path.clone())
+            .collect();
         Ok(Self {
             triggers: crate::triggers::Triggers::new(
                 config.after_patch_touch.clone(),
@@ -297,6 +311,7 @@ impl Pipeline {
             reset: None,
             reset_seq: 0,
             checked: sources.clone(),
+            stock_stringification,
             sources,
             checked_available: false,
             workspace,
@@ -324,13 +339,20 @@ impl Pipeline {
         });
     }
     pub fn setup(&mut self) -> Result<()> {
-        match start_fast(
-            &self.config,
-            &self.session_home,
-            0,
-            self.floor,
-            self.fence.stopping.clone(),
-        ) {
+        let fast = if self.stock_stringification.is_empty() {
+            start_fast(
+                &self.config,
+                &self.session_home,
+                0,
+                self.floor,
+                self.fence.stopping.clone(),
+            )
+        } else {
+            Err(anyhow::anyhow!(
+                "assert!/debug_assert! message printing is unqualified; using stock Cargo baseline"
+            ))
+        };
+        match fast {
             Ok(fast) => {
                 self.runtime.start(&native_binary(&self.config)?)?;
                 self.event(
@@ -404,6 +426,7 @@ impl Pipeline {
     }
     fn begin_reset(&mut self) {
         if self.config.support.is_none()
+            || !self.stock_stringification.is_empty()
             || self.reset.is_some()
             || self.fast.is_some()
             || self
@@ -444,6 +467,22 @@ impl Pipeline {
             }
             self.epoch_idle_safe = true;
             checker::apply(&mut self.sources, &job.changes);
+            for change in &job.changes.changes {
+                self.stock_stringification.remove(&change.path);
+                if change.kind == PathKind::Rs
+                    && self
+                        .config
+                        .frontier_roots
+                        .iter()
+                        .any(|root| change.path.starts_with(root))
+                    && change
+                        .content
+                        .as_deref()
+                        .is_some_and(refresh_guard::requires_stock_stringification)
+                {
+                    self.stock_stringification.insert(change.path.clone());
+                }
+            }
             self.unchecked
                 .extend(job.changes.changes.iter().map(|c| c.path.clone()));
             self.generation += 1;
@@ -699,6 +738,9 @@ impl Pipeline {
         mark(&mut job.phases, Phase::Gate);
         let mut admission_checked = false;
         if let Admission::Reject { rule, detail } = admission {
+            if rule == AdmissionRule::InternalError {
+                return self.stock(&mut job, format!("guard internal error: {detail}"));
+            }
             // EXP-119 intentionally errs toward waiting. A frozen stock check
             // can prove a saved, syntactically complete buffer valid without
             // exposing a rejected buffer to rustd (e.g. a local `weight` whose
@@ -735,6 +777,16 @@ impl Pipeline {
                     false,
                 );
             }
+        }
+        if !self.stock_stringification.is_empty()
+            || after
+                .iter()
+                .any(|snapshot| refresh_guard::requires_stock_stringification(&snapshot.bytes))
+        {
+            return self.stock(
+                &mut job,
+                "assert!/debug_assert! message printing is unqualified; using stock Cargo".into(),
+            );
         }
         if job.changes.changes.iter().any(|change| {
             crate::dep_info::includes_changed(
@@ -779,6 +831,27 @@ impl Pipeline {
         }
         if self.fast.is_none() {
             return self.stock(&mut job, "compiler is recovering; using Cargo".into());
+        }
+        if let Class::Restart {
+            reason: Reason::InternalError { ref detail },
+        } = class
+        {
+            return self.stock(&mut job, format!("guard internal error: {detail}"));
+        }
+        if matches!(
+            class,
+            Class::Restart {
+                reason: Reason::MacroBody { .. }
+            }
+        ) && before
+            .iter()
+            .chain(after.iter())
+            .any(|snapshot| refresh_guard::has_async_macro_arguments(&snapshot.bytes))
+        {
+            return self.stock(
+                &mut job,
+                "async bodies inside macro arguments require a stock rebuild".into(),
+            );
         }
         let mut restart_reason = match class {
             Class::Restart { reason } => Some(reason_text(&reason)),
