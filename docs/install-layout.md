@@ -9,8 +9,10 @@ no upload or CI/CD is configured. See the implemented first-run section below.
 Public package, fork and artifact URLs are not published yet. In the commands
 below, replace the two angle-bracket placeholders with the repositories supplied
 by the release maintainer; the rustd URL must contain the qualified `refresh/m1`
-branch and its pinned submodule commits. Do not substitute upstream's default
-branch. For an offline local clone test, local repository paths can replace those
+branch and its pinned submodule commits. The fork's `.gitmodules` must point to
+a repository that actually serves the patched rust-analyzer commit; upstream's
+URL alone does not publish local submodule patches. Do not substitute upstream's
+default branch. For an offline local clone test, local repository paths can replace those
 URLs and the submodule URL can be overridden with `git -c
 submodule.vendor/rust-analyzer.url=/path/to/local/submodule ...`.
 

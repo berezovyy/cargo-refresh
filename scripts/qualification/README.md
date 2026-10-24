@@ -11,3 +11,7 @@ state-persistence feature. These crates are not workspace members or user demos.
 compares the reconstructed facts with the checked-in raw stream and retains the
 unchanged qualified baseline bundle after allowing only the documented local
 TypeId relocation differences. Candidate toolchains still require manual review.
+
+The raw reference is intentionally retained alongside its bundle: without it the
+collector cannot distinguish expected path-dependent local TypeIds from ABI drift.
+It never substitutes a new hash into the historical qualified bundle.
