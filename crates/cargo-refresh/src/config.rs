@@ -31,6 +31,30 @@ pub struct ResolveNode {
     pub dependencies: Vec<String>,
     #[serde(default)]
     pub features: Vec<String>,
+    #[serde(default)]
+    pub deps: Option<Vec<ResolveDependency>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ResolveDependency {
+    pub pkg: String,
+    pub dep_kinds: Vec<DependencyKind>,
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct DependencyKind {
+    pub kind: Option<String>,
+}
+impl ResolveNode {
+    fn runtime_dependencies(&self) -> Vec<&str> {
+        match &self.deps {
+            Some(deps) => deps
+                .iter()
+                .filter(|d| d.dep_kinds.iter().any(|k| k.kind.is_none()))
+                .map(|d| d.pkg.as_str())
+                .collect(),
+            None => self.dependencies.iter().map(String::as_str).collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -148,10 +172,11 @@ impl Config {
                         .opaque_build_roots
                         .iter()
                         .any(|root| c.path.starts_with(root))
-                    && !self
-                        .input_files
-                        .iter()
-                        .any(|input| c.path.starts_with(input))
+                    && !c.path.ancestors().any(|parent| {
+                        self.input_files
+                            .binary_search_by(|input| input.as_path().cmp(parent))
+                            .is_ok()
+                    })
             })
     }
 
@@ -164,6 +189,9 @@ impl Config {
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
+        if let Ok(toolchain) = crate::install::Toolchain::detect(&cwd) {
+            command.args(["--filter-platform", &toolchain.host]);
+        }
         let output = crate::process::spawn(&mut command).context("run cargo metadata")?;
         let output = output.wait_with_output()?;
         if !output.status.success() {
@@ -293,6 +321,29 @@ impl Config {
                 }
             }
         }
+        let mut runtime_linked = BTreeSet::from([package.id.as_str()]);
+        if let Some(resolve) = &metadata.resolve {
+            loop {
+                let count = runtime_linked.len();
+                for node in &resolve.nodes {
+                    if runtime_linked.contains(node.id.as_str()) {
+                        runtime_linked.extend(node.runtime_dependencies().into_iter().filter(
+                            |id| {
+                                !metadata.packages.iter().any(|p| {
+                                    p.id == *id
+                                        && p.targets
+                                            .iter()
+                                            .any(|t| t.kind.iter().any(|k| k == "proc-macro"))
+                                })
+                            },
+                        ));
+                    }
+                }
+                if runtime_linked.len() == count {
+                    break;
+                }
+            }
+        }
         let debug_off =
             crate::memory::debug_info_disabled(&metadata.workspace_root.join("Cargo.toml"))?;
         let estimate_for = |edit: &[String]| -> Result<crate::memory::Estimate> {
@@ -324,7 +375,7 @@ impl Config {
                 for candidate in &local {
                     if candidate.name == package.name
                         || edit.contains(&candidate.name)
-                        || !linked.contains(candidate.id.as_str())
+                        || !runtime_linked.contains(candidate.id.as_str())
                         || !candidate
                             .targets
                             .iter()
@@ -336,8 +387,8 @@ impl Config {
                         continue;
                     };
                     if resolve.nodes.iter().any(|node| {
-                        linked.contains(node.id.as_str())
-                            && node.dependencies.contains(&candidate.id)
+                        runtime_linked.contains(node.id.as_str())
+                            && node.runtime_dependencies().contains(&candidate.id.as_str())
                             && !local.iter().any(|p| {
                                 p.id == node.id
                                     && (p.name == package.name || edit.contains(&p.name))
@@ -394,7 +445,7 @@ impl Config {
                     let count = callers.len();
                     for node in &resolve.nodes {
                         if node
-                            .dependencies
+                            .runtime_dependencies()
                             .iter()
                             .any(|dep| callers.contains(dep.as_str()))
                         {
@@ -407,7 +458,7 @@ impl Config {
                 }
                 callers
                     .iter()
-                    .any(|id| linked.contains(id) && !owned.contains(id))
+                    .any(|id| runtime_linked.contains(id) && !owned.contains(id))
             })
             .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
             .collect();
@@ -644,6 +695,48 @@ mod tests {
     }
 
     #[test]
+    fn runtime_graph_excludes_build_dev_and_macro_packages() {
+        let mut meta = metadata(json!({}));
+        for name in ["normal", "build", "dev", "macro"] {
+            let mut p = meta.packages[0].clone();
+            p.id = name.into();
+            p.name = name.into();
+            p.manifest_path = format!("/demo/{name}/Cargo.toml").into();
+            p.targets = vec![Target {
+                name: name.into(),
+                kind: vec![if name == "macro" { "proc-macro" } else { "lib" }.into()],
+                src_path: format!("/demo/{name}/src/lib.rs").into(),
+            }];
+            meta.packages.push(p);
+        }
+        meta.resolve = Some(
+            serde_json::from_value(json!({"nodes":[
+                {"id":"app-id","dependencies":["normal","build","dev","macro"],"deps":[
+                    {"pkg":"normal","dep_kinds":[{"kind":null}]},
+                    {"pkg":"build","dep_kinds":[{"kind":"build"}]},
+                    {"pkg":"dev","dep_kinds":[{"kind":"dev"}]},
+                    {"pkg":"macro","dep_kinds":[{"kind":null}]}
+                ]},
+                {"id":"normal","dependencies":[],"deps":[]},
+                {"id":"build","dependencies":[],"deps":[]},
+                {"id":"dev","dependencies":[],"deps":[]},
+                {"id":"macro","dependencies":[],"deps":[]}
+            ]}))
+            .unwrap(),
+        );
+        let config = Config::resolve_with_memory(
+            Default::default(),
+            &meta,
+            Path::new("/demo"),
+            Some(20 * crate::memory::GIB),
+        )
+        .unwrap();
+        assert_eq!(config.edit, ["normal"]);
+        assert!(config.stock_frontier_roots.is_empty());
+        assert_eq!(config.memory_estimate.dependencies, 3);
+    }
+
+    #[test]
     fn excluded_targets_skip_only_when_not_application_or_build_inputs() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
@@ -669,8 +762,12 @@ mod tests {
             assert!(!config.excluded_target_only(&changes));
             config.captured_rust_inputs.remove(&file);
             config.input_files.push(root.join(folder));
+            config.input_files.sort();
             assert!(!config.excluded_target_only(&changes));
-            config.input_files.pop();
+            config.input_files.retain(|p| p != &root.join(folder));
+            config.opaque_build_roots.push(root.into());
+            assert!(!config.excluded_target_only(&changes));
+            config.opaque_build_roots.clear();
         }
         // A binary or library whose source root is tests/ keeps that directory active.
         meta.packages[0].targets[0].src_path = root.join("tests/main.rs");
