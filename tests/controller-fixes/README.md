@@ -23,3 +23,6 @@ the warm compiler. Valid results and rejected inputs are checked against stock.
 `history_revert` delays stock checks and supersedes an optimistic invalid edit
 with a no-codegen save. It requires rejection, rollback to the checked output,
 preserved editor bytes, and correct recovery without a compiler recapture.
+
+`history_exit` terminates only its captured application PID, then rewrites identical
+source and requires a stock-matched restart instead of skipping a missing process.

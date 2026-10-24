@@ -153,6 +153,17 @@ def history_revert(args):
         if s:s.close()
         os.environ['PATH']=path
 
+def history_exit(args):
+    s, source=fixture(args,'history-exit')
+    try:
+        s.wait(lambda:base.http(s.port)==(200,'1'))
+        os.kill(s.application_pid(),signal.SIGTERM)
+        s.wait(lambda:any(e['event']=='application_exit' for e in s.read()))
+        row=s.save({'src/main.rs':source},'identical-after-exit','1')
+        assert row['path']=='stock',row;s.oracle_tiny(row,1)
+        (s.out/'completed.json').write_text(json.dumps({'exited_app':1,'identical_restarts':1,'oracle_matches':1}))
+    finally:s.close()
+
 def split(args):
     s,source=fixture(args,'split','\nmod extra;\n',
                      {'src/extra.rs':'pub fn offset() -> u64 { 0 }\n'},
@@ -181,5 +192,5 @@ def split(args):
     finally:s.close()
 
 if __name__=='__main__':
-    ap=argparse.ArgumentParser();ap.add_argument('mode',choices=['recovery','cfg','history','history_revert','split']);ap.add_argument('--controller',type=Path,required=True);ap.add_argument('--work',type=Path,required=True);ap.add_argument('--tag',default='');args=ap.parse_args();args.work.mkdir(parents=True,exist_ok=True)
+    ap=argparse.ArgumentParser();ap.add_argument('mode',choices=['recovery','cfg','history','history_revert','history_exit','split']);ap.add_argument('--controller',type=Path,required=True);ap.add_argument('--work',type=Path,required=True);ap.add_argument('--tag',default='');args=ap.parse_args();args.work.mkdir(parents=True,exist_ok=True)
     globals()[args.mode](args)

@@ -62,6 +62,8 @@ pub struct Fast {
     promotions: u32,
     pressure: bool,
     pending_compiled: bool,
+    /// Compiler and extractor address baselines agree, even during recovery.
+    compatible: bool,
     /// Compiler image, before the runtime snapshot copy expands sparse holes.
     binary: PathBuf,
 }
@@ -235,6 +237,7 @@ fn start_fast(
         promotions: 0,
         pressure: false,
         pending_compiled: false,
+        compatible: true,
         binary,
     })
 }
@@ -538,7 +541,11 @@ impl Pipeline {
     fn stock(&mut self, job: &mut Job, reason: String) -> Result<()> {
         // A failed stock build leaves the running image unchanged. Keep the
         // transactional compiler's last-good baseline until a replacement exists.
-        // Configuration changes are different: their capture is no longer valid.
+        // Configuration changes and an undelivered native/semantic rebase
+        // cannot retain the old extractor's address baseline.
+        if self.fast.as_ref().is_some_and(|fast| !fast.compatible) {
+            self.quarantine();
+        }
         if let Some((mut check, _)) = self.checker.take() {
             check.cancel();
         }
@@ -766,6 +773,14 @@ impl Pipeline {
         if !self.fence.current() {
             self.event("superseded", "newer save already queued");
             return Ok(());
+        }
+        // Even an identical/comment-only save must deliver a process after a
+        // crash or failed restart; source equality alone cannot authorize skip.
+        if !self.runtime.running()? {
+            return self.stock(
+                &mut job,
+                "application exited; rebuilding and restarting".into(),
+            );
         }
         // A rejected buffer may round-trip back to the applied bytes, producing
         // an empty change set. Restore paths absent from this new delta in the
@@ -1089,7 +1104,10 @@ impl Pipeline {
             }
         };
         // Empty transactions deliberately preserve the compiler/loader baseline.
-        let promote = promote && !build.no_effect;
+        let promote = promote && !build.no_effect && !build.repeated;
+        if build.native_rebase || promote {
+            self.fast.as_mut().unwrap().compatible = false;
+        }
         if build.repeated {
             self.event(
                 "compiler_pending_reused",
@@ -1121,6 +1139,7 @@ impl Pipeline {
             }
             let fast = self.fast.as_mut().unwrap();
             fast.extractor = extractor;
+            fast.compatible = true;
             fast.manifest = State::default();
             fast.async_runtime = AsyncRuntime::default();
             fast.async_owners.clear();
@@ -1254,6 +1273,7 @@ impl Pipeline {
             fast.async_runtime = AsyncRuntime::default();
             fast.async_owners.clear();
             fast.promotions += 1;
+            fast.compatible = true;
             fast.pressure = false;
             self.recovery_restart = false;
             self.publish(&job, SavePath::Restart, reason, true)?;
@@ -1330,6 +1350,10 @@ impl Pipeline {
         Ok(())
     }
     pub fn failure(&mut self, job: &Job, error: &anyhow::Error) -> Result<()> {
+        if self.fast.as_ref().is_some_and(|fast| !fast.compatible) {
+            self.quarantine();
+            self.recovery_restart = true;
+        }
         if self.fence.current() {
             self.publish(job, SavePath::Error, format!("{error:#}"), false)
         } else {

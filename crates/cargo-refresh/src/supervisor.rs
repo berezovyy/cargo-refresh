@@ -265,6 +265,12 @@ impl Supervisor {
         }
         reply
     }
+    pub fn running(&mut self) -> Result<bool> {
+        match &mut self.child {
+            Some(child) => Ok(child.try_wait()?.is_none()),
+            None => Ok(false),
+        }
+    }
     pub fn pid(&self) -> Option<u32> {
         self.child.as_ref().map(Child::id)
     }
