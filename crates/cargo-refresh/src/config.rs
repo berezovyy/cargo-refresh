@@ -414,8 +414,9 @@ impl Config {
                 .filter(|p| automatic_candidate_qualified(p))
                 .map(|p| p.id.as_str())
                 .collect();
-            // Add callers before their dependencies; otherwise inlined/generic
-            // code can remain in a precompiled caller outside the frontier.
+            // Add callers before their dependencies. Include compile-time callers:
+            // a proc macro/build script can bake an owned helper's result into
+            // the running binary even though the compiler cannot own that caller.
             loop {
                 let mut added = false;
                 for candidate in &local {
@@ -434,8 +435,8 @@ impl Config {
                         continue;
                     };
                     if resolve.nodes.iter().any(|node| {
-                        runtime_linked.contains(node.id.as_str())
-                            && node.runtime_dependencies().contains(&candidate.id.as_str())
+                        linked.contains(node.id.as_str())
+                            && node.dependencies.contains(&candidate.id)
                             && !local.iter().any(|p| {
                                 p.id == node.id
                                     && (p.name == package.name || edit.contains(&p.name))
@@ -496,9 +497,9 @@ impl Config {
                     let count = callers.len();
                     for node in &resolve.nodes {
                         if node
-                            .runtime_dependencies()
+                            .dependencies
                             .iter()
-                            .any(|dep| callers.contains(*dep))
+                            .any(|dep| callers.contains(dep.as_str()))
                         {
                             callers.insert(node.id.as_str());
                         }
@@ -509,7 +510,7 @@ impl Config {
                 }
                 callers
                     .iter()
-                    .any(|id| runtime_linked.contains(id) && !owned.contains(id))
+                    .any(|id| linked.contains(id) && !owned.contains(id))
             })
             .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
             .collect();
@@ -855,6 +856,56 @@ mod tests {
         assert_eq!(config.edit, ["normal"]);
         assert!(config.stock_frontier_roots.is_empty());
         assert_eq!(config.memory_estimate.dependencies, 3);
+    }
+
+    #[test]
+    fn build_time_callers_keep_runtime_helper_edits_on_stock() {
+        let mut meta = metadata(json!({}));
+        let mut lib = meta.packages[0].clone();
+        lib.id = "helper-id".into();
+        lib.name = "helper".into();
+        lib.manifest_path = "/demo/helper/Cargo.toml".into();
+        lib.targets = vec![Target {
+            name: "helper".into(),
+            kind: vec!["lib".into()],
+            src_path: "/demo/helper/src/lib.rs".into(),
+        }];
+        let mut generator = lib.clone();
+        generator.id = "generator-id".into();
+        generator.name = "generator".into();
+        generator.manifest_path = "/demo/generator/Cargo.toml".into();
+        generator.targets[0].src_path = "/demo/generator/src/lib.rs".into();
+        generator.targets[0].kind = vec!["proc-macro".into()];
+        meta.packages.extend([lib, generator]);
+        meta.resolve = Some(serde_json::from_value(json!({"nodes":[
+            {"id":"app-id","dependencies":["helper-id","generator-id"],"deps":[
+                {"pkg":"helper-id","dep_kinds":[{"kind":null}]},
+                {"pkg":"generator-id","dep_kinds":[{"kind":null}]}]},
+            {"id":"generator-id","dependencies":["helper-id"],"deps":[{"pkg":"helper-id","dep_kinds":[{"kind":null}]}]},
+            {"id":"helper-id","dependencies":[],"deps":[]}
+        ]})).unwrap());
+        let automatic = Config::resolve_with_memory(
+            Default::default(),
+            &meta,
+            Path::new("/demo"),
+            Some(20 * crate::memory::GIB),
+        )
+        .unwrap();
+        assert!(automatic.edit.is_empty());
+        let explicit = Config::resolve_with_memory(
+            RunArgs {
+                edit: Some(vec!["helper".into()]),
+                ..Default::default()
+            },
+            &meta,
+            Path::new("/demo"),
+            Some(20 * crate::memory::GIB),
+        )
+        .unwrap();
+        assert_eq!(
+            explicit.stock_frontier_roots,
+            [PathBuf::from("/demo/helper")]
+        );
     }
 
     #[test]
