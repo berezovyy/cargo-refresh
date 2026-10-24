@@ -447,6 +447,10 @@ fn qualified_cargo_config(text: &str) -> Result<()> {
             matches!(key.as_str(), "alias" | "term" | "net" | "http") && value.is_table(),
             "unqualified Cargo config key {key}"
         );
+        ensure!(
+            key != "alias" || value.get("rustd").is_none(),
+            "Cargo alias rustd overrides the compiler command"
+        );
     }
     Ok(())
 }
@@ -456,6 +460,7 @@ fn default_environment(config: &Config) -> Result<()> {
     // that expand to them (we invoke only built-in Cargo subcommands).
     for key in [
         "RUSTFLAGS",
+        "CARGO_ALIAS_RUSTD",
         "CARGO_ENCODED_RUSTFLAGS",
         "CARGO_BUILD_TARGET",
         "RUSTC_WRAPPER",
@@ -823,6 +828,7 @@ mod tests {
             "[env]\nFOO = 'fixed'",
             "[profile.dev]\nopt-level = 3",
             "[alias]\nx='check'\n[build]\nrustflags=[]",
+            "[alias]\nrustd = '!different-compiler'",
             "[invalid",
         ] {
             assert!(qualified_cargo_config(text).is_err(), "{text}");
