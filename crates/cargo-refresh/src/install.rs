@@ -694,7 +694,11 @@ mod tests {
             (r#"{"schema":1,"promotion_current_edges":true}"#, 1, false),
             ("rustd 0.0.0", 0, false),
         ] {
-            fs::write(&rustd, format!("#!/bin/sh\nprintf '%s\\n' '{text}'\nexit {status}\n")).unwrap();
+            fs::write(
+                &rustd,
+                format!("#!/bin/sh\nprintf '%s\\n' '{text}'\nexit {status}\n"),
+            )
+            .unwrap();
             fs::set_permissions(&rustd, fs::Permissions::from_mode(0o755)).unwrap();
             assert_eq!(promotion_current_edges(root.path()), expected, "{text}");
         }

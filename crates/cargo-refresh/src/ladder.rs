@@ -912,10 +912,15 @@ impl Pipeline {
                 reason: Reason::MacroBody { .. }
             }
         );
-        let fixed_promotion = self.config.support.as_ref()
+        let fixed_promotion = self
+            .config
+            .support
+            .as_ref()
             .is_some_and(|support| support.promotion_current_edges);
         if (opaque_macro || !fixed_promotion)
-            && before.iter().chain(after.iter())
+            && before
+                .iter()
+                .chain(after.iter())
                 .any(|snapshot| refresh_guard::has_async_macro_arguments(&snapshot.bytes))
         {
             return self.stock(
