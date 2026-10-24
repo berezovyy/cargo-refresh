@@ -127,7 +127,7 @@ pub struct Config {
     /// Conventional excluded targets, except paths captured as application inputs.
     pub excluded_target_roots: Vec<PathBuf>,
     pub captured_rust_inputs: BTreeSet<PathBuf>,
-    pub opaque_build_roots: Vec<PathBuf>,
+    pub opaque_build_roots: BTreeSet<PathBuf>,
     /// Edited library crates with transitive callers outside compiler ownership.
     /// Without an instantiation/inlining proof, even a restart may be stale.
     pub stock_frontier_roots: Vec<PathBuf>,
@@ -176,7 +176,12 @@ fn automatic_candidate_qualified(package: &Package) -> bool {
                 let Ok(bytes) = std::fs::read(entry.path()) else {
                     return false;
                 };
-                if refresh_guard::requires_stock_stringification(&bytes) {
+                let test_disabled = !package
+                    .targets
+                    .iter()
+                    .any(|t| t.kind.iter().any(|k| k == "custom-build"))
+                    && std::env::var_os("RUSTC").is_none_or(|v| v.is_empty());
+                if refresh_guard::requires_stock_stringification_with_cfg(&bytes, test_disabled) {
                     return false;
                 }
             }
@@ -186,6 +191,14 @@ fn automatic_candidate_qualified(package: &Package) -> bool {
 }
 
 impl Config {
+    pub fn requires_stock_stringification(&self, path: &Path, bytes: &[u8]) -> bool {
+        let test_disabled = std::env::var_os("RUSTC").is_none_or(|v| v.is_empty())
+            && !path
+                .ancestors()
+                .any(|parent| self.opaque_build_roots.contains(parent));
+        refresh_guard::requires_stock_stringification_with_cfg(bytes, test_disabled)
+    }
+
     pub fn excluded_target_only(&self, changes: &crate::changes::ChangeSet) -> bool {
         !changes.changes.is_empty()
             && changes.changes.iter().all(|c| {
@@ -195,10 +208,10 @@ impl Config {
                         .iter()
                         .any(|root| c.path.starts_with(root))
                     && !self.captured_rust_inputs.contains(&c.path)
-                    && !self
-                        .opaque_build_roots
-                        .iter()
-                        .any(|root| c.path.starts_with(root))
+                    && !c
+                        .path
+                        .ancestors()
+                        .any(|parent| self.opaque_build_roots.contains(parent))
                     && !c.path.ancestors().any(|parent| {
                         self.input_files
                             .binary_search_by(|input| input.as_path().cmp(parent))
@@ -453,7 +466,7 @@ impl Config {
             .flat_map(|p| normal_roots(p))
             .collect();
         let memory_estimate = estimate_for(&edit)?;
-        let normal_roots: Vec<_> = local.iter().flat_map(|p| normal_roots(p)).collect();
+        let all_normal_roots: Vec<_> = local.iter().flat_map(|p| normal_roots(p)).collect();
         let excluded_target_roots: Vec<PathBuf> = local
             .iter()
             .flat_map(|p| {
@@ -464,7 +477,11 @@ impl Config {
                     root.join("examples"),
                 ]
             })
-            .filter(|root| !normal_roots.iter().any(|normal| root.starts_with(normal)))
+            .filter(|root| {
+                !all_normal_roots
+                    .iter()
+                    .any(|normal| root.starts_with(normal))
+            })
             .collect();
         let stock_frontier_roots = local
             .iter()
@@ -516,7 +533,10 @@ impl Config {
                         })
                     })
             })
-            .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
+            .flat_map(|p| {
+                std::iter::once(p.manifest_path.parent().unwrap().to_path_buf())
+                    .chain(normal_roots(p))
+            })
             .collect();
         // Parent sentinels also observe the first test/example created in a session.
         let mut source_roots: BTreeSet<_> = excluded_target_roots.iter().cloned().collect();
@@ -760,6 +780,42 @@ mod tests {
     }
 
     #[test]
+    fn build_script_cfg_test_cannot_bypass_assert_fidelity_fence() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir(root.join("src")).unwrap();
+        std::fs::write(
+            root.join("build.rs"),
+            "fn main() { println!(\"cargo:rustc-cfg=test\"); }",
+        )
+        .unwrap();
+        let mut meta = metadata(json!({}));
+        meta.workspace_root = root.into();
+        meta.target_directory = root.join("target");
+        meta.packages[0].manifest_path = root.join("Cargo.toml");
+        meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        meta.packages[0].targets[1].src_path = root.join("build.rs");
+        meta.resolve = Some(
+            serde_json::from_value(
+                json!({"nodes":[{"id":"app-id","dependencies":[],"features":[]}]}),
+            )
+            .unwrap(),
+        );
+        let config = Config::resolve(Default::default(), &meta, root).unwrap();
+        assert!(config.requires_stock_stringification(
+            &root.join("src/main.rs"),
+            b"#[cfg(test)] fn f() { assert!(false); }"
+        ));
+        // A custom source root outside the manifest directory has the same script cfg.
+        meta.packages[0].targets[0].src_path = root.join("../shared/main.rs");
+        let config = Config::resolve(Default::default(), &meta, root).unwrap();
+        assert!(config.requires_stock_stringification(
+            &root.join("../shared/main.rs"),
+            b"#[cfg(test)] fn f() { assert!(false); }"
+        ));
+    }
+
+    #[test]
     fn runtime_graph_excludes_build_dev_and_macro_packages() {
         let mut meta = metadata(json!({}));
         for name in ["normal", "build", "dev", "macro"] {
@@ -830,7 +886,7 @@ mod tests {
             config.input_files.sort();
             assert!(!config.excluded_target_only(&changes));
             config.input_files.retain(|p| p != &root.join(folder));
-            config.opaque_build_roots.push(root.into());
+            config.opaque_build_roots.insert(root.into());
             assert!(!config.excluded_target_only(&changes));
             config.opaque_build_roots.clear();
         }

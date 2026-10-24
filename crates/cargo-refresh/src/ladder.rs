@@ -301,7 +301,7 @@ impl Pipeline {
                     .iter()
                     .any(|root| path.starts_with(root))
                     && path.extension().is_some_and(|extension| extension == "rs")
-                    && refresh_guard::requires_stock_stringification(bytes)
+                    && config.requires_stock_stringification(path, bytes)
             })
             .map(|(path, _)| path.clone())
             .collect();
@@ -506,10 +506,10 @@ impl Pipeline {
                         .frontier_roots
                         .iter()
                         .any(|root| change.path.starts_with(root))
-                    && change
-                        .content
-                        .as_deref()
-                        .is_some_and(refresh_guard::requires_stock_stringification)
+                    && change.content.as_deref().is_some_and(|bytes| {
+                        self.config
+                            .requires_stock_stringification(&change.path, bytes)
+                    })
                 {
                     self.stock_stringification.insert(change.path.clone());
                 }
@@ -846,9 +846,10 @@ impl Pipeline {
             }
         }
         if !self.stock_stringification.is_empty()
-            || after
-                .iter()
-                .any(|snapshot| refresh_guard::requires_stock_stringification(&snapshot.bytes))
+            || after.iter().any(|snapshot| {
+                self.config
+                    .requires_stock_stringification(&snapshot.path, &snapshot.bytes)
+            })
         {
             return self.stock(
                 &mut job,

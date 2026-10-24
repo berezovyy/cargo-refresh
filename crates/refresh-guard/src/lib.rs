@@ -551,6 +551,12 @@ pub fn has_async_macro_arguments(bytes: &[u8]) -> bool {
 /// bodies, so a wrapper cannot hide a use from the controller's baseline fence.
 /// The controller caches this per file; this function never reads the filesystem.
 pub fn requires_stock_stringification(bytes: &[u8]) -> bool {
+    requires_stock_stringification_with_cfg(bytes, false)
+}
+
+/// Ignore exact test-only items only when the caller has proved `cfg(test)`
+/// disabled for this normal target. Build scripts can explicitly enable it.
+pub fn requires_stock_stringification_with_cfg(bytes: &[u8], test_disabled: bool) -> bool {
     fn scan(tokens: proc_macro2::TokenStream) -> bool {
         let mut previous = false;
         for token in tokens {
@@ -624,6 +630,12 @@ pub fn requires_stock_stringification(bytes: &[u8]) -> bool {
     let Some(text) = std::str::from_utf8(bytes).ok() else {
         return false;
     };
+    if !test_disabled {
+        return text
+            .parse::<proc_macro2::TokenStream>()
+            .ok()
+            .is_some_and(scan);
+    }
     let Ok(mut file) = syn::parse_file(text) else {
         // Incomplete buffers and opaque token fragments keep the old conservative scan.
         return text
@@ -666,9 +678,14 @@ mod containment_tests {
 
 #[cfg(test)]
 mod running_binary_stringification_tests {
-    use super::requires_stock_stringification as fenced;
+    fn fenced(bytes: &[u8]) -> bool {
+        super::requires_stock_stringification_with_cfg(bytes, true)
+    }
     #[test]
     fn test_only_items_do_not_disable_running_binary_but_active_macros_do() {
+        assert!(super::requires_stock_stringification(
+            b"#[cfg(test)] fn t() { assert!(false); }"
+        ));
         for text in [
             "#[cfg(test)] mod tests { fn t() { assert!(1 == 1); } } fn main() {}",
             "mod nested { #[cfg(test)] fn t() { debug_assert!(false); } }",
