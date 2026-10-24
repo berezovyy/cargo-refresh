@@ -12,6 +12,8 @@
 mod admission;
 mod analysis;
 mod async_methods;
+mod build_script;
+pub use build_script::empty_build_script;
 
 use analysis::Analysis;
 use std::{

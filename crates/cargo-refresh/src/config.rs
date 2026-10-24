@@ -29,6 +29,8 @@ pub struct Resolve {
 pub struct ResolveNode {
     pub id: String,
     pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub features: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -101,6 +103,7 @@ pub struct Config {
     /// Conventional excluded targets, except paths captured as application inputs.
     pub excluded_target_roots: Vec<PathBuf>,
     pub captured_rust_inputs: BTreeSet<PathBuf>,
+    pub opaque_build_roots: Vec<PathBuf>,
     /// Edited library crates with transitive callers outside compiler ownership.
     /// Without an instantiation/inlining proof, even a restart may be stale.
     pub stock_frontier_roots: Vec<PathBuf>,
@@ -141,6 +144,10 @@ impl Config {
                         .iter()
                         .any(|root| c.path.starts_with(root))
                     && !self.captured_rust_inputs.contains(&c.path)
+                    && !self
+                        .opaque_build_roots
+                        .iter()
+                        .any(|root| c.path.starts_with(root))
                     && !self
                         .input_files
                         .iter()
@@ -404,6 +411,28 @@ impl Config {
             })
             .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
             .collect();
+        let opaque_build_roots = local
+            .iter()
+            .filter(|p| {
+                let features = metadata
+                    .resolve
+                    .as_ref()
+                    .and_then(|r| r.nodes.iter().find(|n| n.id == p.id))
+                    .map(|n| n.features.as_slice());
+                p.targets
+                    .iter()
+                    .filter(|t| t.kind.iter().any(|k| k == "custom-build"))
+                    .any(|t| {
+                        let Ok(text) = std::fs::read_to_string(&t.src_path) else {
+                            return true;
+                        };
+                        features.is_none_or(|features| {
+                            !refresh_guard::empty_build_script(&text, features)
+                        })
+                    })
+            })
+            .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
+            .collect();
         let mut source_roots = BTreeSet::new();
         let mut input_files = BTreeSet::from([
             metadata.workspace_root.join("Cargo.toml"),
@@ -468,6 +497,7 @@ impl Config {
             frontier_roots,
             excluded_target_roots,
             captured_rust_inputs: BTreeSet::new(),
+            opaque_build_roots,
             stock_frontier_roots,
             package_roots: local
                 .iter()
@@ -622,6 +652,9 @@ mod tests {
         meta.target_directory = root.join("target");
         meta.packages[0].manifest_path = root.join("Cargo.toml");
         meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        meta.packages[0]
+            .targets
+            .retain(|t| !t.kind.iter().any(|k| k == "custom-build"));
         let mut config = Config::resolve(Default::default(), &meta, root).unwrap();
         for folder in ["tests", "benches", "examples"] {
             std::fs::create_dir_all(root.join(folder)).unwrap();

@@ -37,6 +37,7 @@ Toolchain artifact downloads are a controller integration task; see the
 |---|---|
 | Admitted function bodies, helpers, imports, comments and inserted lines inside the editing frontier | Live patch, state kept |
 | Struct or enum layout, `async fn` changes | Automatic restart; in-memory state is lost |
+| Excluded integration tests, benches and examples with no running-target inputs | Nothing to do; process kept |
 | `Cargo.toml`, `build.rs`, out-of-frontier crates, unsupported compiler features | Normal Cargo build and restart |
 | Syntax or type error | Diagnostic; keep the previous working program |
 | Borrow checker error after an optimistic patch | Diagnostic and patch rollback; use strict mode to wait for checking |
@@ -63,7 +64,8 @@ needs qualification.
 
 Keep frequently edited files small: the warm compiler's work can depend on the
 edited file. The editing frontier is the set of crates owned by rustd; edits
-outside it use Cargo. Use `--edit <crate>` to expand it when needed, accepting the
+outside it use Cargo. The controller automatically adds local dependencies while
+the memory estimate fits. Use `--edit <crate>` for manual selection, accepting the
 extra warm-up and memory cost.
 
 <!-- BENCH:SMALL_FILE_COMPARISON -->

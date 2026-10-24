@@ -484,7 +484,10 @@ impl Pipeline {
         );
     }
     fn publish(&mut self, job: &Job, path: SavePath, reason: String, applied: bool) -> Result<()> {
-        if applied && !matches!(path, SavePath::Skip) && let Some(fast) = self.fast.as_mut() {
+        if applied
+            && !matches!(path, SavePath::Skip)
+            && let Some(fast) = self.fast.as_mut()
+        {
             fast.async_runtime.commit(&fast.async_owners);
             fast.async_owners.clear();
             fast.pending_compiled = false;
@@ -513,7 +516,8 @@ impl Pipeline {
             }
             if !matches!(path, SavePath::Skip) {
                 self.epoch_idle_safe = true;
-                self.unchecked.extend(job.changes.changes.iter().map(|c| c.path.clone()));
+                self.unchecked
+                    .extend(job.changes.changes.iter().map(|c| c.path.clone()));
                 self.generation += 1;
             }
         }
