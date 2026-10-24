@@ -17,9 +17,6 @@ use crate::config::Config;
 pub const QUALIFIED_COMMIT: &str = "b940084d7eb6a299eb4bfeb8e34901bc051e7ac4";
 pub const TARGET: &str = "x86_64-unknown-linux-gnu";
 const GIB: u64 = 1024 * 1024 * 1024;
-// M1 exceeded the proposed 6 GiB peak. Until per-project estimates exist, reserve
-// 13 GiB for warming (research upper bound), plus the required 2 GiB headroom.
-pub const DEFAULT_WARM_PEAK: u64 = 13 * GIB;
 const LIMIT: u64 = 512 * 1024 * 1024;
 const FILES: &[&str] = &[
     "rustd",
@@ -386,8 +383,17 @@ pub fn install_archive(archive: &Path, cache: &Path, toolchain: &Toolchain) -> R
 }
 
 pub fn memory_allows(available: u64, peak: u64) -> bool {
-    peak.checked_add(2 * GIB)
-        .is_some_and(|required| available >= required)
+    crate::memory::allows(available, peak)
+}
+pub fn memory_warning(available: u64, peak: u64) -> String {
+    let shortfall = (u128::from(peak) + u128::from(crate::memory::RESERVE))
+        .saturating_sub(u128::from(available))
+        .div_ceil(1024 * 1024);
+    format!(
+        "Live patching needs an estimated {:.3} GiB + 1 GiB reserve; {:.3} GiB effective memory is available ({shortfall} MiB short). Continuing in cargo mode. Close other large processes or narrow --edit; the fast path will retry when memory recovers.",
+        peak as f64 / GIB as f64,
+        available as f64 / GIB as f64
+    )
 }
 fn qualified_profile(text: &str) -> Result<()> {
     let manifest: toml::Value = toml::from_str(text)?;
@@ -553,15 +559,19 @@ pub fn prepare(config: &mut Config) {
             .ok()
             .map(|v| v.parse::<u64>())
             .transpose()?
-            .unwrap_or(DEFAULT_WARM_PEAK);
-        if !memory_allows(available, peak) {
-            eprintln!(
-                "[refresh] Live patching needs an estimated {:.1} GiB plus 2 GiB reserve; {:.1} GiB is available.\n[refresh] Continuing in cargo mode. Close other large processes and retry to enable live patching.",
-                peak as f64 / GIB as f64,
-                available as f64 / GIB as f64
-            );
-            bail!("insufficient memory for compiler warm-up");
-        }
+            .unwrap_or(config.memory_estimate.peak_bytes);
+        eprintln!(
+            "[refresh] Memory estimate: {:.1} GiB ({} owned Rust lines, {} dependencies, debug info {}) + 1 GiB reserve; {:.1} GiB effective available.",
+            peak as f64 / GIB as f64,
+            config.memory_estimate.rust_lines,
+            config.memory_estimate.dependencies,
+            if config.memory_estimate.debug_info {
+                "on"
+            } else {
+                "off"
+            },
+            available as f64 / GIB as f64
+        );
         let cache = cache_root()?;
         let local = std::env::var_os("CARGO_REFRESH_SUPPORT").map(PathBuf::from);
         let mut root = local
@@ -752,8 +762,8 @@ mod tests {
 
     #[test]
     fn memory_boundary_includes_reserve_and_cannot_overflow() {
-        assert!(memory_allows(15 * GIB, DEFAULT_WARM_PEAK));
-        assert!(!memory_allows(15 * GIB - 1, DEFAULT_WARM_PEAK));
+        assert!(memory_allows(3 * GIB, 2 * GIB));
+        assert!(!memory_allows(3 * GIB - 1, 2 * GIB));
         assert!(!memory_allows(u64::MAX, u64::MAX));
     }
     #[test]

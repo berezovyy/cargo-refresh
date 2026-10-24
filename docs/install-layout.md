@@ -83,19 +83,13 @@ require libunwind and it is unavailable, the diagnostic should say:
 [refresh] Running normal cargo builds + restart (no live patching).
 ```
 
-Before warming, compare `/proc/meminfo` MemAvailable with the project's estimated
-warm-up peak plus a 2 GiB reserve. A missing estimate is not evidence that the
-project fits; use a conservative estimate. Memory warning:
-
-```text
-[refresh] Live patching needs an estimated <peak> GiB plus 2 GiB reserve; <available> GiB is available.
-[refresh] Continuing in cargo mode. Close other large processes and retry to enable live patching.
-```
-
-The development scripts independently enforce a 6 GiB available-memory floor,
-stopping only their own process groups. Runtime controller budgeting is a separate
-integration task. Do not describe the default line-table compiler as meeting a
-6 GiB startup peak: M1 qualification exceeded that target.
+Before warming, compare the project estimate plus a **1 GiB reserve** with the
+minimum of host MemAvailable and cgroup-v2 ancestor headroom. The controller
+reports the estimate and effective available memory on startup, selects stock
+Cargo when the compiler does not fit, and retries after stable recovery.
+See [memory.md](memory.md) for the project model, calibration limitations, runtime
+pressure guard, hysteresis and memory-warning text. Research session guards
+independently retain their 6 GiB host safety floor.
 
 ## Build host compatibility and qualification
 
@@ -170,12 +164,11 @@ Unknown toolchains, target/CPU/profile/compiler-wrapper overrides, nonempty Carg
 configuration files, unavailable runtime libraries, and insufficient memory select
 stock Cargo. Nonempty Cargo config is conservatively refused even when it contains
 only harmless settings; qualification of individual settings is future work. Stock
-builds preserve the active toolchain and user Rust flags. Until project-specific
-estimates are available, startup uses a conservative **estimated** 13 GiB compiler
-peak plus 2 GiB reserve, based on the research upper bound. This is an admission
-estimate, not a new measured product peak. An operator with a measured project
-estimate can set `CARGO_REFRESH_WARM_PEAK_BYTES`. Runtime memory guards remain
-separate and active during compiler operations.
+builds preserve the active toolchain and user Rust flags. Startup uses an estimate
+from owned Rust LOC and dependency count, plus 1 GiB reserve; the estimate is
+shown in first-run output. An operator with a measured whole-session peak can set
+`CARGO_REFRESH_WARM_PEAK_BYTES`. [Memory budgeting](memory.md) describes cgroup
+accounting, runtime degradation and automatic recovery.
 
 Portable release builds are now the default:
 

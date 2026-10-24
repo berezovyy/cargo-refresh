@@ -79,6 +79,7 @@ pub struct Config {
     pub support: Option<std::sync::Arc<crate::install::Support>>,
     #[serde(skip)]
     pub invocation: RunArgs,
+    pub memory_estimate: crate::memory::Estimate,
     pub package: String,
     pub bin: String,
     pub features: Features,
@@ -221,7 +222,7 @@ impl Config {
                 bail!("editable crate {name} is not a local package in cargo metadata");
             }
         }
-        let frontier_roots = local
+        let frontier_roots: Vec<PathBuf> = local
             .iter()
             .filter(|p| p.name == package.name || edit.contains(&p.name))
             .flat_map(|p| {
@@ -249,6 +250,36 @@ impl Config {
                     break;
                 }
             }
+        }
+        let memory_roots: Vec<_> = local
+            .iter()
+            .filter(|p| owned.contains(p.id.as_str()))
+            .flat_map(|p| {
+                p.targets
+                    .iter()
+                    .filter(|t| {
+                        t.kind.iter().any(|k| {
+                            matches!(
+                                k.as_str(),
+                                "lib"
+                                    | "rlib"
+                                    | "dylib"
+                                    | "cdylib"
+                                    | "staticlib"
+                                    | "proc-macro"
+                                    | "bin"
+                            )
+                        })
+                    })
+                    .filter_map(|t| t.src_path.parent().map(Path::to_path_buf))
+            })
+            .collect();
+        let mut memory_estimate = crate::memory::Estimate::project(
+            &memory_roots,
+            linked.iter().filter(|id| !owned.contains(**id)).count(),
+        )?;
+        if crate::memory::debug_info_disabled(&metadata.workspace_root.join("Cargo.toml"))? {
+            memory_estimate = memory_estimate.without_debug_info();
         }
         let stock_frontier_roots = local
             .iter()
@@ -313,6 +344,7 @@ impl Config {
             ]);
         }
         Ok(Self {
+            memory_estimate,
             support: None,
             invocation,
             package: package.name.clone(),

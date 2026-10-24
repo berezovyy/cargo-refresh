@@ -96,6 +96,8 @@ pub struct Pipeline {
     last_save: Instant,
     epoch_idle_safe: bool,
     last_epoch: Instant,
+    memory_poll: Instant,
+    memory_recovery: crate::memory::Recovery,
 }
 fn mark(phases: &mut BTreeMap<Phase, f64>, phase: Phase) {
     phases.insert(phase, monotonic_seconds().unwrap_or(0.0) * 1000.0);
@@ -157,9 +159,11 @@ fn start_fast(
         .support
         .as_ref()
         .context("live patching disabled; using stock Cargo")?;
+    let available = rustd::memory_available()?;
     ensure!(
-        crate::install::memory_allows(rustd::memory_available()?, support.warm_peak_bytes),
-        "insufficient memory for compiler warm-up"
+        crate::install::memory_allows(available, support.warm_peak_bytes),
+        "{}",
+        crate::install::memory_warning(available, support.warm_peak_bytes)
     );
     let control = session_home.join(format!("promote-{seq}"));
     fs::create_dir_all(control.parent().unwrap())?;
@@ -220,6 +224,7 @@ fn start_fast(
         "capture retained a spliced binary; native recapture required"
     );
     let extractor = ManifestExtractor::new(&binary, config.allow_tracing_metadata)?;
+    client.guard_memory()?;
     Ok(Fast {
         client,
         extractor,
@@ -264,7 +269,7 @@ impl Pipeline {
         let floor = std::env::var("REFRESH_MEMORY_MIN_BYTES")
             .ok()
             .and_then(|s| s.parse().ok())
-            .unwrap_or(2 * 1024 * 1024 * 1024);
+            .unwrap_or(crate::memory::RESERVE);
         let mut runtime = Supervisor::new(
             &config.workspace_root,
             &config.target_directory.join("refresh"),
@@ -329,6 +334,8 @@ impl Pipeline {
             last_save: Instant::now(),
             epoch_idle_safe: false,
             last_epoch: Instant::now(),
+            memory_poll: Instant::now(),
+            memory_recovery: crate::memory::Recovery::new(Instant::now()),
         })
     }
     fn event(&self, name: &'static str, message: impl Into<String>) {
@@ -362,7 +369,16 @@ impl Pipeline {
                 self.fast = Some(fast);
             }
             Err(error) => {
-                self.event("fast_unavailable", format!("{error:#}"));
+                self.recovery_restart = true;
+                self.memory_recovery.cooldown(Instant::now());
+                self.event(
+                    if rustd::memory_stop_reported(&error) {
+                        "memory_degraded"
+                    } else {
+                        "fast_unavailable"
+                    },
+                    format!("{error:#}"),
+                );
                 let result = fallback::build(
                     &self.config,
                     &self.config.workspace_root,
@@ -372,6 +388,7 @@ impl Pipeline {
                 ensure!(result.success, "{}", result.diagnostic);
                 self.runtime
                     .start(&result.executable.context("stock build has no executable")?)?;
+                self.checked_available = true;
             }
         }
         self.last_epoch = Instant::now();
@@ -390,7 +407,9 @@ impl Pipeline {
                 );
             }
         }
-        if let Some(workspace) = &self.workspace {
+        if self.fast.is_some()
+            && let Some(workspace) = &self.workspace
+        {
             let mut check = Checker::start(&self.config, workspace, self.fence.clone(), self.floor);
             let result = check.finish()?;
             ensure!(result.success, "initial cargo check: {}", result.diagnostic);
@@ -433,9 +452,19 @@ impl Pipeline {
                 .fence
                 .stopping
                 .load(std::sync::atomic::Ordering::SeqCst)
+            || !self.memory_recovery.can_start(Instant::now())
         {
             return;
         }
+        let peak = self.config.support.as_ref().unwrap().warm_peak_bytes;
+        if !crate::memory::sample().is_ok_and(|sample| {
+            crate::memory::allows(sample.available, peak) && !sample.pressured(self.floor)
+        }) {
+            return;
+        }
+        // Ordinary recaptures can resume immediately after a superseded
+        // attempt. Only an actual memory stop/failure starts the cooldown.
+        self.memory_recovery.reset_stability();
         self.reset_seq += 1;
         let seq = self.reset_seq;
         let config = self.config.clone();
@@ -681,14 +710,20 @@ impl Pipeline {
             }
             self.view_dirty = current;
         }
-        if self.config.support.is_none() && job.changes.disposition != Disposition::Skip {
-            return self.stock(
-                &mut job,
-                "live patching disabled; using normal cargo builds + restart".into(),
-            );
+        if (self.config.support.is_none() || self.fast.is_none())
+            && job.changes.disposition != Disposition::Skip
+        {
+            let reason = if self.config.support.is_none() {
+                "live patching disabled; using normal cargo builds + restart"
+            } else {
+                "compiler unavailable or recovering; using normal cargo builds + restart"
+            };
+            return self.stock(&mut job, reason.into());
         }
         if job.changes.disposition == Disposition::Skip {
-            if let Some(workspace) = &self.workspace {
+            if self.fast.is_some()
+                && let Some(workspace) = &self.workspace
+            {
                 self.checker = Some((
                     Checker::start(&self.config, workspace, self.fence.clone(), self.floor),
                     job.changes.clone(),
@@ -909,13 +944,30 @@ impl Pipeline {
                 if user_error(&detail) {
                     return self.publish(&job, SavePath::Error, detail, false);
                 }
-                return self.stock(
-                    &mut job,
+                if rustd::memory_stop_reported(&error)
+                    || detail.contains("effective available")
+                    || detail.contains("effective memory budget")
+                {
+                    self.memory_recovery.cooldown(Instant::now());
+
+                    self.event(
+                        if rustd::memory_stop_reported(&error) {
+                            "memory_degraded"
+                        } else {
+                            "fast_unavailable"
+                        },
+                        format!("[refresh] {detail}. Retrying when memory recovers."),
+                    );
+                }
+                let reason = if rustd::memory_stop_reported(&error) {
+                    "compiler stopped under memory pressure; using Cargo".to_owned()
+                } else {
                     format!(
                         "compiler failed: {}",
                         detail.lines().next().unwrap_or("unknown error")
-                    ),
-                );
+                    )
+                };
+                return self.stock(&mut job, reason);
             }
         };
         if build.repeated {
@@ -1142,12 +1194,7 @@ impl Pipeline {
         if let Some(status) = self.runtime.poll_exit()? {
             self.event("application_exit", format!("application exited: {status}"));
         }
-        if let Some(fast) = self.fast.as_mut()
-            && let Err(error) = fast.client.guard_memory()
-        {
-            self.fast = None;
-            self.event("fast_unavailable", error.to_string());
-        }
+        self.poll_memory();
         if let Some(reset) = &self.reset
             && reset.task.is_finished()
         {
@@ -1168,10 +1215,18 @@ impl Pipeline {
                             "fast path ready; synchronizing latest sources",
                         );
                     }
-                    Err(error) => self.event(
-                        "worker_reset_failed",
-                        format!("fast path unavailable: {error:#}"),
-                    ),
+                    Err(_) if reset.cancel.load(std::sync::atomic::Ordering::SeqCst) => {}
+                    Err(error) => {
+                        self.memory_recovery.cooldown(Instant::now());
+                        self.event(
+                            if rustd::memory_stop_reported(&error) {
+                                "memory_degraded"
+                            } else {
+                                "worker_reset_failed"
+                            },
+                            format!("fast path unavailable: {error:#}"),
+                        );
+                    }
                 }
             }
         }
@@ -1254,6 +1309,48 @@ impl Pipeline {
         }
         self.poll_epoch()?;
         Ok(())
+    }
+
+    /// Idle and reset checks share the same cadence as blocking compiler work.
+    /// Recovery needs five stable seconds at the admission budget; a
+    /// failed/degraded attempt has a 30-second cooldown to prevent thrashing.
+    fn poll_memory(&mut self) {
+        if self.memory_poll.elapsed() < crate::memory::INTERVAL {
+            return;
+        }
+        self.memory_poll = Instant::now();
+        if let Some(reason) = self
+            .fast
+            .as_ref()
+            .and_then(|fast| fast.client.memory_failure())
+        {
+            self.quarantine();
+            self.recovery_restart = true;
+            self.memory_recovery.cooldown(Instant::now());
+            self.event("memory_degraded", reason);
+            return;
+        }
+        // The client's independent watchdog covers active compilers, including
+        // blocking checks, app startup and extraction. This poll owns recovery.
+        if self.fast.is_some() || self.reset.is_some() {
+            return;
+        }
+        let Some(support) = &self.config.support else {
+            return;
+        };
+        let sample = match crate::memory::sample() {
+            Ok(sample) => sample,
+            Err(_) => {
+                self.memory_recovery.reset_stability();
+                return;
+            }
+        };
+        if self
+            .memory_recovery
+            .observe(Instant::now(), sample, support.warm_peak_bytes, self.floor)
+        {
+            self.begin_reset();
+        }
     }
 
     /// Maintenance has no editor revision of its own. Only restart a fully

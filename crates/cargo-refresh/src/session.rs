@@ -198,17 +198,18 @@ pub fn run(mut config: Config) -> Result<()> {
                         message,
                         revision,
                     } => {
-                        if config.verbose > 0
-                            || matches!(
-                                name,
-                                "tainted"
-                                    | "revert"
-                                    | "revert_failed"
-                                    | "operation_failed"
-                                    | "fast_unavailable"
-                                    | "worker_reset_failed"
-                                    | "application_exit"
-                            )
+                        if name != "memory_degraded"
+                            && (config.verbose > 0
+                                || matches!(
+                                    name,
+                                    "tainted"
+                                        | "revert"
+                                        | "revert_failed"
+                                        | "operation_failed"
+                                        | "fast_unavailable"
+                                        | "worker_reset_failed"
+                                        | "application_exit"
+                                ))
                         {
                             eprintln!(
                                 "{}",

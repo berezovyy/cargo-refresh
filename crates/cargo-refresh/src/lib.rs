@@ -27,3 +27,5 @@ pub mod ui;
 
 pub mod install;
 pub mod symbolize;
+
+pub mod memory;
