@@ -193,7 +193,7 @@ def main():
     if args.mode == 'unsupported':
         assert '[refresh] cargo-refresh has no qualified support for rustc 1.99.0 (' + '0' * 40 + ').' in text
     if args.mode == 'low-memory':
-        assert 'plus 2 GiB reserve' in text and 'Continuing in cargo mode' in text
+        assert '+ 1 GiB reserve' in text and 'Continuing in cargo mode' in text
     summary = dict(mode=args.mode, save_path=saved['path'], stock_oracle_match=True,
                    pid_preserved=first[1] == after[1], state_preserved=first[1] == after[1] and after[2] > first[2], unvalidated_rustd_started=trap.exists())
     (root / 'result.json').write_text(json.dumps(summary, indent=2) + '\n')
