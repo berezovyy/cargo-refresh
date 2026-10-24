@@ -1,0 +1,5 @@
+safepoint = "hookless-page-hazards"
+arena = true
+prime_source = "crates/api/src/handlers.rs"
+allow_tracing_metadata = true
+probe_mode = "computed-per-request"

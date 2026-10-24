@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "commit_hash": "b940084d7eb6a299eb4bfeb8e34901bc051e7ac4",
+  "rustc_vv": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1",
+  "target": "x86_64-unknown-linux-gnu",
+  "simd128": "indirect",
+  "personality": "rust_eh_personality",
+  "type_id_source": "mirrored",
+  "source_sha256": "b798bc4ee55057672c906bf43e830c8a8102217f197281deb1276cab7fb5101e",
+  "fixture": "web"
+}

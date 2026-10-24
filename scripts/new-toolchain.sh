@@ -7,9 +7,8 @@ usage() { echo 'Usage: scripts/new-toolchain.sh <toolchain> [--dry-run]'; }
 TC=$1
 DRY=0
 if [[ $# == 2 ]]; then [[ $2 == --dry-run ]] || { usage >&2; exit 2; }; DRY=1; fi
-RESEARCH=${REFRESH_RESEARCH_ROOT:-/path/to/research}
-LANE=${REFRESH_LANE:-$RESEARCH/tools/lane.sh}
-EXP=$RESEARCH/experiments/EXP-104b-toolchain-qualification
+source "$ROOT/scripts/packaging-common.sh"
+QUALIFICATION=$ROOT/scripts/qualification
 export RUSTUP_TOOLCHAIN=$TC
 export CARGO_BUILD_JOBS=4
 # These scripts qualify only the default x86-64 GNU ABI, never an inherited CPU/profile override.
@@ -26,16 +25,17 @@ exec > >(tee "$OUT/qualification.log") 2>&1
 rustc -Vv > "$OUT/rustc.txt"
 cargo -Vv > "$OUT/cargo.txt"
 echo "Candidate $TC ($COMMIT); output $OUT; dry-run=$DRY"
+require_rustc_dev
 SYSROOT=$(rustc --print sysroot)
 EXTRA=()
 [[ $(sed -n 's/^release: //p' "$OUT/rustc.txt") != *nightly* ]] || EXTRA+=(--cfg abi_nightly)
 # Matching rustc-dev must already be installed; never modify global defaults/config.
 ABI_FACTS_RUSTC="$(cat "$OUT/rustc.txt")" RUSTC_BOOTSTRAP=1 \
-  python3 "$ROOT/scripts/run-guarded.py" nice -n 19 rustc "$EXP/helper/main.rs" "${EXTRA[@]}" \
+  python3 "$ROOT/scripts/run-guarded.py" nice -n 19 rustc "$QUALIFICATION/helper.rs" "${EXTRA[@]}" \
   --edition 2024 -C debuginfo=0 -C opt-level=0 -L "$SYSROOT/lib" \
   -C "link-arg=-Wl,-rpath,$SYSROOT/lib" -o "$OUT/abi-facts-helper"
 # Copy source only. No experiment file/mtime/target is changed.
-python3 - "$EXP/work" "$OUT" <<'PY'
+python3 - "$QUALIFICATION/fixtures" "$OUT" <<'PY'
 import shutil, sys
 from pathlib import Path
 for name in ('web', 'statearena', 'statearena-derive'):
@@ -49,12 +49,12 @@ rm -f "$OUT/facts.jsonl"
   REFRESH_FACTS_OUT=$OUT REFRESH_FACTS_HELPER=$OUT/abi-facts-helper \
     RUSTC_WRAPPER=$ROOT/scripts/qualification/facts-wrapper.py \
     CARGO_BUILD_TARGET=x86_64-unknown-linux-gnu \
-    "$LANE" build -- python3 "$ROOT/scripts/run-guarded.py" nice -n 19 \
-      cargo build --offline --locked -p abi-probe -j 4
+    run_lane build python3 "$ROOT/scripts/run-guarded.py" nice -n 19 \
+      cargo build --locked -p abi-probe -j 4
 )
-REFERENCE=$RESEARCH/experiments/EXP-128-fast-refresh-v4/results/bundles/web/$COMMIT.json
+REFERENCE=$QUALIFICATION/reference/$COMMIT.json
 COMPARE=()
-[[ ! -f $REFERENCE ]] || COMPARE=(--reference "$REFERENCE" --reference-facts "$EXP/results/inherited-helper-facts/facts-web-$TC.jsonl")
+[[ ! -f $REFERENCE ]] || COMPARE=(--reference "$REFERENCE" --reference-facts "$QUALIFICATION/reference/facts-web-$TC.jsonl")
 python3 "$ROOT/scripts/qualification/collect.py" "$TC" "$OUT" "${COMPARE[@]}"
 # Match runtime stock TypeIds with compiler facts in the same crate identity, at both profiles.
 # Full rustd/captured-object TypeId matrix remains an explicit manual release gate.

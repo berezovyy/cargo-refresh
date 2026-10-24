@@ -4,7 +4,63 @@ This is the M5 packaging contract. Verified local installation and cache selecti
 are implemented; public downloading remains planned. Releases are built by hand;
 no upload or CI/CD is configured. See the implemented first-run section below.
 
-The controller is installed separately with `cargo install cargo-refresh`. Toolchain
+## Source install
+
+Public package, fork and artifact URLs are not published yet. In the commands
+below, replace the two angle-bracket placeholders with the repositories supplied
+by the release maintainer; the rustd URL must contain the qualified `refresh/m1`
+branch and its pinned submodule commits. Do not substitute upstream's default
+branch. For an offline local clone test, local repository paths can replace those
+URLs and the submodule URL can be overridden with `git -c
+submodule.vendor/rust-analyzer.url=/path/to/local/submodule ...`.
+
+Install system prerequisites first: Git, curl and CA certificates, a C/C++ build
+toolchain and linker, make, Python 3, binutils (`objdump`, `nm`), GNU tar, and zstd.
+Use your distribution's packages or user-space tools. No sudo is invoked by these
+scripts. Rustup is installed into your own HOME:
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup-init.sh
+sh rustup-init.sh -y --no-modify-path --profile minimal --default-toolchain 1.99.0
+export PATH="$HOME/.cargo/bin:$PATH"
+export RUSTUP_TOOLCHAIN=1.99.0
+rustup component add rustc-dev rust-src --toolchain 1.99.0
+
+git clone <cargo-refresh-repository-url> cargo-refresh
+git clone --branch refresh/m1 --recurse-submodules <qualified-rustd-fork-url> rustd
+cd cargo-refresh
+cargo install --locked --path crates/cargo-refresh -j 4
+scripts/release.sh --native 0.1.0-dev
+export CARGO_REFRESH_DIST="$(pwd)/dist/cargo-refresh-0.1.0-dev-b940084d7eb6a299eb4bfeb8e34901bc051e7ac4-x86_64-linux.tar.zst"
+cd /path/to/your-project
+cargo refresh run --bin your-binary
+```
+
+A plain `cargo new` app prints once and exits: replace its main with a long-running
+loop or server to observe live changes. Save a non-inlined function body while the
+program runs. Struct layout edits restart the process and lose its in-memory state.
+Invalid saves report diagnostics while keeping the last working program; fixing
+the source resumes processing.
+
+The source release build downloads locked dependencies as needed. It includes the
+ABI helper, qualification fixture, historical qualified bundle and raw reference
+facts in this repository; it does not need a research checkout or developer cache.
+The native artifact supports the build host's glibc. Producing a distributable
+old-glibc artifact uses the portable recipe below and still requires qualification.
+`rustc-dev` is needed to build the ABI helper; `rust-src` is needed by rustd when
+loading the standard library. Both must match the selected toolchain. Contributor
+formatting/tests additionally use `rustfmt` and `clippy`.
+
+`REFRESH_RUSTD_SOURCE` overrides the default sibling `../rustd` source directory.
+`REFRESH_LANE` optionally supplies a shared-machine resource-lane script; no lane
+script is needed on an ordinary user's machine. Builds use four jobs and a RAM
+guard. On shared research machines, set the lane override or run the complete
+build under the assigned rustd/build lanes. Scratch and output live in
+`.release-work/` and `dist/`; set TMPDIR to an on-disk private directory when /tmp
+is RAM-backed. A cold source build is not a claim of an under-five-minute install.
+
+The controller is installed separately from source as above (a future published
+package will use `cargo install cargo-refresh`). Toolchain
 support is cached beneath `${XDG_CACHE_HOME:-$HOME/.cache}/cargo-refresh/<rustc-commit>/`:
 
 ```text
@@ -107,8 +163,7 @@ completed archive installation plus one live save with PID/counter continuity
 and a matching stock oracle. This is container evidence on the host kernel;
 full release/app qualification remains a manual gate.
 
-`REFRESH_RESEARCH_ROOT`, `REFRESH_RUSTD_SOURCE` and `REFRESH_LANE` override local
-source/lane locations. `.release-work/` holds warm build targets and qualification
+`REFRESH_RUSTD_SOURCE` and optional `REFRESH_LANE` override source/lane locations. `.release-work/` holds warm build targets and qualification
 logs; `dist/` holds local archives. They are git-ignored. Do not remove another
 worker's targets. Requires local zstd, GNU tar, binutils, C compiler, Python, make,
 Rust 1.99.0 and matching rustc-dev. No system/global installation is performed.
@@ -221,3 +276,21 @@ Edits to an owned crate with a transitive caller outside the compiler frontier
 use stock Cargo: restarting a partial binary cannot update excluded generic,
 inlined, or const-evaluated copies. Add the callers with `--edit` to own the
 complete dependency closure.
+
+## Troubleshooting
+
+- **Missing rustc-dev:** install `rustup component add rustc-dev --toolchain 1.99.0`.
+  Setting a different global default does not supply the matching compiler library.
+- **Compiler cannot load std:** install `rustup component add rust-src --toolchain 1.99.0`.
+- **Missing source checkout or submodule:** clone the qualified fork beside this repo
+  as `rustd`, or set `REFRESH_RUSTD_SOURCE`; initialize its pinned submodules.
+- **Missing release prerequisite:** install the named system tool. `--native` avoids
+  the extra Zig/cargo-zigbuild dependencies needed for portable artifacts.
+- **Dependency unavailable:** allow network access for the initial build; scripts
+  no longer force offline mode. Cargo's explicit offline/proxy/registry settings
+  still apply. Refresh currently refuses nonempty Cargo config for live mode.
+- **Support unavailable:** keep the archive plus its adjacent `.sha256`, and pass
+  `--from-archive /absolute/path/to/archive.tar.zst`. Read the concrete rejection
+  reason; mismatched/corrupt support deliberately selects stock mode.
+- **Low memory:** close other heavy programs, reduce the editing frontier or use
+  stock mode. Do not override estimates just to force a compiler into low RAM.

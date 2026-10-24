@@ -1,0 +1,67 @@
+name = "web"
+description = "Operations backend: axum, tokio, serde; four-crate workspace with 36 resource handlers"
+build = "cargo build"
+bin = "target/debug/web-server"
+default_port = 18081
+probe = { kind = "http", path = "/__probe" }
+
+[[scenario]]
+id = "S1"
+kind = "literal"
+description = "Change the response label in a leaf API function"
+file = "crates/api/src/handlers.rs"
+find = "\"S1:v1\""
+replace = "\"S1:v2\""
+expect = "S1:v2"
+
+[[scenario]]
+id = "S2"
+kind = "leaf-logic"
+description = "Change priority arithmetic in the leaf API crate"
+file = "crates/api/src/handlers.rs"
+find = "base + 1 // S2 leaf arithmetic"
+replace = "base + 2 // S2 leaf arithmetic"
+expect = "S2:v2"
+
+[[scenario]]
+id = "S3"
+kind = "deep-fn"
+description = "Change retention policy in domain, below store and api"
+file = "crates/domain/src/lib.rs"
+find = "30 + 1 // S3 deep policy body"
+replace = "30 + 2 // S3 deep policy body"
+expect = "S3:v2"
+
+[[scenario]]
+id = "S4"
+kind = "signature"
+description = "Widen the shared VersionStamp field from u32 to u64 (prepared compatible variants)"
+file = "crates/domain/src/lib.rs"
+find = "pub revision: u32, // S4 prepared variant"
+replace = "pub revision: u64, // S4 prepared variant"
+expect = "S4:v2"
+
+[[scenario]]
+id = "S5"
+kind = "derive"
+description = "Rename a serde-derived JSON key consumed by the probe"
+file = "crates/domain/src/lib.rs"
+find = "#[serde(rename = \"S5:v1\")]"
+replace = "#[serde(rename = \"S5:v2\")]"
+expect = "S5:v2"
+
+[[scenario]]
+id = "S6"
+kind = "noop"
+description = "Rewrite the API file with identical contents"
+file = "crates/api/src/handlers.rs"
+find = "//! Resource handlers for a small operations dashboard."
+replace = "//! Resource handlers for a small operations dashboard."
+
+[[scenario]]
+id = "S7"
+kind = "comment-top"
+description = "Insert a comment before the largest API source file"
+file = "crates/api/src/handlers.rs"
+find = "//! Resource handlers for a small operations dashboard."
+replace = "// S7 span shift: this comment deliberately moves every item.\n//! Resource handlers for a small operations dashboard."

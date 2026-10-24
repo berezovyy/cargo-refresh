@@ -16,9 +16,9 @@ set -- "${ARGS[@]}"
   echo 'Usage: scripts/release.sh [--portable|--native] <version> (portable is default)' >&2; exit 2;
 }
 VERSION=$1
-RESEARCH=${REFRESH_RESEARCH_ROOT:-/path/to/research}
-RUSTD=${REFRESH_RUSTD_SOURCE:-rustd}
-LANE=${REFRESH_LANE:-$RESEARCH/tools/lane.sh}
+RUSTD=${REFRESH_RUSTD_SOURCE:-$ROOT/../rustd}
+source "$ROOT/scripts/packaging-common.sh"
+[[ -f $RUSTD/Cargo.toml ]] || { echo "Clone the qualified rustd fork beside cargo-refresh as rustd, or set REFRESH_RUSTD_SOURCE" >&2; exit 1; }
 [[ -z $(git -C "$ROOT" status --porcelain -- agent) ]] || { echo 'Commit agent changes before release' >&2; exit 1; }
 export RUSTUP_TOOLCHAIN=1.99.0
 export CARGO_BUILD_JOBS=4
@@ -26,10 +26,13 @@ unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTC_WRAPPER RUSTC_WORKSPACE_WRAPPER CA
 COMMIT=$(rustc -Vv | sed -n 's/^commit-hash: //p')
 [[ $COMMIT == b940084d7eb6a299eb4bfeb8e34901bc051e7ac4 ]] || { echo 'Unqualified rustc commit; run manual qualification first' >&2; exit 1; }
 [[ $(uname -sm) == 'Linux x86_64' ]] || { echo 'Only Linux x86_64 releases are supported' >&2; exit 1; }
-for tool in zstd tar objdump nm sha256sum python3 make cc; do command -v "$tool" >/dev/null; done
+for tool in zstd tar objdump nm sha256sum python3 make cc; do
+  command -v "$tool" >/dev/null || { echo "Missing release prerequisite: $tool (see docs/install-layout.md)" >&2; exit 1; }
+done
+require_rustc_dev
 [[ $(git -C "$RUSTD" branch --show-current) == refresh/m1 ]] || { echo 'rustd must be on refresh/m1' >&2; exit 1; }
 # Check the compiler and RA together inside their resource lane, before compiling.
-"$LANE" rustd -- bash -c 'test -z "$(git -C "$1" status --porcelain)" && test -z "$(git -C "$1/vendor/rust-analyzer" status --porcelain)"' _ "$RUSTD" || {
+run_lane rustd bash -c 'test -z "$(git -C "$1" status --porcelain)" && test -z "$(git -C "$1/vendor/rust-analyzer" status --porcelain)"' _ "$RUSTD" || {
   echo 'Compiler/RA sources must be clean' >&2; exit 1;
 }
 RUSTD_COMMIT=$(git -C "$RUSTD" rev-parse HEAD)
@@ -58,9 +61,9 @@ else
   TARGET_ARGS=()
 fi
 # Build with bounded parallelism and RAM guard, private target, no daemon.
-"$LANE" build -- python3 "$ROOT/scripts/run-guarded.py" env \
+run_lane build python3 "$ROOT/scripts/run-guarded.py" env \
   CARGO_TARGET_DIR="$TARGET_DIR" CARGO_PROFILE_RELEASE_DEBUG=0 \
-  nice -n 19 cargo "$BUILD_COMMAND" "${TARGET_ARGS[@]}" --manifest-path "$RUSTD/Cargo.toml" --release --locked --offline -p rustd --bins -j 4
+  nice -n 19 cargo "$BUILD_COMMAND" "${TARGET_ARGS[@]}" --manifest-path "$RUSTD/Cargo.toml" --release --locked -p rustd --bins -j 4
 for bin in rustd cargo-rustd rustd-rustc; do
   install -m 755 "$BINARY_DIR/$bin" "$STAGE/$bin"
 done
@@ -73,7 +76,7 @@ if (( PORTABLE )); then
     LDLIBS='-Wl,-z,now -ldl -lpthread'
   install -m 755 "$ROOT/agent/build-portable/librefresh.so" "$STAGE/librefresh.so"
 else
-  nice -n 19 make -B -C "$ROOT/agent" release
+  nice -n 19 make -B -C "$ROOT/agent" release LDLIBS='-Wl,-z,now -ldl -lpthread'
   install -m 755 "$ROOT/agent/build-release/librefresh.so" "$STAGE/librefresh.so"
 fi
 "$ROOT/scripts/new-toolchain.sh" 1.99.0 --dry-run
@@ -95,14 +98,14 @@ agent_static_libunwind=$STATIC
 glibc_max=$(if (( PORTABLE )); then echo 2.28; else echo host; fi)
 METADATA
 mkdir "$STAGE/licenses"
-"$LANE" rustd -- bash -c 'for file in LICENSE-MIT LICENSE-APACHE; do install -m 644 "$1/vendor/rust-analyzer/$file" "$2/licenses/rust-analyzer-$file"; done' _ "$RUSTD" "$STAGE"
+run_lane rustd bash -c 'for file in LICENSE-MIT LICENSE-APACHE; do install -m 644 "$1/vendor/rust-analyzer/$file" "$2/licenses/rust-analyzer-$file"; done' _ "$RUSTD" "$STAGE"
 for file in LICENSE-MIT LICENSE-APACHE; do
   install -m 644 "$ROOT/$file" "$STAGE/licenses/cargo-refresh-$file"
   install -m 644 "$RUSTD/$file" "$STAGE/licenses/rustd-$file"
 done
 # A concurrent source change would make the recorded source identity misleading.
 [[ $(git -C "$RUSTD" rev-parse HEAD) == "$RUSTD_COMMIT" ]] || { echo 'Compiler changed during release' >&2; exit 1; }
-"$LANE" rustd -- bash -c 'test -z "$(git -C "$1" status --porcelain)"' _ "$RUSTD"
+run_lane rustd bash -c 'test -z "$(git -C "$1" status --porcelain)"' _ "$RUSTD"
 (
   cd "$STAGE"
   find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS
