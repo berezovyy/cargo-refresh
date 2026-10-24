@@ -6,11 +6,16 @@ pub fn save(event: &SaveEvent, verbose: u8) {
         SavePath::Stock => ("⏳", "cargo"),
         SavePath::Error => ("✗", "error"),
         SavePath::Waiting => ("⏳", "waiting"),
+        SavePath::Skip if event.reason == "no effect on this build" => {
+            ("·", "no effect on this build")
+        }
         SavePath::Skip => ("·", "unchanged"),
     };
     eprintln!(
         "{symbol} {label}{}",
-        if event.reason.is_empty() {
+        if event.reason.is_empty()
+            || (matches!(event.path, SavePath::Skip) && event.reason == label)
+        {
             String::new()
         } else {
             format!(" — {}", event.reason.lines().next().unwrap_or_default())

@@ -128,11 +128,24 @@ fn terminate(child: &mut Child, grace: Duration) {
 pub struct Build {
     /// A full native link replaces the runtime and all manifest/extractor state.
     pub native_rebase: bool,
+    /// Explicit unchanged sync, allowed only for an undelivered compiled result.
+    pub repeated: bool,
+    pub no_effect: bool,
     pub manifest_path: PathBuf,
     pub candidate_path: PathBuf,
     pub manifest: Vec<u8>,
 }
 impl Build {
+    /// A newer unexplained zero-output build invalidates an older pending
+    /// result; otherwise that old code could hide an ignored source edit.
+    pub fn pending_after(&self, previous: &crate::manifest::State, pending: bool) -> bool {
+        if self.repeated {
+            pending
+        } else {
+            self.ensure_compiled_change(previous).is_ok() || (self.no_effect && pending)
+        }
+    }
+
     /// A new generation number is not evidence that an admitted source edit
     /// reached machine code. Manifests carry delta pages but cumulative writes;
     /// old redirects must not make an empty build look successful.
@@ -388,6 +401,9 @@ impl Client {
         self.build_with_async_certificates(false)
     }
     pub fn build_with_async_certificates(&mut self, async_certs: bool) -> Result<Build> {
+        self.build_pending(async_certs, false)
+    }
+    pub fn build_pending(&mut self, async_certs: bool, pending: bool) -> Result<Build> {
         self.check_daemon()?;
         self.guard_memory()?;
         let sockets = sockets(&self.transport_home().join("workers"))?;
@@ -407,6 +423,8 @@ impl Client {
             self.last_manifest.clear();
             return Ok(Build {
                 native_rebase: true,
+                repeated: false,
+                no_effect: false,
                 manifest_path: PathBuf::new(),
                 candidate_path,
                 manifest: Vec::new(),
@@ -414,8 +432,9 @@ impl Client {
         }
         let manifest_path = newest_manifest(&self.config.project)?;
         let manifest = fs::read(&manifest_path)?;
+        let repeated = manifest == self.last_manifest;
         ensure!(
-            manifest != self.last_manifest,
+            !repeated || (pending && reply.lines().any(|l| l == "ok unchanged")),
             "no fresh compiler manifest; restart required"
         );
         refresh_proto::manifest::parse(&manifest)?;
@@ -427,6 +446,10 @@ impl Client {
         );
         Ok(Build {
             native_rebase: false,
+            repeated,
+            no_effect: reply
+                .split_whitespace()
+                .any(|field| field == "no-effect=true"),
             manifest_path,
             candidate_path,
             manifest,
@@ -591,6 +614,8 @@ mod tests {
             bytes.extend([0; 24]);
             Build {
                 native_rebase: false,
+                repeated: false,
+                no_effect: false,
                 manifest: bytes,
                 manifest_path: "unused".into(),
                 candidate_path: "unused".into(),
@@ -606,6 +631,18 @@ mod tests {
                 .ensure_compiled_change(&previous)
                 .is_err()
         );
+        let mut empty = encode(None, Some(&write), None);
+        assert!(
+            !empty.pending_after(&previous, true),
+            "an older pending compilation must not hide a later ignored source edit"
+        );
+        empty.no_effect = true;
+        assert!(empty.pending_after(&previous, true));
+        assert!(!empty.pending_after(&previous, false));
+        empty.no_effect = false;
+        empty.repeated = true;
+        assert!(empty.pending_after(&previous, true));
+        assert!(!empty.pending_after(&previous, false));
         let mut changed = page.clone();
         changed.payload[0] = 2;
         assert!(
@@ -650,6 +687,7 @@ elif sys.argv[1]=='sync':
  p=pathlib.Path.cwd()/'target/rustd/a/programs/b';p.mkdir(parents=True,exist_ok=True)
  (p/'bin').write_bytes(b'candidate')
  (p/'patch.manifest').write_bytes(b'RDM09001'+struct.pack('<Q',1)+bytes(40))
+ print('ok unchanged')
 else:raise Exception(sys.argv)
 "#,
         );
@@ -707,6 +745,10 @@ else:raise Exception(sys.argv)
             1
         );
         assert!(c.build().unwrap_err().to_string().contains("no fresh"));
+        // A newer revision may reuse a compiled, superseded result, but only
+        // when the caller has one pending and rustd explicitly says unchanged.
+        assert!(c.build_pending(false, true).unwrap().repeated);
+        assert!(c.build_pending(false, false).is_err());
         c.config.memory_min_bytes = u64::MAX;
         assert!(
             c.guard_memory()

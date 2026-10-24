@@ -61,12 +61,12 @@ pub struct Fast {
     control: PathBuf,
     promotions: u32,
     pressure: bool,
+    pending_compiled: bool,
     /// Compiler image, before the runtime snapshot copy expands sparse holes.
     binary: PathBuf,
 }
 struct Reset {
     task: JoinHandle<Result<Fast>>,
-    revision: u64,
     cancel: Arc<std::sync::atomic::AtomicBool>,
 }
 pub struct Pipeline {
@@ -94,9 +94,15 @@ pub struct Pipeline {
     triggers: crate::triggers::Triggers,
     last_save: Instant,
     epoch_idle_safe: bool,
+    last_epoch: Instant,
 }
 fn mark(phases: &mut BTreeMap<Phase, f64>, phase: Phase) {
     phases.insert(phase, monotonic_seconds().unwrap_or(0.0) * 1000.0);
+}
+/// Avoid maintenance restarts during normal edit bursts. The agent's pressure
+/// signal (or 192 MiB of its 256 MiB budget) overrides only the five-minute gap.
+fn epoch_ready(since_epoch: Duration, due: bool, retained: u64, pressure: bool) -> bool {
+    pressure || retained >= 192 * 1024 * 1024 || (due && since_epoch >= Duration::from_secs(5 * 60))
 }
 fn executable_bytes(path: &std::path::Path) -> Result<u64> {
     // Promoted ELFs contain a sparse gap for the reserved code region. Its
@@ -222,6 +228,7 @@ fn start_fast(
         control,
         promotions: 0,
         pressure: false,
+        pending_compiled: false,
         binary,
     })
 }
@@ -306,6 +313,7 @@ impl Pipeline {
             session_home,
             last_save: Instant::now(),
             epoch_idle_safe: false,
+            last_epoch: Instant::now(),
         })
     }
     fn event(&self, name: &'static str, message: impl Into<String>) {
@@ -344,6 +352,7 @@ impl Pipeline {
                     .start(&result.executable.context("stock build has no executable")?)?;
             }
         }
+        self.last_epoch = Instant::now();
         if self.config.support.is_some() {
             let reply = agent::Client::new(&self.runtime.socket).ping()?;
             self.hook_missing = self.config.after_patch_hook
@@ -390,17 +399,17 @@ impl Pipeline {
     fn quarantine(&mut self) {
         // Dropping an owned client stops the daemon and workers before stock starts.
         self.fast = None;
-        if let Some(reset) = &self.reset {
-            reset
-                .cancel
-                .store(true, std::sync::atomic::Ordering::SeqCst);
-        }
+        // Ordinary saves must not cancel recovery. Its compiler is isolated from
+        // the stock runtime until a synchronized candidate establishes a baseline.
     }
     fn begin_reset(&mut self) {
         if self.config.support.is_none()
             || self.reset.is_some()
             || self.fast.is_some()
-            || !self.fence.current()
+            || self
+                .fence
+                .stopping
+                .load(std::sync::atomic::Ordering::SeqCst)
         {
             return;
         }
@@ -412,7 +421,6 @@ impl Pipeline {
         let cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let task_cancel = cancel.clone();
         self.reset = Some(Reset {
-            revision: self.fence.revision,
             cancel,
             task: thread::spawn(move || {
                 start_fast(&config, &session_home, seq, floor, task_cancel)
@@ -427,9 +435,13 @@ impl Pipeline {
         if applied && let Some(fast) = self.fast.as_mut() {
             fast.async_runtime.commit(&fast.async_owners);
             fast.async_owners.clear();
+            fast.pending_compiled = false;
         }
         let notice = job.phases.get(&Phase::Notice).copied().unwrap_or(0.0);
         if applied {
+            if matches!(path, SavePath::Restart | SavePath::Stock) {
+                self.last_epoch = Instant::now();
+            }
             self.epoch_idle_safe = true;
             checker::apply(&mut self.sources, &job.changes);
             self.unchecked
@@ -461,6 +473,14 @@ impl Pipeline {
             .iter()
             .any(|c| c.kind == PathKind::Manifest);
         if manifest_change {
+            // Configuration changes invalidate the capture itself. Unlike source
+            // saves, these must stop the old reset before starting a new one.
+            if let Some(reset) = self.reset.take() {
+                reset
+                    .cancel
+                    .store(true, std::sync::atomic::Ordering::SeqCst);
+                let _ = reset.task.join();
+            }
             let watched_inputs = self.config.input_files.clone();
             self.config = Config::load(self.config.invocation.clone())?;
             crate::install::prepare(&mut self.config);
@@ -487,6 +507,9 @@ impl Pipeline {
                 job.changes.revision,
             ))?;
         }
+        // Start recovery even when this stock build will be superseded. Waiting
+        // for an acknowledged stock save also starves under continuous writes.
+        self.begin_reset();
         let stock_only = !job.phases.contains_key(&Phase::BuildStart);
         if stock_only {
             mark(&mut job.phases, Phase::BuildStart);
@@ -773,22 +796,30 @@ impl Pipeline {
         let fast = self.fast.as_mut().unwrap();
         fast.async_owners = async_owners;
         let promote = restart_reason.is_some()
+            // Recovery already has a native compiler baseline. Keep its first
+            // synchronization incremental so superseded saves can accumulate
+            // toward the eventual restart instead of invalidating it again.
+            && !self.recovery_restart
             && fast.promotions < 10
             && crate::elf::loaded_bytes(&self.runtime.executable)? < 256 * 1024 * 1024
             && executable_bytes(&fast.binary)? < 256 * 1024 * 1024;
         fs::write(&fast.control, if promote { "1" } else { "0" })?;
         mark(&mut job.phases, Phase::BuildStart);
-        let build = fast.client.build_with_async_certificates(certificates);
+        let build = fast
+            .client
+            .build_pending(certificates, fast.pending_compiled);
         mark(&mut job.phases, Phase::BuildEnd);
         if !self.fence.current() {
             self.event("superseded", "compiler result superseded by a newer save");
             // Deltas and semantic promotions must be consumed before any later build.
             if let Ok(build) = build {
-                if build.native_rebase || promote {
+                if build.native_rebase || (promote && !build.no_effect) {
                     self.quarantine();
                     self.recovery_restart = true;
                 } else {
                     let fast = self.fast.as_mut().unwrap();
+                    fast.pending_compiled =
+                        build.pending_after(&fast.manifest, fast.pending_compiled);
                     let _ = fast.manifest.update(&build.manifest);
                     if certificates {
                         fast.async_runtime
@@ -814,6 +845,12 @@ impl Pipeline {
                 );
             }
         };
+        if build.repeated {
+            self.event(
+                "compiler_pending_reused",
+                "delivering the pending compiled snapshot",
+            );
+        }
         if build.native_rebase {
             // A native link changed every address. No old page, redirect, or
             // retained-state claim may cross this fresh process boundary.
@@ -856,8 +893,18 @@ impl Pipeline {
         }
         // Fresh manifest != delivered edit. An untracked callback can produce
         // a successful zero-function splice of old code.
-        // No compiler no-op classification is currently supported here.
-        if let Err(error) = build.ensure_compiled_change(&self.fast.as_ref().unwrap().manifest) {
+        // Only a compiler cfg proof authorizes a zero-output source edit.
+        if !build.repeated
+            && let Err(error) = build.ensure_compiled_change(&self.fast.as_ref().unwrap().manifest)
+        {
+            let fast = self.fast.as_mut().unwrap();
+            if build.no_effect && !fast.pending_compiled && !self.recovery_restart {
+                ensure!(
+                    fast.manifest.update(&build.manifest)?,
+                    "stale no-effect manifest"
+                );
+                return self.publish(&job, SavePath::Skip, "no effect on this build".into(), true);
+            }
             self.event("compiler_no_change", error.to_string());
             return self.stock(&mut job, error.to_string());
         }
@@ -865,7 +912,7 @@ impl Pipeline {
         let result = (|| -> Result<_> {
             let fast = self.fast.as_mut().unwrap();
             ensure!(
-                fast.manifest.update(&build.manifest)?,
+                fast.manifest.update(&build.manifest)? || (build.repeated && fast.pending_compiled),
                 "stale compiler manifest"
             );
             if certificates {
@@ -1036,18 +1083,17 @@ impl Pipeline {
                 .task
                 .join()
                 .map_err(|_| anyhow::anyhow!("compiler reset panicked"))?;
-            if reset.revision != self.fence.latest.load(std::sync::atomic::Ordering::SeqCst) {
-                drop(result);
-                self.event(
-                    "worker_reset_superseded",
-                    "save arrived during compiler reset",
-                );
-                self.begin_reset();
-            } else {
+            if !reset.cancel.load(std::sync::atomic::Ordering::SeqCst) {
                 match result {
                     Ok(fast) => {
                         self.fast = Some(fast);
-                        self.event("worker_reset", "fast path ready");
+                        // Capture can have seen an earlier source snapshot. A
+                        // fresh sync and process boundary precede all live use.
+                        self.recovery_restart = true;
+                        self.event(
+                            "worker_reset",
+                            "fast path ready; synchronizing latest sources",
+                        );
                     }
                     Err(error) => self.event(
                         "worker_reset_failed",
@@ -1056,6 +1102,7 @@ impl Pipeline {
                 }
             }
         }
+
         if self
             .checker
             .as_ref()
@@ -1137,10 +1184,10 @@ impl Pipeline {
     }
 
     /// Maintenance has no editor revision of its own. Only restart a fully
-    /// delivered, checked snapshot after the watcher has been idle for two seconds.
+    /// delivered, checked snapshot after the watcher has been idle for five seconds.
     fn poll_epoch(&mut self) -> Result<()> {
         if !self.epoch_idle_safe
-            || self.last_save.elapsed() < Duration::from_secs(2)
+            || self.last_save.elapsed() < Duration::from_secs(5)
             || !self.fence.current()
             || self.checker.is_some()
             || self.reset.is_some()
@@ -1152,7 +1199,12 @@ impl Pipeline {
         let Some(fast) = self.fast.as_ref() else {
             return Ok(());
         };
-        if !fast.manifest.epoch_due && !fast.pressure {
+        if !epoch_ready(
+            self.last_epoch.elapsed(),
+            fast.manifest.epoch_due,
+            fast.manifest.retained_bytes,
+            fast.pressure,
+        ) {
             return Ok(());
         }
         self.event(
@@ -1232,6 +1284,7 @@ impl Pipeline {
         // maintenance. The absolute executable bound above covers both kinds.
         fast.pressure = false;
         self.epoch_idle_safe = false;
+        self.last_epoch = Instant::now();
         self.event(
             "epoch_restart",
             "promoted epoch baseline; cumulative roots and retained pages reset",
@@ -1260,6 +1313,19 @@ mod tests {
     use super::*;
     use std::io::Write;
 
+    #[test]
+    fn epochs_wait_for_cooldown_unless_near_agent_limit() {
+        assert!(!epoch_ready(
+            Duration::from_secs(299),
+            true,
+            32 << 20,
+            false
+        ));
+        assert!(epoch_ready(Duration::from_secs(300), true, 32 << 20, false));
+        assert!(!epoch_ready(Duration::from_secs(600), false, 0, false));
+        assert!(epoch_ready(Duration::ZERO, false, 192 << 20, false));
+        assert!(epoch_ready(Duration::ZERO, false, 0, true));
+    }
     #[test]
     fn qualified_async_default_keeps_explicit_opt_out_and_unknown_values_closed() {
         use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
