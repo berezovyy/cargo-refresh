@@ -131,7 +131,7 @@ pub struct Config {
     /// Edited library crates with transitive callers outside compiler ownership.
     /// Without an instantiation/inlining proof, even a restart may be stale.
     pub stock_frontier_roots: Vec<PathBuf>,
-    pub package_roots: Vec<PathBuf>,
+    pub package_roots: BTreeSet<PathBuf>,
     /// Declaring package roots for build-script rerun inputs, including dependencies.
     #[serde(skip)]
     pub build_package_roots: std::collections::BTreeMap<String, Vec<PathBuf>>,
@@ -214,7 +214,8 @@ impl Config {
                     && !c
                         .path
                         .ancestors()
-                        .any(|parent| self.opaque_build_roots.contains(parent))
+                        .find(|parent| self.package_roots.contains(*parent))
+                        .is_some_and(|package| self.opaque_build_roots.contains(package))
                     && !c.path.ancestors().any(|parent| {
                         self.input_files
                             .binary_search_by(|input| input.as_path().cmp(parent))
@@ -977,6 +978,51 @@ mod tests {
         meta.packages[0].targets[0].src_path = root.join("tests/main.rs");
         let config = Config::resolve(Default::default(), &meta, root).unwrap();
         assert!(!config.excluded_target_roots.contains(&root.join("tests")));
+    }
+
+    #[test]
+    fn opaque_parent_script_does_not_own_nested_dependency_tests() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let child = root.join("child");
+        std::fs::create_dir_all(child.join("tests")).unwrap();
+        std::fs::write(
+            root.join("build.rs"),
+            "fn main() { println!(\"cargo:rustc-env=BUILD=1\"); }",
+        )
+        .unwrap();
+        let mut meta = metadata(json!({}));
+        meta.workspace_root = root.into();
+        meta.target_directory = root.join("target");
+        meta.packages[0].manifest_path = root.join("Cargo.toml");
+        meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        meta.packages[0].targets[1].src_path = root.join("build.rs");
+        let mut package = meta.packages[0].clone();
+        package.id = "child-id".into();
+        package.name = "child".into();
+        package.manifest_path = child.join("Cargo.toml");
+        package.targets = vec![Target {
+            name: "child".into(),
+            kind: vec!["lib".into()],
+            src_path: child.join("src/lib.rs"),
+        }];
+        meta.packages.push(package);
+        let mut config = Config::resolve(Default::default(), &meta, root).unwrap();
+        assert!(config.opaque_build_roots.contains(root));
+        let file = child.join("tests/case.rs");
+        std::fs::write(&file, "before").unwrap();
+        let mut tracker =
+            crate::changes::ChangeTracker::new([file.clone()], Default::default()).unwrap();
+        std::fs::write(&file, "after").unwrap();
+        let changes = tracker.observe([file]).unwrap();
+        assert!(config.excluded_target_only(&changes));
+        // An explicit parent-script rerun input still protects the child's tests.
+        config.input_files.push(child.join("tests"));
+        config.input_files.sort();
+        assert!(!config.excluded_target_only(&changes));
+        config.input_files.retain(|p| p != &child.join("tests"));
+        config.opaque_build_roots.insert(child);
+        assert!(!config.excluded_target_only(&changes));
     }
 
     #[test]
