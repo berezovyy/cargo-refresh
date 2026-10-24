@@ -43,7 +43,8 @@ cargo refresh run --bin my-server
 ```
 
 `--native` builds for the current host. Use `--portable` with Zig and
-cargo-zigbuild when preparing an artifact for older glibc systems. After the first
+cargo-zigbuild when preparing an artifact for older glibc systems. In a workspace with several default packages, also pass `--package my-package`.
+After the first
 run, support is cached by rustc commit, so subsequent runs need only
 `cargo refresh run`. A missing or rejected support bundle selects normal Cargo
 builds and restarts; it does not enable live patching.

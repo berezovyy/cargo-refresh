@@ -42,7 +42,8 @@ A plain `cargo new` app prints once and exits: replace its main with a long-runn
 loop or server to observe live changes. Save a non-inlined function body while the
 program runs. Struct layout edits restart the process and lose its in-memory state.
 Invalid saves report diagnostics while keeping the last working program; fixing
-the source resumes processing.
+the source resumes processing. Workspaces with multiple default packages also
+need `--package <package-name>` to select the package containing the binary.
 
 The source release build downloads locked dependencies as needed. It includes the
 ABI helper, qualification fixture, historical qualified bundle and raw reference
