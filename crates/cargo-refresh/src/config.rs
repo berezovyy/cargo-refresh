@@ -515,7 +515,16 @@ impl Config {
                     .iter()
                     .any(|id| linked.contains(id) && !owned.contains(id))
             })
-            .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
+            .flat_map(|p| {
+                let root = p.manifest_path.parent().unwrap().to_path_buf();
+                let mut scopes = vec![root.clone()];
+                scopes.extend(
+                    normal_roots(p)
+                        .into_iter()
+                        .filter(|path| !path.starts_with(&root)),
+                );
+                scopes
+            })
             .collect();
         let opaque_build_roots = local
             .iter()
@@ -701,6 +710,14 @@ mod tests {
         };
         let config = Config::resolve(args.clone(), &meta, Path::new("/demo")).unwrap();
         assert_eq!(config.stock_frontier_roots, [PathBuf::from("/demo/lib")]);
+        let mut external = meta.clone();
+        external.packages[1].targets[0].src_path = "/shared/libsrc/lib.rs".into();
+        let external = Config::resolve(args.clone(), &external, Path::new("/demo")).unwrap();
+        assert!(
+            external
+                .stock_frontier_roots
+                .contains(&PathBuf::from("/shared/libsrc"))
+        );
         args.edit.as_mut().unwrap().push("caller".into());
         // An unrelated workspace package cannot retain code in this executable.
         let mut unrelated = meta.clone();
