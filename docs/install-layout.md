@@ -247,15 +247,19 @@ it does not link the test-only libunwind walker. `RUNTIME.txt` reports actual
 imports; a symbol check alone does not establish runtime qualification. Run the
 release payload on an old-glibc distro before accepting it.
 
-Hand-run integration (requires the research resource lane):
+Hand-run integration (no research checkout required; use an external rustd/build
+lane on shared machines):
 
 ```sh
 CARGO_REFRESH_TEST_ARCHIVE=/absolute/path/release.tar.zst \
   RUSTUP_TOOLCHAIN=1.99.0 cargo test -p cargo-refresh --test install -- --ignored --nocapture
 ```
 
+Set `CARGO_REFRESH_TEST_LANE` only when an external lane wrapper is needed; it
+has no developer-specific default. Set TMPDIR to on-disk scratch for this test.
 Or use `scripts/integration-install.py` with `--controller`, `--archive`, and a new
-`--work` directory under the rustd lane. It installs into a temporary HOME, applies
+`--work` directory under the rustd lane on shared machines. Optional
+`REFRESH_LANE_TOOL` wraps its stock build; no research path is auto-detected. It installs into a temporary HOME, applies
 one live save, checks PID and counter continuity, and compares the edited value
 with an independent stock build. Its `unsupported`, `corrupt`, `low-memory`, and
 `override` modes exercise stock decisions without starting rustd.
