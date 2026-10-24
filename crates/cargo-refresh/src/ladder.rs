@@ -928,15 +928,16 @@ impl Pipeline {
                 "async bodies inside macro arguments require a stock rebuild".into(),
             );
         }
-        if matches!(
-            class,
-            Class::Restart {
-                reason: Reason::MacroBody { .. }
-            }
-        ) && before
-            .iter()
-            .chain(after.iter())
-            .any(|snapshot| refresh_guard::has_opaque_async_blocks(&snapshot.bytes))
+        // MERGE-T4 qualified both outer blocks and async closures across
+        // promoted macro edits, including P147 -> P148. The current-edge
+        // compiler fix restores dormant coroutine reachability on restart.
+        // Older/unknown support must keep the stock-image fence.
+        if !fixed_promotion
+            && opaque_macro
+            && before
+                .iter()
+                .chain(after.iter())
+                .any(|snapshot| refresh_guard::has_opaque_async_blocks(&snapshot.bytes))
         {
             return self.stock(
                 &mut job,

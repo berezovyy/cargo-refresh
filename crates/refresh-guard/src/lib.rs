@@ -550,9 +550,10 @@ pub fn has_async_macro_arguments(bytes: &[u8]) -> bool {
 }
 
 /// Async blocks and async closures are opaque bodies, unlike owned `async fn`
-/// bodies that the certificate policy can identify. A MacroBody restart must
-/// obtain a stock image when these bodies change: reusing the compiler epoch
-/// can retain an earlier coroutine body even across process restart.
+/// bodies that the certificate policy can identify. Older compilers need a
+/// stock image for MacroBody changes: promotion could retain earlier coroutine
+/// bodies. Controllers may use compiler-backed restart only after verifying the
+/// current-edit promotion-edge capability. This does not grant live eligibility.
 pub fn has_opaque_async_blocks(bytes: &[u8]) -> bool {
     use syn::visit::Visit;
     struct Find(bool);

@@ -216,9 +216,13 @@ live; list/repeat transitions still restart when the compiler reports a changed
 frame. The controller checks `rustd --capabilities` once when selecting verified
 support; older or unknown compilers retain the async macro stock fence.
 
-Opaque outer async blocks and async closures still require stock for
-`macro-body` changes: the MERGE-T3 campaign reproduced a previous macro body
-after a compiler-backed process restart. Keep this stricter fence until the
-combined compiler is qualified against those specific failures. Owned
-`async fn` bodies retain their certificate policy.
+Opaque outer async blocks and async closures use compiler-backed restart for
+`macro-body` changes only when the same promotion capability is present.
+MERGE-T4 qualified all 26 outer-block macro forms across ten edits each,
+including the stale P147-to-P148 restart, plus two edits per async-closure form,
+against stock output. Older or unknown compilers still require stock images.
+This relaxation preserves restart classification; it does not make opaque
+macro bodies live eligible. Other async macro arguments and assertion AST
+printing retain their stock fences. Owned `async fn` bodies retain their
+certificate policy.
 
