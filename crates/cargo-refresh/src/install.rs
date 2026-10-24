@@ -90,8 +90,22 @@ impl Toolchain {
 pub struct Support {
     pub root: PathBuf,
     pub warm_peak_bytes: u64,
+    pub promotion_current_edges: bool,
     // Private immutable bundle snapshot lives as long as all Pipeline/Reset clones.
     bundle: tempfile::TempDir,
+}
+
+fn promotion_current_edges(root: &Path) -> bool {
+    Command::new(root.join("rustd"))
+        .arg("--capabilities")
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| serde_json::from_slice::<serde_json::Value>(&output.stdout).ok())
+        .is_some_and(|value| {
+            value["schema"].as_u64() == Some(1)
+                && value["promotion_current_edges"].as_bool() == Some(true)
+        })
 }
 impl Support {
     pub fn bundle_dir(&self) -> &Path {
@@ -615,6 +629,7 @@ pub fn prepare(config: &mut Config) {
             bundle.path().join(format!("{}.json", toolchain.commit)),
         )?;
         Ok(Support {
+            promotion_current_edges: promotion_current_edges(&root),
             root: root.canonicalize()?,
             warm_peak_bytes: peak,
             bundle,
@@ -635,6 +650,25 @@ pub fn prepare(config: &mut Config) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_an_explicit_supported_compiler_capability_relaxes_the_async_macro_fence() {
+        let root = tempfile::tempdir().unwrap();
+        assert!(!promotion_current_edges(root.path()));
+        let rustd = root.path().join("rustd");
+        for (text, status, expected) in [
+            (r#"{"schema":1,"promotion_current_edges":true}"#, 0, true),
+            (r#"{"schema":1,"promotion_current_edges":false}"#, 0, false),
+            (r#"{"schema":1}"#, 0, false),
+            (r#"{"schema":2,"promotion_current_edges":true}"#, 0, false),
+            (r#"{"schema":1,"promotion_current_edges":true}"#, 1, false),
+            ("rustd 0.0.0", 0, false),
+        ] {
+            fs::write(&rustd, format!("#!/bin/sh\nprintf '%s\\n' '{text}'\nexit {status}\n")).unwrap();
+            fs::set_permissions(&rustd, fs::Permissions::from_mode(0o755)).unwrap();
+            assert_eq!(promotion_current_edges(root.path()), expected, "{text}");
+        }
+    }
 
     fn qualified() -> Toolchain {
         Toolchain::parse(&format!(

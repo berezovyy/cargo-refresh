@@ -296,7 +296,7 @@ class RefreshApp(App):
         raise RuntimeError(f"timeout waiting for {label}; see {self.log}")
 
     def identity(self) -> tuple[int, str]:
-        # Supervisor snapshots the app to TMPDIR/refresh-run-*/app. Search only
+        # Supervisor snapshots the app to $TMPDIR/refresh-run-*/app. Search only
         # descendants of this controller, including children of worker threads.
         pending, visited, matches = [self.process.pid], set(), []
         while pending:
@@ -309,7 +309,8 @@ class RefreshApp(App):
                     pending.extend(map(int, (task / "children").read_text().split()))
             with contextlib.suppress(FileNotFoundError, ProcessLookupError):
                 exe = os.readlink(f"/proc/{pid}/exe")
-                if Path(exe).name == "app" and Path(exe).parent.name.startswith("refresh-run-"):
+                executable = Path(exe)
+                if executable.name == "app" and executable.parent.name.startswith("refresh-run-"):
                     # Start ticks make PID reuse detectable too.
                     ticks = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]
                     matches.append((pid, ticks))

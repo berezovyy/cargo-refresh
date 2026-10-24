@@ -94,12 +94,40 @@ fn certificate_deferral_preserves_the_closed_expression_macro_policy() {
     assert_eq!(owners.len(), 1);
     assert_eq!(owners[0].name, "::a");
 
-    for hazard in ["opaque!(1)", "println!(\"{}\", || 1)", "vec![async { 1 }]"] {
+    for hazard in ["opaque!(1)", "println!(\"{}\", || 1)", "vec![async { fn local() {} 1 }]"] {
         let before = format!("async fn a() {{ 1; }} fn b() {{ {hazard}; }}");
         let after = before.replace('1', "2");
         assert!(!matches!(
             classify(&before, &after).0,
             Class::LiveEligible { .. }
         ));
+    }
+}
+
+#[test]
+fn vec_argument_coroutines_require_complete_compiler_coverage() {
+    let old = "fn evaluate() { println!(\"{:?}\", vec![block_on(async { 1i64 }); 3]); }";
+    let new = "fn evaluate() { println!(\"{:?}\", vec![block_on(async { 2i64 }), block_on(async { 3i64 })]); }";
+    assert!(matches!(
+        Guard::default().classify(
+            &[FileSnapshot::new("src/lib.rs", old)],
+            &[FileSnapshot::new("src/lib.rs", new)]
+        ),
+        Class::Restart { .. }
+    ));
+    let (class, owners) = classify(old, new);
+    assert!(matches!(class, Class::LiveEligible { .. }), "{class:?}");
+    assert_eq!(owners.iter().map(|o| o.name.as_str()).collect::<Vec<_>>(), vec!["::evaluate"]);
+
+    // The additional pass only relaxes parsed standard vec arguments. All other
+    // hazards in either revision still prevent certificate deferral.
+    for (old, new) in [
+        ("fn f() { block_on(async { 1 }); }", "fn f() { block_on(async { 2 }); }"),
+        ("fn f() { println!(\"{}\", block_on(async { 1 })); }", "fn f() { println!(\"{}\", block_on(async { 2 })); }"),
+        ("fn f() { vec![async { opaque!(1) }]; }", "fn f() { vec![async { opaque!(2) }]; }"),
+        ("fn f() { vec![async { (|| 1)() }]; }", "fn f() { vec![async { (|| 2)() }]; }"),
+        ("macro_rules! vec { ($e:expr) => { $e }; } fn f() { vec!(async { 1 }); }", "macro_rules! vec { ($e:expr) => { $e }; } fn f() { vec!(async { 2 }); }"),
+    ] {
+        assert!(!matches!(classify(old, new).0, Class::LiveEligible { .. }), "{old}");
     }
 }

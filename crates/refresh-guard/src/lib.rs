@@ -393,15 +393,20 @@ impl Guard {
         for (path, a, b) in &pairs {
             for (name, function) in &a.functions {
                 let other = b.functions.get(name);
-                if (!function.async_shape.is_empty()
-                    || other.is_some_and(|f| !f.async_shape.is_empty()))
-                    && other.map(|f| &f.async_shape) != Some(&function.async_shape)
+                let vec_change = certificates
+                    && function.certified_vec
+                    && other.is_some_and(|f| f.certified_vec && f.body != function.body);
+                if vec_change
+                    || ((!function.async_shape.is_empty()
+                        || other.is_some_and(|f| !f.async_shape.is_empty()))
+                        && other.map(|f| &f.async_shape) != Some(&function.async_shape))
                 {
                     if certificates
                         && other.is_some_and(|other| {
                             function.header == other.header
-                                && !function.async_shape.is_empty()
-                                && !other.async_shape.is_empty()
+                                && (vec_change
+                                    || (!function.async_shape.is_empty()
+                                        && !other.async_shape.is_empty()))
                         })
                     {
                         owners.push(ChangedFn {
@@ -508,8 +513,8 @@ pub fn classify(before: &[FileSnapshot], after: &[FileSnapshot]) -> Class {
 }
 
 /// Macro argument token streams can contain async bodies invisible to the
-/// ordinary AST visitor. Their coroutine identities are not yet safe to reuse
-/// when macro expansion changes the number of bodies (e.g. vec repeat/list).
+/// ordinary AST visitor. Parsed standard vec arguments may defer to compiler
+/// frame/resume certificates; other opaque async macro bodies remain fenced.
 /// Only use this fence for a changed opaque macro body, not outer async code.
 pub fn has_async_macro_arguments(bytes: &[u8]) -> bool {
     use proc_macro2::{TokenStream, TokenTree};

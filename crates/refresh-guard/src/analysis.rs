@@ -11,6 +11,7 @@ use syn::{
 pub(crate) struct Function {
     pub header: String,
     pub async_shape: String,
+    pub certified_vec: bool,
     pub hazards: Vec<String>,
     pub attributed_body: String,
     pub simple: bool,
@@ -20,6 +21,7 @@ impl Function {
     pub fn same_policy(&self, other: &Self) -> bool {
         self.header == other.header
             && self.async_shape == other.async_shape
+            && self.certified_vec == other.certified_vec
             && self.hazards == other.hazards
             && self.attributed_body == other.attributed_body
             && self.simple == other.simple
@@ -444,7 +446,7 @@ impl<'ast> Visit<'ast> for MacroShadowing {
 /// Standard macros still evaluate expressions that can contain local items,
 /// closures, async blocks or opaque nested macros. Parse their argument grammar
 /// rather than treating the entire token stream as an expression or ignoring it.
-fn safe_macro_arguments(item: &syn::Macro, allow_bare: bool) -> bool {
+fn safe_macro_arguments(item: &syn::Macro, allow_bare: bool, async_vec: bool) -> bool {
     use syn::parse::Parser;
     let Some(segment) = item.path.segments.last() else {
         return false;
@@ -459,6 +461,8 @@ fn safe_macro_arguments(item: &syn::Macro, allow_bare: bool) -> bool {
     let mut hazards = Hazards {
         items: Vec::new(),
         allow_bare,
+        async_vec,
+        in_vec: async_vec && name == "vec",
     };
     if name == "vec" {
         let Ok(array) = syn::parse2::<syn::Expr>(quote::quote!([#tokens])) else {
@@ -506,6 +510,9 @@ fn safe_macro_arguments(item: &syn::Macro, allow_bare: bool) -> bool {
 struct Hazards {
     items: Vec<String>,
     allow_bare: bool,
+    /// A second policy pass may defer vec argument futures to compiler certificates.
+    async_vec: bool,
+    in_vec: bool,
 }
 impl<'ast> Visit<'ast> for Hazards {
     fn visit_item(&mut self, item: &'ast syn::Item) {
@@ -515,11 +522,17 @@ impl<'ast> Visit<'ast> for Hazards {
         self.items.push(item.to_token_stream().to_string());
     }
     fn visit_expr_async(&mut self, item: &'ast syn::ExprAsync) {
-        self.items.push(item.block.to_token_stream().to_string());
+        if self.in_vec {
+            // Keep local items, closures and unknown macros under the strict guard.
+            // Layouts, captures and suspension regions remain compiler-proven.
+            syn::visit::visit_expr_async(self, item);
+        } else {
+            self.items.push(item.block.to_token_stream().to_string());
+        }
     }
     fn visit_macro(&mut self, item: &'ast syn::Macro) {
         if !expression_macro(&item.path, self.allow_bare)
-            || !safe_macro_arguments(item, self.allow_bare)
+            || !safe_macro_arguments(item, self.allow_bare, self.async_vec)
         {
             self.items.push(item.to_token_stream().to_string());
         }
@@ -559,6 +572,8 @@ impl<const FAST: bool> Outline<'_, FAST> {
         let mut hazards = Hazards {
             items: Vec::new(),
             allow_bare: self.allow_bare_macros,
+            async_vec: false,
+            in_vec: false,
         };
         hazards.visit_block(&item.block);
         let key = format!("{}::{}", self.path.join("::"), item.sig.ident);
@@ -569,6 +584,18 @@ impl<const FAST: bool> Outline<'_, FAST> {
             && item.sig.asyncness.is_none()
             && item.sig.abi.is_none()
             && item.sig.generics.params.is_empty();
+        let certified_vec = if simple && !hazards.items.is_empty() && item.sig.ident != "main" {
+            let mut proof = Hazards {
+                items: Vec::new(),
+                allow_bare: self.allow_bare_macros,
+                async_vec: true,
+                in_vec: false,
+            };
+            proof.visit_block(&item.block);
+            proof.items.is_empty()
+        } else {
+            false
+        };
         let empty = if FAST {
             syn::Block {
                 brace_token: Default::default(),
@@ -589,6 +616,7 @@ impl<const FAST: bool> Outline<'_, FAST> {
                 } else {
                     String::new()
                 },
+                certified_vec,
                 hazards: hazards.items,
                 simple,
                 body: blake3::hash(body.as_bytes()),
@@ -637,6 +665,8 @@ impl<const FAST: bool> VisitMut for Outline<'_, FAST> {
         let mut hazards = Hazards {
             items: Vec::new(),
             allow_bare: self.allow_bare_macros,
+            async_vec: false,
+            in_vec: false,
         };
         hazards.visit_block(&item.block);
         self.result.hazards.extend(hazards.items);
