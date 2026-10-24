@@ -301,7 +301,7 @@ impl Pipeline {
                     .iter()
                     .any(|root| path.starts_with(root))
                     && path.extension().is_some_and(|extension| extension == "rs")
-                    && refresh_guard::requires_stock_stringification(bytes)
+                    && config.requires_stock_stringification(path, bytes)
             })
             .map(|(path, _)| path.clone())
             .collect();
@@ -484,7 +484,10 @@ impl Pipeline {
         );
     }
     fn publish(&mut self, job: &Job, path: SavePath, reason: String, applied: bool) -> Result<()> {
-        if applied && let Some(fast) = self.fast.as_mut() {
+        if applied
+            && !matches!(path, SavePath::Skip)
+            && let Some(fast) = self.fast.as_mut()
+        {
             fast.async_runtime.commit(&fast.async_owners);
             fast.async_owners.clear();
             fast.pending_compiled = false;
@@ -494,7 +497,6 @@ impl Pipeline {
             if matches!(path, SavePath::Restart | SavePath::Stock) {
                 self.last_epoch = Instant::now();
             }
-            self.epoch_idle_safe = true;
             checker::apply(&mut self.sources, &job.changes);
             for change in &job.changes.changes {
                 self.stock_stringification.remove(&change.path);
@@ -504,17 +506,20 @@ impl Pipeline {
                         .frontier_roots
                         .iter()
                         .any(|root| change.path.starts_with(root))
-                    && change
-                        .content
-                        .as_deref()
-                        .is_some_and(refresh_guard::requires_stock_stringification)
+                    && change.content.as_deref().is_some_and(|bytes| {
+                        self.config
+                            .requires_stock_stringification(&change.path, bytes)
+                    })
                 {
                     self.stock_stringification.insert(change.path.clone());
                 }
             }
-            self.unchecked
-                .extend(job.changes.changes.iter().map(|c| c.path.clone()));
-            self.generation += 1;
+            if !matches!(path, SavePath::Skip) {
+                self.epoch_idle_safe = true;
+                self.unchecked
+                    .extend(job.changes.changes.iter().map(|c| c.path.clone()));
+                self.generation += 1;
+            }
         }
         self.sender.send(Update::Save {
             event: SaveEvent {
@@ -710,6 +715,31 @@ impl Pipeline {
             }
             self.view_dirty = current;
         }
+        if self.config.excluded_target_only(&job.changes) {
+            if let Some(workspace) = &self.workspace {
+                workspace.update(&job.changes)?;
+            }
+            checker::apply(&mut self.checked, &job.changes);
+            self.publish(
+                &job,
+                SavePath::Skip,
+                "only integration tests, benches or examples outside the running binary changed"
+                    .into(),
+                true,
+            )?;
+            if self.unchecked.is_empty() {
+                self.event(
+                    "check_ok",
+                    "excluded target: running application inputs unchanged",
+                );
+            } else if let Some(workspace) = &self.workspace {
+                self.checker = Some((
+                    Checker::start(&self.config, workspace, self.fence.clone(), self.floor),
+                    job.changes.clone(),
+                ));
+            }
+            return Ok(());
+        }
         if (self.config.support.is_none() || self.fast.is_none())
             && job.changes.disposition != Disposition::Skip
         {
@@ -816,9 +846,10 @@ impl Pipeline {
             }
         }
         if !self.stock_stringification.is_empty()
-            || after
-                .iter()
-                .any(|snapshot| refresh_guard::requires_stock_stringification(&snapshot.bytes))
+            || after.iter().any(|snapshot| {
+                self.config
+                    .requires_stock_stringification(&snapshot.path, &snapshot.bytes)
+            })
         {
             return self.stock(
                 &mut job,

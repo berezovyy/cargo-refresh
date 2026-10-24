@@ -147,7 +147,12 @@ fn direct_and_cargo_style_run_resolve_config_build_and_log_without_self_events()
         );
         assert_eq!(
             config["source_roots"],
-            serde_json::json!([source.parent().unwrap()])
+            serde_json::json!([
+                root.join("benches"),
+                root.join("examples"),
+                source.parent().unwrap().to_path_buf(),
+                root.join("tests")
+            ])
         );
         assert_eq!(config["strict"], true);
         assert_eq!(config["check"], false);
@@ -156,6 +161,53 @@ fn direct_and_cargo_style_run_resolve_config_build_and_log_without_self_events()
         assert_eq!(config["edit"], serde_json::json!(["watch-fixture"]));
         assert_eq!(config["args"], serde_json::json!(["--port", "8080"]));
         assert_eq!(config["verbose"], 1);
+
+        // A new integration target is observed and acknowledged even in stock
+        // mode; invalid test syntax cannot affect this selected running binary.
+        fs::create_dir(root.join("tests")).unwrap();
+        fs::write(root.join("tests/unused.rs"), "not valid Rust").unwrap();
+        wait_until(|| {
+            rows(&log).iter().any(|r| {
+                r["path"] == "skip"
+                    && r["reason"]
+                        .as_str()
+                        .is_some_and(|s| s.contains("integration tests"))
+            })
+        });
+        assert!(!rows(&log).iter().any(|r| r["path"] == "stock"));
+        let ready = rows(&log)
+            .into_iter()
+            .find(|r| r["event"] == "ready")
+            .unwrap();
+        let pid: i32 = ready["message"]
+            .as_str()
+            .unwrap()
+            .split_whitespace()
+            .last()
+            .unwrap()
+            .parse()
+            .unwrap();
+        assert_eq!(unsafe { libc::kill(pid, 0) }, 0);
+        let oracle = Command::new("nice")
+            .args([
+                "-n",
+                "19",
+                "cargo",
+                "check",
+                "--bin",
+                "watch-fixture",
+                "-j",
+                "4",
+            ])
+            .current_dir(root)
+            .env("RUSTUP_TOOLCHAIN", "1.99.0")
+            .output()
+            .unwrap();
+        assert!(
+            oracle.status.success(),
+            "{}",
+            String::from_utf8_lossy(&oracle.stderr)
+        );
 
         fs::write(&source, "fn main() { loop { println!(\"edited\"); std::thread::sleep(std::time::Duration::from_millis(10)); } }\n").unwrap();
         wait_until(|| rows(&log).iter().any(|row| row["path"] == "stock"));
@@ -169,10 +221,21 @@ fn direct_and_cargo_style_run_resolve_config_build_and_log_without_self_events()
             "event log triggered its own save events"
         );
         fs::write(&source, "fn main() { loop { println!(\"edited\"); std::thread::sleep(std::time::Duration::from_millis(10)); } }\n").unwrap();
-        wait_until(|| rows(&log).iter().any(|row| row["path"] == "skip"));
+        wait_until(|| {
+            rows(&log)
+                .iter()
+                .any(|row| row["path"] == "skip" && row["reason"] == "")
+        });
         wait_until(|| fs::read_to_string(&stderr).unwrap().contains("· unchanged"));
         for row in rows(&log).iter().filter(|row| row["event"] == "save") {
-            assert!(row["generation"].as_u64().unwrap() >= 1);
+            if row["reason"]
+                .as_str()
+                .is_some_and(|s| s.contains("integration tests"))
+            {
+                assert_eq!(row["generation"], 0);
+            } else {
+                assert!(row["generation"].as_u64().unwrap() >= 1);
+            }
             assert!(
                 row["phases"]["sources"].as_f64().unwrap()
                     >= row["phases"]["notice"].as_f64().unwrap()
@@ -451,6 +514,10 @@ int main(int argc, char **argv) {
             )
             .env("REFRESH_RUSTD", "/not/the/validated/compiler")
             .env("FIX1_RUSTD_SCRIPT", rustd)
+            // Product test-profile overrides must not change this qualified
+            // application's admission environment.
+            .env_remove("CARGO_PROFILE_DEV_DEBUG")
+            .env_remove("CARGO_PROFILE_TEST_DEBUG")
             .env("CARGO_REFRESH_SUPPORT", support)
             .env("CARGO_REFRESH_WARM_PEAK_BYTES", "0")
             .env_remove("REFRESH_LANE_TOOL")

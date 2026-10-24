@@ -29,6 +29,32 @@ pub struct Resolve {
 pub struct ResolveNode {
     pub id: String,
     pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub features: Vec<String>,
+    #[serde(default)]
+    pub deps: Option<Vec<ResolveDependency>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ResolveDependency {
+    pub pkg: String,
+    pub dep_kinds: Vec<DependencyKind>,
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct DependencyKind {
+    pub kind: Option<String>,
+}
+impl ResolveNode {
+    fn runtime_dependencies(&self) -> Vec<&str> {
+        match &self.deps {
+            Some(deps) => deps
+                .iter()
+                .filter(|d| d.dep_kinds.iter().any(|k| k.kind.is_none()))
+                .map(|d| d.pkg.as_str())
+                .collect(),
+            None => self.dependencies.iter().map(String::as_str).collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -98,10 +124,17 @@ pub struct Config {
     pub target_directory: PathBuf,
     pub source_roots: Vec<PathBuf>,
     pub frontier_roots: Vec<PathBuf>,
+    /// Conventional excluded targets, except paths captured as application inputs.
+    pub excluded_target_roots: Vec<PathBuf>,
+    pub captured_rust_inputs: BTreeSet<PathBuf>,
+    pub opaque_build_roots: BTreeSet<PathBuf>,
     /// Edited library crates with transitive callers outside compiler ownership.
     /// Without an instantiation/inlining proof, even a restart may be stale.
     pub stock_frontier_roots: Vec<PathBuf>,
-    pub package_roots: Vec<PathBuf>,
+    pub package_roots: BTreeSet<PathBuf>,
+    /// Declaring package roots for build-script rerun inputs, including dependencies.
+    #[serde(skip)]
+    pub build_package_roots: std::collections::BTreeMap<String, Vec<PathBuf>>,
     pub input_files: Vec<PathBuf>,
 }
 
@@ -112,7 +145,85 @@ fn serialize_args<S: serde::Serializer>(
     serializer.collect_seq(args.iter().map(|arg| arg.to_string_lossy()))
 }
 
+fn normal_roots(package: &Package) -> Vec<PathBuf> {
+    package
+        .targets
+        .iter()
+        .filter(|t| {
+            t.kind.iter().any(|k| {
+                matches!(
+                    k.as_str(),
+                    "bin" | "lib" | "rlib" | "dylib" | "cdylib" | "staticlib" | "proc-macro"
+                )
+            })
+        })
+        .filter_map(|t| t.src_path.parent().map(Path::to_path_buf))
+        .collect()
+}
+
+/// Additional automatic ownership must not turn a qualified primary into a
+/// known stock-only baseline. Opaque macros and active assertions stay fenced.
+fn automatic_candidate_qualified(package: &Package) -> bool {
+    for root in normal_roots(package) {
+        if !root.exists() {
+            continue;
+        }
+        for entry in walkdir::WalkDir::new(root)
+            .into_iter()
+            .filter_entry(|e| !matches!(e.file_name().to_str(), Some("target" | ".git")))
+        {
+            let Ok(entry) = entry else {
+                return false;
+            };
+            if entry.file_type().is_file() && entry.path().extension().is_some_and(|s| s == "rs") {
+                let Ok(bytes) = std::fs::read(entry.path()) else {
+                    return false;
+                };
+                let test_disabled = !package
+                    .targets
+                    .iter()
+                    .any(|t| t.kind.iter().any(|k| k == "custom-build"))
+                    && std::env::var_os("RUSTC").is_none_or(|v| v.is_empty());
+                if refresh_guard::requires_stock_stringification_with_cfg(&bytes, test_disabled) {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
 impl Config {
+    pub fn requires_stock_stringification(&self, path: &Path, bytes: &[u8]) -> bool {
+        let test_disabled = std::env::var_os("RUSTC").is_none_or(|v| v.is_empty())
+            && !path
+                .ancestors()
+                .any(|parent| self.opaque_build_roots.contains(parent));
+        refresh_guard::requires_stock_stringification_with_cfg(bytes, test_disabled)
+    }
+
+    pub fn excluded_target_only(&self, changes: &crate::changes::ChangeSet) -> bool {
+        !changes.changes.is_empty()
+            && changes.changes.iter().all(|c| {
+                c.kind == crate::changes::PathKind::Rs
+                    && self
+                        .excluded_target_roots
+                        .iter()
+                        .any(|root| c.path.starts_with(root))
+                    && !self.captured_rust_inputs.contains(&c.path)
+                    && !c
+                        .path
+                        .ancestors()
+                        .find(|parent| self.package_roots.contains(*parent))
+                        .is_some_and(|package| self.opaque_build_roots.contains(package))
+                    && !c.path.ancestors().any(|parent| {
+                        self.input_files
+                            .binary_search_by(|input| input.as_path().cmp(parent))
+                            .is_ok()
+                    })
+            })
+    }
+
     pub fn load(args: RunArgs) -> Result<Self> {
         let cwd = std::env::current_dir().context("get current directory")?;
         let mut command = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()));
@@ -122,6 +233,9 @@ impl Config {
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
+        if let Ok(toolchain) = crate::install::Toolchain::detect(&cwd) {
+            command.args(["--filter-platform", &toolchain.host]);
+        }
         let output = crate::process::spawn(&mut command).context("run cargo metadata")?;
         let output = output.wait_with_output()?;
         if !output.status.success() {
@@ -136,6 +250,20 @@ impl Config {
     }
 
     pub fn resolve(args: RunArgs, metadata: &Metadata, cwd: &Path) -> Result<Self> {
+        Self::resolve_with_memory(
+            args,
+            metadata,
+            cwd,
+            crate::memory::sample().ok().map(|s| s.available),
+        )
+    }
+
+    fn resolve_with_memory(
+        args: RunArgs,
+        metadata: &Metadata,
+        cwd: &Path,
+        available: Option<u64>,
+    ) -> Result<Self> {
         let invocation = args.clone();
         let local: Vec<_> = metadata
             .packages
@@ -216,27 +344,13 @@ impl Config {
                 bins.len()
             );
         };
-        let edit = args.edit.unwrap_or(settings.edit);
+        let automatic = args.edit.is_none() && settings.edit.is_empty();
+        let mut edit = args.edit.clone().unwrap_or(settings.edit);
         for name in &edit {
             if !local.iter().any(|p| &p.name == name) {
                 bail!("editable crate {name} is not a local package in cargo metadata");
             }
         }
-        let frontier_roots: Vec<PathBuf> = local
-            .iter()
-            .filter(|p| p.name == package.name || edit.contains(&p.name))
-            .flat_map(|p| {
-                p.targets
-                    .iter()
-                    .filter(|t| !t.kind.iter().any(|k| k == "custom-build"))
-                    .filter_map(|t| t.src_path.parent().map(Path::to_path_buf))
-            })
-            .collect();
-        let owned: BTreeSet<_> = local
-            .iter()
-            .filter(|p| p.name == package.name || edit.contains(&p.name))
-            .map(|p| p.id.as_str())
-            .collect();
         let mut linked = BTreeSet::from([package.id.as_str()]);
         if let Some(resolve) = &metadata.resolve {
             loop {
@@ -251,36 +365,129 @@ impl Config {
                 }
             }
         }
-        let memory_roots: Vec<_> = local
+        let mut runtime_linked = BTreeSet::from([package.id.as_str()]);
+        if let Some(resolve) = &metadata.resolve {
+            loop {
+                let count = runtime_linked.len();
+                for node in &resolve.nodes {
+                    if runtime_linked.contains(node.id.as_str()) {
+                        runtime_linked.extend(node.runtime_dependencies().into_iter().filter(
+                            |id| {
+                                !metadata.packages.iter().any(|p| {
+                                    p.id == *id
+                                        && p.targets
+                                            .iter()
+                                            .any(|t| t.kind.iter().any(|k| k == "proc-macro"))
+                                })
+                            },
+                        ));
+                    }
+                }
+                if runtime_linked.len() == count {
+                    break;
+                }
+            }
+        }
+        let debug_off =
+            crate::memory::debug_info_disabled(&metadata.workspace_root.join("Cargo.toml"))?;
+        let estimate_for = |edit: &[String]| -> Result<crate::memory::Estimate> {
+            let roots: Vec<_> = local
+                .iter()
+                .filter(|p| p.name == package.name || edit.contains(&p.name))
+                .flat_map(|p| normal_roots(p))
+                .collect();
+            let owned_count = local
+                .iter()
+                .filter(|p| {
+                    linked.contains(p.id.as_str())
+                        && (p.name == package.name || edit.contains(&p.name))
+                })
+                .count();
+            let estimate =
+                crate::memory::Estimate::project(&roots, linked.len().saturating_sub(owned_count))?;
+            Ok(if debug_off {
+                estimate.without_debug_info()
+            } else {
+                estimate
+            })
+        };
+        if automatic && let Some(available) = available {
+            let eligible: BTreeSet<_> = local
+                .iter()
+                .filter(|p| runtime_linked.contains(p.id.as_str()) && p.name != package.name)
+                .filter(|p| automatic_candidate_qualified(p))
+                .map(|p| p.id.as_str())
+                .collect();
+            // Add callers before their dependencies. Include compile-time callers:
+            // a proc macro/build script can bake an owned helper's result into
+            // the running binary even though the compiler cannot own that caller.
+            loop {
+                let mut added = false;
+                for candidate in &local {
+                    if candidate.name == package.name
+                        || edit.contains(&candidate.name)
+                        || !runtime_linked.contains(candidate.id.as_str())
+                        || !eligible.contains(candidate.id.as_str())
+                        || !candidate
+                            .targets
+                            .iter()
+                            .any(|t| t.kind.iter().any(|k| matches!(k.as_str(), "lib" | "rlib")))
+                    {
+                        continue;
+                    }
+                    let Some(resolve) = &metadata.resolve else {
+                        continue;
+                    };
+                    if resolve.nodes.iter().any(|node| {
+                        linked.contains(node.id.as_str())
+                            && node.dependencies.contains(&candidate.id)
+                            && !local.iter().any(|p| {
+                                p.id == node.id
+                                    && (p.name == package.name || edit.contains(&p.name))
+                            })
+                    }) {
+                        continue;
+                    }
+                    let mut expanded = edit.clone();
+                    expanded.push(candidate.name.clone());
+                    if crate::memory::allows(available, estimate_for(&expanded)?.peak_bytes) {
+                        edit = expanded;
+                        added = true;
+                    }
+                }
+                if !added {
+                    break;
+                }
+            }
+        }
+        let owned: BTreeSet<_> = local
+            .iter()
+            .filter(|p| p.name == package.name || edit.contains(&p.name))
+            .map(|p| p.id.as_str())
+            .collect();
+        let frontier_roots = local
             .iter()
             .filter(|p| owned.contains(p.id.as_str()))
+            .flat_map(|p| normal_roots(p))
+            .collect();
+        let memory_estimate = estimate_for(&edit)?;
+        let all_normal_roots: Vec<_> = local.iter().flat_map(|p| normal_roots(p)).collect();
+        let excluded_target_roots: Vec<PathBuf> = local
+            .iter()
             .flat_map(|p| {
-                p.targets
+                let root = p.manifest_path.parent().unwrap();
+                [
+                    root.join("tests"),
+                    root.join("benches"),
+                    root.join("examples"),
+                ]
+            })
+            .filter(|root| {
+                !all_normal_roots
                     .iter()
-                    .filter(|t| {
-                        t.kind.iter().any(|k| {
-                            matches!(
-                                k.as_str(),
-                                "lib"
-                                    | "rlib"
-                                    | "dylib"
-                                    | "cdylib"
-                                    | "staticlib"
-                                    | "proc-macro"
-                                    | "bin"
-                            )
-                        })
-                    })
-                    .filter_map(|t| t.src_path.parent().map(Path::to_path_buf))
+                    .any(|normal| root.starts_with(normal))
             })
             .collect();
-        let mut memory_estimate = crate::memory::Estimate::project(
-            &memory_roots,
-            linked.iter().filter(|id| !owned.contains(**id)).count(),
-        )?;
-        if crate::memory::debug_info_disabled(&metadata.workspace_root.join("Cargo.toml"))? {
-            memory_estimate = memory_estimate.without_debug_info();
-        }
         let stock_frontier_roots = local
             .iter()
             .filter(|p| owned.contains(p.id.as_str()))
@@ -309,9 +516,44 @@ impl Config {
                     .iter()
                     .any(|id| linked.contains(id) && !owned.contains(id))
             })
-            .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
+            .flat_map(|p| {
+                let root = p.manifest_path.parent().unwrap().to_path_buf();
+                let mut scopes = vec![root.clone()];
+                scopes.extend(
+                    normal_roots(p)
+                        .into_iter()
+                        .filter(|path| !path.starts_with(&root)),
+                );
+                scopes
+            })
             .collect();
-        let mut source_roots = BTreeSet::new();
+        let opaque_build_roots = local
+            .iter()
+            .filter(|p| {
+                let features = metadata
+                    .resolve
+                    .as_ref()
+                    .and_then(|r| r.nodes.iter().find(|n| n.id == p.id))
+                    .map(|n| n.features.as_slice());
+                p.targets
+                    .iter()
+                    .filter(|t| t.kind.iter().any(|k| k == "custom-build"))
+                    .any(|t| {
+                        let Ok(text) = std::fs::read_to_string(&t.src_path) else {
+                            return true;
+                        };
+                        features.is_none_or(|features| {
+                            !refresh_guard::empty_build_script(&text, features)
+                        })
+                    })
+            })
+            .flat_map(|p| {
+                std::iter::once(p.manifest_path.parent().unwrap().to_path_buf())
+                    .chain(normal_roots(p))
+            })
+            .collect();
+        // Parent sentinels also observe the first test/example created in a session.
+        let mut source_roots: BTreeSet<_> = excluded_target_roots.iter().cloned().collect();
         let mut input_files = BTreeSet::from([
             metadata.workspace_root.join("Cargo.toml"),
             metadata.workspace_root.join("Cargo.lock"),
@@ -343,6 +585,12 @@ impl Config {
                 ancestor.join(".cargo/config"),
             ]);
         }
+        if let Some(home) = std::env::var_os("CARGO_HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|p| PathBuf::from(p).join(".cargo")))
+        {
+            input_files.extend([home.join("config"), home.join("config.toml")]);
+        }
         Ok(Self {
             memory_estimate,
             support: None,
@@ -367,7 +615,22 @@ impl Config {
             target_directory: metadata.target_directory.clone(),
             source_roots: source_roots.into_iter().collect(),
             frontier_roots,
+            excluded_target_roots,
+            captured_rust_inputs: BTreeSet::new(),
+            opaque_build_roots,
             stock_frontier_roots,
+            build_package_roots: {
+                let mut roots = std::collections::BTreeMap::<String, Vec<PathBuf>>::new();
+                for p in &metadata.packages {
+                    if let Some(root) = p.manifest_path.parent() {
+                        roots
+                            .entry(p.name.clone())
+                            .or_default()
+                            .push(root.to_path_buf());
+                    }
+                }
+                roots
+            },
             package_roots: local
                 .iter()
                 .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
@@ -401,7 +664,16 @@ mod tests {
         assert!(!config.after_patch_hook && !config.strict);
         assert!(config.edit.is_empty());
         assert_eq!(config.bin, "app");
-        assert_eq!(config.source_roots, [PathBuf::from("/demo/src")]);
+        assert_eq!(
+            config.source_roots,
+            [
+                "/demo/benches",
+                "/demo/examples",
+                "/demo/src",
+                "/demo/tests"
+            ]
+            .map(PathBuf::from)
+        );
         for path in ["Cargo.toml", "Cargo.lock", "build.rs", ".cargo/config.toml"] {
             assert!(config.input_files.contains(&Path::new("/demo").join(path)));
         }
@@ -439,6 +711,14 @@ mod tests {
         };
         let config = Config::resolve(args.clone(), &meta, Path::new("/demo")).unwrap();
         assert_eq!(config.stock_frontier_roots, [PathBuf::from("/demo/lib")]);
+        let mut external = meta.clone();
+        external.packages[1].targets[0].src_path = "/shared/libsrc/lib.rs".into();
+        let external = Config::resolve(args.clone(), &external, Path::new("/demo")).unwrap();
+        assert!(
+            external
+                .stock_frontier_roots
+                .contains(&PathBuf::from("/shared/libsrc"))
+        );
         args.edit.as_mut().unwrap().push("caller".into());
         // An unrelated workspace package cannot retain code in this executable.
         let mut unrelated = meta.clone();
@@ -462,6 +742,326 @@ mod tests {
                 .stock_frontier_roots
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn automatic_frontier_uses_memory_budget_and_keeps_callers_owned() {
+        let mut meta = metadata(json!({}));
+        let mut lib = meta.packages[0].clone();
+        lib.id = "lib-id".into();
+        lib.name = "lib".into();
+        lib.manifest_path = "/demo/lib/Cargo.toml".into();
+        lib.targets = vec![Target {
+            name: "lib".into(),
+            kind: vec!["lib".into()],
+            src_path: "/demo/lib/src/lib.rs".into(),
+        }];
+        let mut caller = lib.clone();
+        caller.id = "caller-id".into();
+        caller.name = "caller".into();
+        caller.manifest_path = "/demo/caller/Cargo.toml".into();
+        caller.targets[0].src_path = "/demo/caller/src/lib.rs".into();
+        meta.packages.extend([lib, caller]);
+        meta.resolve = Some(
+            serde_json::from_value(json!({"nodes": [
+                {"id":"app-id","dependencies":["caller-id"]},
+                {"id":"caller-id","dependencies":["lib-id"]},
+                {"id":"lib-id","dependencies":[]}
+            ]}))
+            .unwrap(),
+        );
+        let load = |memory| {
+            Config::resolve_with_memory(Default::default(), &meta, Path::new("/demo"), memory)
+                .unwrap()
+        };
+        let roomy = load(Some(20 * crate::memory::GIB));
+        assert_eq!(roomy.edit, ["caller", "lib"]);
+        assert!(roomy.stock_frontier_roots.is_empty());
+        assert!(load(Some(crate::memory::GIB)).edit.is_empty());
+        assert!(load(None).edit.is_empty());
+        let explicit = Config::resolve_with_memory(
+            RunArgs {
+                edit: Some(vec![]),
+                ..Default::default()
+            },
+            &meta,
+            Path::new("/demo"),
+            Some(20 * crate::memory::GIB),
+        )
+        .unwrap();
+        assert!(explicit.edit.is_empty());
+    }
+
+    #[test]
+    fn automatic_extra_ownership_keeps_known_fidelity_refusals_precompiled() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("src")).unwrap();
+        let path = dir.path().join("src/lib.rs");
+        let mut package = metadata(json!({})).packages.remove(0);
+        package.targets = vec![Target {
+            name: "lib".into(),
+            kind: vec!["lib".into()],
+            src_path: path.clone(),
+        }];
+        std::fs::write(
+            &path,
+            "pub fn value() -> i32 { 1 } #[cfg(test)] mod tests { fn t() { assert!(false); } }",
+        )
+        .unwrap();
+        assert!(automatic_candidate_qualified(&package));
+        std::fs::write(&path, "pub fn value() -> i32 { assert!(true); 1 }").unwrap();
+        assert!(!automatic_candidate_qualified(&package));
+    }
+
+    #[test]
+    fn build_script_cfg_test_cannot_bypass_assert_fidelity_fence() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir(root.join("src")).unwrap();
+        std::fs::write(
+            root.join("build.rs"),
+            "fn main() { println!(\"cargo:rustc-cfg=test\"); }",
+        )
+        .unwrap();
+        let mut meta = metadata(json!({}));
+        meta.workspace_root = root.into();
+        meta.target_directory = root.join("target");
+        meta.packages[0].manifest_path = root.join("Cargo.toml");
+        meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        meta.packages[0].targets[1].src_path = root.join("build.rs");
+        meta.resolve = Some(
+            serde_json::from_value(
+                json!({"nodes":[{"id":"app-id","dependencies":[],"features":[]}]}),
+            )
+            .unwrap(),
+        );
+        let config = Config::resolve(Default::default(), &meta, root).unwrap();
+        assert!(config.requires_stock_stringification(
+            &root.join("src/main.rs"),
+            b"#[cfg(test)] fn f() { assert!(false); }"
+        ));
+        // A custom source root outside the manifest directory has the same script cfg.
+        meta.packages[0].targets[0].src_path = root.join("../shared/main.rs");
+        let config = Config::resolve(Default::default(), &meta, root).unwrap();
+        assert!(config.requires_stock_stringification(
+            &root.join("../shared/main.rs"),
+            b"#[cfg(test)] fn f() { assert!(false); }"
+        ));
+    }
+
+    #[test]
+    fn runtime_graph_excludes_build_dev_and_macro_packages() {
+        let mut meta = metadata(json!({}));
+        for name in ["normal", "build", "dev", "macro"] {
+            let mut p = meta.packages[0].clone();
+            p.id = name.into();
+            p.name = name.into();
+            p.manifest_path = format!("/demo/{name}/Cargo.toml").into();
+            p.targets = vec![Target {
+                name: name.into(),
+                kind: vec![if name == "macro" { "proc-macro" } else { "lib" }.into()],
+                src_path: format!("/demo/{name}/src/lib.rs").into(),
+            }];
+            meta.packages.push(p);
+        }
+        meta.resolve = Some(
+            serde_json::from_value(json!({"nodes":[
+                {"id":"app-id","dependencies":["normal","build","dev","macro"],"deps":[
+                    {"pkg":"normal","dep_kinds":[{"kind":null}]},
+                    {"pkg":"build","dep_kinds":[{"kind":"build"}]},
+                    {"pkg":"dev","dep_kinds":[{"kind":"dev"}]},
+                    {"pkg":"macro","dep_kinds":[{"kind":null}]}
+                ]},
+                {"id":"normal","dependencies":[],"deps":[]},
+                {"id":"build","dependencies":[],"deps":[]},
+                {"id":"dev","dependencies":[],"deps":[]},
+                {"id":"macro","dependencies":[],"deps":[]}
+            ]}))
+            .unwrap(),
+        );
+        let config = Config::resolve_with_memory(
+            Default::default(),
+            &meta,
+            Path::new("/demo"),
+            Some(20 * crate::memory::GIB),
+        )
+        .unwrap();
+        assert_eq!(config.edit, ["normal"]);
+        assert!(config.stock_frontier_roots.is_empty());
+        assert_eq!(config.memory_estimate.dependencies, 3);
+    }
+
+    #[test]
+    fn build_time_callers_keep_runtime_helper_edits_on_stock() {
+        let mut meta = metadata(json!({}));
+        let mut lib = meta.packages[0].clone();
+        lib.id = "helper-id".into();
+        lib.name = "helper".into();
+        lib.manifest_path = "/demo/helper/Cargo.toml".into();
+        lib.targets = vec![Target {
+            name: "helper".into(),
+            kind: vec!["lib".into()],
+            src_path: "/demo/helper/src/lib.rs".into(),
+        }];
+        let mut generator = lib.clone();
+        generator.id = "generator-id".into();
+        generator.name = "generator".into();
+        generator.manifest_path = "/demo/generator/Cargo.toml".into();
+        generator.targets[0].src_path = "/demo/generator/src/lib.rs".into();
+        generator.targets[0].kind = vec!["proc-macro".into()];
+        meta.packages.extend([lib, generator]);
+        meta.resolve = Some(serde_json::from_value(json!({"nodes":[
+            {"id":"app-id","dependencies":["helper-id","generator-id"],"deps":[
+                {"pkg":"helper-id","dep_kinds":[{"kind":null}]},
+                {"pkg":"generator-id","dep_kinds":[{"kind":null}]}]},
+            {"id":"generator-id","dependencies":["helper-id"],"deps":[{"pkg":"helper-id","dep_kinds":[{"kind":null}]}]},
+            {"id":"helper-id","dependencies":[],"deps":[]}
+        ]})).unwrap());
+        let automatic = Config::resolve_with_memory(
+            Default::default(),
+            &meta,
+            Path::new("/demo"),
+            Some(20 * crate::memory::GIB),
+        )
+        .unwrap();
+        assert!(automatic.edit.is_empty());
+        let explicit = Config::resolve_with_memory(
+            RunArgs {
+                edit: Some(vec!["helper".into()]),
+                ..Default::default()
+            },
+            &meta,
+            Path::new("/demo"),
+            Some(20 * crate::memory::GIB),
+        )
+        .unwrap();
+        assert_eq!(
+            explicit.stock_frontier_roots,
+            [PathBuf::from("/demo/helper")]
+        );
+    }
+
+    #[test]
+    fn excluded_targets_skip_only_when_not_application_or_build_inputs() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mut meta = metadata(json!({}));
+        meta.workspace_root = root.into();
+        meta.target_directory = root.join("target");
+        meta.packages[0].manifest_path = root.join("Cargo.toml");
+        meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        meta.packages[0]
+            .targets
+            .retain(|t| !t.kind.iter().any(|k| k == "custom-build"));
+        let mut config = Config::resolve(Default::default(), &meta, root).unwrap();
+        for folder in ["tests", "benches", "examples"] {
+            std::fs::create_dir_all(root.join(folder)).unwrap();
+            let file = root.join(folder).join("case.rs");
+            std::fs::write(&file, "before").unwrap();
+            let mut tracker =
+                crate::changes::ChangeTracker::new([file.clone()], Default::default()).unwrap();
+            std::fs::write(&file, "after").unwrap();
+            let changes = tracker.observe([file.clone()]).unwrap();
+            assert!(config.excluded_target_only(&changes));
+            config.captured_rust_inputs.insert(file.clone());
+            assert!(!config.excluded_target_only(&changes));
+            config.captured_rust_inputs.remove(&file);
+            config.input_files.push(root.join(folder));
+            config.input_files.sort();
+            assert!(!config.excluded_target_only(&changes));
+            config.input_files.retain(|p| p != &root.join(folder));
+            config.opaque_build_roots.insert(root.into());
+            assert!(!config.excluded_target_only(&changes));
+            config.opaque_build_roots.clear();
+        }
+        // A binary or library whose source root is tests/ keeps that directory active.
+        meta.packages[0].targets[0].src_path = root.join("tests/main.rs");
+        let config = Config::resolve(Default::default(), &meta, root).unwrap();
+        assert!(!config.excluded_target_roots.contains(&root.join("tests")));
+    }
+
+    #[test]
+    fn opaque_parent_script_does_not_own_nested_dependency_tests() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let child = root.join("child");
+        std::fs::create_dir_all(child.join("tests")).unwrap();
+        std::fs::write(
+            root.join("build.rs"),
+            "fn main() { println!(\"cargo:rustc-env=BUILD=1\"); }",
+        )
+        .unwrap();
+        let mut meta = metadata(json!({}));
+        meta.workspace_root = root.into();
+        meta.target_directory = root.join("target");
+        meta.packages[0].manifest_path = root.join("Cargo.toml");
+        meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        meta.packages[0].targets[1].src_path = root.join("build.rs");
+        let mut package = meta.packages[0].clone();
+        package.id = "child-id".into();
+        package.name = "child".into();
+        package.manifest_path = child.join("Cargo.toml");
+        package.targets = vec![Target {
+            name: "child".into(),
+            kind: vec!["lib".into()],
+            src_path: child.join("src/lib.rs"),
+        }];
+        meta.packages.push(package);
+        let mut config = Config::resolve(Default::default(), &meta, root).unwrap();
+        assert!(config.opaque_build_roots.contains(root));
+        let file = child.join("tests/case.rs");
+        std::fs::write(&file, "before").unwrap();
+        let mut tracker =
+            crate::changes::ChangeTracker::new([file.clone()], Default::default()).unwrap();
+        std::fs::write(&file, "after").unwrap();
+        let changes = tracker.observe([file]).unwrap();
+        assert!(config.excluded_target_only(&changes));
+        // An explicit parent-script rerun input still protects the child's tests.
+        config.input_files.push(child.join("tests"));
+        config.input_files.sort();
+        assert!(!config.excluded_target_only(&changes));
+        config.input_files.retain(|p| p != &child.join("tests"));
+        config.opaque_build_roots.insert(child);
+        assert!(!config.excluded_target_only(&changes));
+    }
+
+    #[test]
+    fn first_integration_test_created_during_session_is_observed_as_noop() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir(root.join("src")).unwrap();
+        std::fs::write(root.join("src/main.rs"), "fn main() {}").unwrap();
+        let mut meta = metadata(json!({}));
+        meta.workspace_root = root.into();
+        meta.target_directory = root.join("target");
+        meta.packages[0].manifest_path = root.join("Cargo.toml");
+        meta.packages[0].targets.truncate(1);
+        meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        let config = Config::resolve(Default::default(), &meta, root).unwrap();
+        let spec = crate::watcher::WatchSpec::new(
+            config.source_roots.clone(),
+            config.input_files.clone(),
+            vec![],
+        );
+        let mut watcher = crate::watcher::SourceWatcher::new(spec).unwrap();
+        let mut tracker =
+            crate::changes::ChangeTracker::new(watcher.files().unwrap(), watcher.build_inputs())
+                .unwrap();
+        std::fs::create_dir(root.join("tests")).unwrap();
+        let path = root.join("tests/first.rs");
+        std::fs::write(
+            &path,
+            "#[test] fn first() {}
+",
+        )
+        .unwrap();
+        let batch = watcher
+            .next_batch(std::time::Duration::from_secs(2))
+            .unwrap()
+            .unwrap();
+        let changes = tracker.observe(batch.paths).unwrap();
+        assert!(changes.changes.iter().any(|c| c.path == path));
+        assert!(config.excluded_target_only(&changes));
     }
 
     #[test]

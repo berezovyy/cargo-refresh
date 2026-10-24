@@ -12,6 +12,8 @@
 mod admission;
 mod analysis;
 mod async_methods;
+mod build_script;
+pub use build_script::empty_build_script;
 
 use analysis::Analysis;
 use std::{
@@ -581,6 +583,12 @@ pub fn has_opaque_async_blocks(bytes: &[u8]) -> bool {
 /// bodies, so a wrapper cannot hide a use from the controller's baseline fence.
 /// The controller caches this per file; this function never reads the filesystem.
 pub fn requires_stock_stringification(bytes: &[u8]) -> bool {
+    requires_stock_stringification_with_cfg(bytes, false)
+}
+
+/// Ignore exact test-only items only when the caller has proved `cfg(test)`
+/// disabled for this normal target. Build scripts can explicitly enable it.
+pub fn requires_stock_stringification_with_cfg(bytes: &[u8], test_disabled: bool) -> bool {
     fn scan(tokens: proc_macro2::TokenStream) -> bool {
         let mut previous = false;
         for token in tokens {
@@ -611,10 +619,67 @@ pub fn requires_stock_stringification(bytes: &[u8]) -> bool {
         }
         false
     }
-    std::str::from_utf8(bytes)
-        .ok()
-        .and_then(|text| text.parse::<proc_macro2::TokenStream>().ok())
-        .is_some_and(scan)
+    use quote::ToTokens;
+    use syn::visit_mut::VisitMut;
+    fn test_only(attrs: &[syn::Attribute]) -> bool {
+        attrs.iter().any(|attr| {
+            attr.path().is_ident("cfg")
+                && attr
+                    .parse_args::<syn::Path>()
+                    .is_ok_and(|p| p.is_ident("test"))
+        })
+    }
+    fn item_attrs(item: &syn::Item) -> &[syn::Attribute] {
+        match item {
+            syn::Item::Const(i) => &i.attrs,
+            syn::Item::Enum(i) => &i.attrs,
+            syn::Item::ExternCrate(i) => &i.attrs,
+            syn::Item::Fn(i) => &i.attrs,
+            syn::Item::ForeignMod(i) => &i.attrs,
+            syn::Item::Impl(i) => &i.attrs,
+            syn::Item::Macro(i) => &i.attrs,
+            syn::Item::Mod(i) => &i.attrs,
+            syn::Item::Static(i) => &i.attrs,
+            syn::Item::Struct(i) => &i.attrs,
+            syn::Item::Trait(i) => &i.attrs,
+            syn::Item::TraitAlias(i) => &i.attrs,
+            syn::Item::Type(i) => &i.attrs,
+            syn::Item::Union(i) => &i.attrs,
+            syn::Item::Use(i) => &i.attrs,
+            _ => &[],
+        }
+    }
+    struct RunningBinary;
+    impl VisitMut for RunningBinary {
+        fn visit_item_mut(&mut self, item: &mut syn::Item) {
+            if test_only(item_attrs(item)) {
+                *item = syn::Item::Verbatim(Default::default());
+            } else {
+                syn::visit_mut::visit_item_mut(self, item);
+            }
+        }
+    }
+    let Some(text) = std::str::from_utf8(bytes).ok() else {
+        return false;
+    };
+    if !test_disabled {
+        return text
+            .parse::<proc_macro2::TokenStream>()
+            .ok()
+            .is_some_and(scan);
+    }
+    let Ok(mut file) = syn::parse_file(text) else {
+        // Incomplete buffers and opaque token fragments keep the old conservative scan.
+        return text
+            .parse::<proc_macro2::TokenStream>()
+            .ok()
+            .is_some_and(scan);
+    };
+    if test_only(&file.attrs) {
+        return false;
+    }
+    RunningBinary.visit_file_mut(&mut file);
+    scan(file.into_token_stream())
 }
 
 #[cfg(test)]
@@ -640,5 +705,34 @@ mod containment_tests {
             guard.classify(&source, &source),
             Class::LiveEligible { .. }
         ));
+    }
+}
+
+#[cfg(test)]
+mod running_binary_stringification_tests {
+    fn fenced(bytes: &[u8]) -> bool {
+        super::requires_stock_stringification_with_cfg(bytes, true)
+    }
+    #[test]
+    fn test_only_items_do_not_disable_running_binary_but_active_macros_do() {
+        assert!(super::requires_stock_stringification(
+            b"#[cfg(test)] fn t() { assert!(false); }"
+        ));
+        for text in [
+            "#[cfg(test)] mod tests { fn t() { assert!(1 == 1); } } fn main() {}",
+            "mod nested { #[cfg(test)] fn t() { debug_assert!(false); } }",
+            "#![cfg(test)] fn t() { assert!(false); }",
+        ] {
+            assert!(!fenced(text.as_bytes()), "{text}");
+        }
+        for text in [
+            "#[cfg(test)] mod tests { fn t() { assert!(true); } } fn main() { assert!(false); }",
+            "#[cfg(any(test, unix))] fn f() { assert!(false); }",
+            "macro_rules! wrapped { () => { assert!(false) }; } fn main() {}",
+            "use core::assert as check; fn main() {}",
+            "fn main() { debug_assert!(false); }",
+        ] {
+            assert!(fenced(text.as_bytes()), "{text}");
+        }
     }
 }
