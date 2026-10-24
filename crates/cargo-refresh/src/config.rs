@@ -739,6 +739,27 @@ mod tests {
     }
 
     #[test]
+    fn automatic_extra_ownership_keeps_known_fidelity_refusals_precompiled() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("src")).unwrap();
+        let path = dir.path().join("src/lib.rs");
+        let mut package = metadata(json!({})).packages.remove(0);
+        package.targets = vec![Target {
+            name: "lib".into(),
+            kind: vec!["lib".into()],
+            src_path: path.clone(),
+        }];
+        std::fs::write(
+            &path,
+            "pub fn value() -> i32 { 1 } #[cfg(test)] mod tests { fn t() { assert!(false); } }",
+        )
+        .unwrap();
+        assert!(automatic_candidate_qualified(&package));
+        std::fs::write(&path, "pub fn value() -> i32 { assert!(true); 1 }").unwrap();
+        assert!(!automatic_candidate_qualified(&package));
+    }
+
+    #[test]
     fn runtime_graph_excludes_build_dev_and_macro_packages() {
         let mut meta = metadata(json!({}));
         for name in ["normal", "build", "dev", "macro"] {
