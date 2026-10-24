@@ -158,6 +158,33 @@ fn normal_roots(package: &Package) -> Vec<PathBuf> {
         .collect()
 }
 
+/// Additional automatic ownership must not turn a qualified primary into a
+/// known stock-only baseline. Opaque macros and active assertions stay fenced.
+fn automatic_candidate_qualified(package: &Package) -> bool {
+    for root in normal_roots(package) {
+        if !root.exists() {
+            continue;
+        }
+        for entry in walkdir::WalkDir::new(root)
+            .into_iter()
+            .filter_entry(|e| !matches!(e.file_name().to_str(), Some("target" | ".git")))
+        {
+            let Ok(entry) = entry else {
+                return false;
+            };
+            if entry.file_type().is_file() && entry.path().extension().is_some_and(|s| s == "rs") {
+                let Ok(bytes) = std::fs::read(entry.path()) else {
+                    return false;
+                };
+                if refresh_guard::requires_stock_stringification(&bytes) {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
 impl Config {
     pub fn excluded_target_only(&self, changes: &crate::changes::ChangeSet) -> bool {
         !changes.changes.is_empty()
@@ -368,6 +395,12 @@ impl Config {
             })
         };
         if automatic && let Some(available) = available {
+            let eligible: BTreeSet<_> = local
+                .iter()
+                .filter(|p| runtime_linked.contains(p.id.as_str()) && p.name != package.name)
+                .filter(|p| automatic_candidate_qualified(p))
+                .map(|p| p.id.as_str())
+                .collect();
             // Add callers before their dependencies; otherwise inlined/generic
             // code can remain in a precompiled caller outside the frontier.
             loop {
@@ -376,6 +409,7 @@ impl Config {
                     if candidate.name == package.name
                         || edit.contains(&candidate.name)
                         || !runtime_linked.contains(candidate.id.as_str())
+                        || !eligible.contains(candidate.id.as_str())
                         || !candidate
                             .targets
                             .iter()
@@ -420,7 +454,7 @@ impl Config {
             .collect();
         let memory_estimate = estimate_for(&edit)?;
         let normal_roots: Vec<_> = local.iter().flat_map(|p| normal_roots(p)).collect();
-        let excluded_target_roots = local
+        let excluded_target_roots: Vec<PathBuf> = local
             .iter()
             .flat_map(|p| {
                 let root = p.manifest_path.parent().unwrap();
@@ -484,7 +518,8 @@ impl Config {
             })
             .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))
             .collect();
-        let mut source_roots = BTreeSet::new();
+        // Parent sentinels also observe the first test/example created in a session.
+        let mut source_roots: BTreeSet<_> = excluded_target_roots.iter().cloned().collect();
         let mut input_files = BTreeSet::from([
             metadata.workspace_root.join("Cargo.toml"),
             metadata.workspace_root.join("Cargo.lock"),
@@ -583,7 +618,16 @@ mod tests {
         assert!(!config.after_patch_hook && !config.strict);
         assert!(config.edit.is_empty());
         assert_eq!(config.bin, "app");
-        assert_eq!(config.source_roots, [PathBuf::from("/demo/src")]);
+        assert_eq!(
+            config.source_roots,
+            [
+                "/demo/benches",
+                "/demo/examples",
+                "/demo/src",
+                "/demo/tests"
+            ]
+            .map(PathBuf::from)
+        );
         for path in ["Cargo.toml", "Cargo.lock", "build.rs", ".cargo/config.toml"] {
             assert!(config.input_files.contains(&Path::new("/demo").join(path)));
         }
@@ -773,6 +817,45 @@ mod tests {
         meta.packages[0].targets[0].src_path = root.join("tests/main.rs");
         let config = Config::resolve(Default::default(), &meta, root).unwrap();
         assert!(!config.excluded_target_roots.contains(&root.join("tests")));
+    }
+
+    #[test]
+    fn first_integration_test_created_during_session_is_observed_as_noop() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir(root.join("src")).unwrap();
+        std::fs::write(root.join("src/main.rs"), "fn main() {}").unwrap();
+        let mut meta = metadata(json!({}));
+        meta.workspace_root = root.into();
+        meta.target_directory = root.join("target");
+        meta.packages[0].manifest_path = root.join("Cargo.toml");
+        meta.packages[0].targets.truncate(1);
+        meta.packages[0].targets[0].src_path = root.join("src/main.rs");
+        let config = Config::resolve(Default::default(), &meta, root).unwrap();
+        let spec = crate::watcher::WatchSpec::new(
+            config.source_roots.clone(),
+            config.input_files.clone(),
+            vec![],
+        );
+        let mut watcher = crate::watcher::SourceWatcher::new(spec).unwrap();
+        let mut tracker =
+            crate::changes::ChangeTracker::new(watcher.files().unwrap(), watcher.build_inputs())
+                .unwrap();
+        std::fs::create_dir(root.join("tests")).unwrap();
+        let path = root.join("tests/first.rs");
+        std::fs::write(
+            &path,
+            "#[test] fn first() {}
+",
+        )
+        .unwrap();
+        let batch = watcher
+            .next_batch(std::time::Duration::from_secs(2))
+            .unwrap()
+            .unwrap();
+        let changes = tracker.observe(batch.paths).unwrap();
+        assert!(changes.changes.iter().any(|c| c.path == path));
+        assert!(config.excluded_target_only(&changes));
     }
 
     #[test]
