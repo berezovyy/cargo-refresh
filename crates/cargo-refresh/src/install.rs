@@ -91,11 +91,16 @@ pub struct Support {
     pub root: PathBuf,
     pub warm_peak_bytes: u64,
     pub promotion_current_edges: bool,
+    pub assertion_ast_messages: bool,
     // Private immutable bundle snapshot lives as long as all Pipeline/Reset clones.
     bundle: tempfile::TempDir,
 }
 
 fn promotion_current_edges(root: &Path) -> bool {
+    compiler_capability(root, "promotion_current_edges")
+}
+
+fn compiler_capability(root: &Path, name: &str) -> bool {
     Command::new(root.join("rustd"))
         .arg("--capabilities")
         .output()
@@ -103,8 +108,7 @@ fn promotion_current_edges(root: &Path) -> bool {
         .filter(|output| output.status.success())
         .and_then(|output| serde_json::from_slice::<serde_json::Value>(&output.stdout).ok())
         .is_some_and(|value| {
-            value["schema"].as_u64() == Some(1)
-                && value["promotion_current_edges"].as_bool() == Some(true)
+            value["schema"].as_u64() == Some(1) && value[name].as_bool() == Some(true)
         })
 }
 impl Support {
@@ -660,6 +664,7 @@ pub fn prepare(config: &mut Config) {
         )?;
         Ok(Support {
             promotion_current_edges: promotion_current_edges(&root),
+            assertion_ast_messages: compiler_capability(&root, "assertion_ast_messages"),
             root: root.canonicalize()?,
             warm_peak_bytes: peak,
             bundle,
@@ -680,6 +685,26 @@ pub fn prepare(config: &mut Config) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn assertion_printer_capability_is_independent_of_promotion_support() {
+        let root = tempfile::tempdir().unwrap();
+        assert!(!compiler_capability(root.path(), "assertion_ast_messages"));
+        let binary = root.path().join("rustd");
+        for (text, expected) in [
+            (r#"{"schema":1,"promotion_current_edges":true}"#, false),
+            (r#"{"schema":1,"assertion_ast_messages":true}"#, true),
+            (r#"{"schema":1,"assertion_ast_messages":false}"#, false),
+            (r#"{"schema":2,"assertion_ast_messages":true}"#, false),
+        ] {
+            fs::write(&binary, format!("#!/bin/sh\nprintf '%s\\n' '{text}'\n")).unwrap();
+            fs::set_permissions(&binary, fs::Permissions::from_mode(0o755)).unwrap();
+            assert_eq!(
+                compiler_capability(root.path(), "assertion_ast_messages"),
+                expected
+            );
+        }
+    }
 
     #[test]
     fn only_an_explicit_supported_compiler_capability_relaxes_the_async_macro_fence() {

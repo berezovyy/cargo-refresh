@@ -161,40 +161,15 @@ fn normal_roots(package: &Package) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Additional automatic ownership must not turn a qualified primary into a
-/// known stock-only baseline. Opaque macros and active assertions stay fenced.
-fn automatic_candidate_qualified(package: &Package) -> bool {
-    for root in normal_roots(package) {
-        if !root.exists() {
-            continue;
-        }
-        for entry in walkdir::WalkDir::new(root)
-            .into_iter()
-            .filter_entry(|e| !matches!(e.file_name().to_str(), Some("target" | ".git")))
-        {
-            let Ok(entry) = entry else {
-                return false;
-            };
-            if entry.file_type().is_file() && entry.path().extension().is_some_and(|s| s == "rs") {
-                let Ok(bytes) = std::fs::read(entry.path()) else {
-                    return false;
-                };
-                let test_disabled = !package
-                    .targets
-                    .iter()
-                    .any(|t| t.kind.iter().any(|k| k == "custom-build"))
-                    && std::env::var_os("RUSTC").is_none_or(|v| v.is_empty());
-                if refresh_guard::requires_stock_stringification_with_cfg(&bytes, test_disabled) {
-                    return false;
-                }
-            }
-        }
-    }
-    true
-}
-
 impl Config {
     pub fn requires_stock_stringification(&self, path: &Path, bytes: &[u8]) -> bool {
+        if self
+            .support
+            .as_ref()
+            .is_some_and(|s| s.assertion_ast_messages)
+        {
+            return false;
+        }
         let test_disabled = std::env::var_os("RUSTC").is_none_or(|v| v.is_empty())
             && !path
                 .ancestors()
@@ -415,7 +390,6 @@ impl Config {
             let eligible: BTreeSet<_> = local
                 .iter()
                 .filter(|p| runtime_linked.contains(p.id.as_str()) && p.name != package.name)
-                .filter(|p| automatic_candidate_qualified(p))
                 .map(|p| p.id.as_str())
                 .collect();
             // Add callers before their dependencies. Include compile-time callers:
@@ -790,27 +764,6 @@ mod tests {
         )
         .unwrap();
         assert!(explicit.edit.is_empty());
-    }
-
-    #[test]
-    fn automatic_extra_ownership_keeps_known_fidelity_refusals_precompiled() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir(dir.path().join("src")).unwrap();
-        let path = dir.path().join("src/lib.rs");
-        let mut package = metadata(json!({})).packages.remove(0);
-        package.targets = vec![Target {
-            name: "lib".into(),
-            kind: vec!["lib".into()],
-            src_path: path.clone(),
-        }];
-        std::fs::write(
-            &path,
-            "pub fn value() -> i32 { 1 } #[cfg(test)] mod tests { fn t() { assert!(false); } }",
-        )
-        .unwrap();
-        assert!(automatic_candidate_qualified(&package));
-        std::fs::write(&path, "pub fn value() -> i32 { assert!(true); 1 }").unwrap();
-        assert!(!automatic_candidate_qualified(&package));
     }
 
     #[test]

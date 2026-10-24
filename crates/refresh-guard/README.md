@@ -192,18 +192,13 @@ analysis failure cannot leave a save waiting indefinitely or crash its worker.
 Underscore imports (`use Trait as _`) never shadow a macro name; raw aliases such
 as `r#println` do participate in the conservative shadowing policy.
 
-`requires_stock_stringification` is the controller's temporary qualification
-fence for `assert!` and `debug_assert!`: rustc uses its AST expression printer for
-these messages, which differs from the token printer used by `stringify!` and
-`dbg!`. The controller scans editable files once at startup and updates only the
-changed-file entries after accepted saves. While any such source remains, it
-uses a stock Cargo baseline and stock rebuilds. It also recognizes uses inside
-macro definitions and renamed imports. This is deliberately conservative, including custom macros
-with those names and assertions with explicit messages. The compiler separately
-marks resolved assertion-bearing roots and instances unsupported and refuses
-refresh builds involving these roots. This covers aliases and included/generated
-bodies beyond the controller's source scan and prevents stale native copies. Remove this
-fence only after the AST printer has its own stock equivalence qualification.
+`requires_stock_stringification` retains compatibility with support binaries that
+lack the explicit `assertion_ast_messages` capability. With the qualified
+compiler, `assert!` and `debug_assert!` use rustc 1.99.0's AST expression printer
+and do not fence other items or the build. Custom-message assertions and the
+`assert_eq!`/`assert_ne!` families retain their normal macro expansion. Older
+support binaries retain the cached per-file stock policy, including wrappers
+and renamed imports.
 
 Changed opaque async macro arguments require a stock rebuild when the guard
 reports `macro-body`. With the M4-T8 rustd promotion fix, parsed standard `vec!`
