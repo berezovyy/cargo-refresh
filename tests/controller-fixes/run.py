@@ -89,6 +89,70 @@ def cfg(args):
         (s.out/'completed.json').write_text(json.dumps({'cfg_noops':4,'enabled_live':2,'layout_restart':1,'oracle_matches':7}))
     finally:s.close()
 
+def history(args):
+    s, source = fixture(args, 'history', '\n#[cfg(test)] mod tests { fn unused() {} }\n')
+    try:
+        s.wait(lambda:base.http(s.port)==(200,'1'))
+        # Added lines defeat the older position-preserving cfg projection. Full
+        # transactional code/data revalidation must authorize this no-op.
+        current=source.replace('fn unused() {}', 'fn unused() {\n    assert_eq!(1, 1);\n}')
+        row=s.save({'src/main.rs':current},'history-test-lines','1')
+        assert row['path']=='skip',row;s.oracle_tiny(row,1)
+        current += '\n// a history comment after the last item\n'
+        row=s.save({'src/main.rs':current},'history-comment','1')
+        assert row['path']=='skip',row;s.oracle_tiny(row,1)
+        starts=sum(e['event']=='worker_reset_start' for e in s.read())
+        # Unknown name diagnostics need not occur in the controller's historical
+        # error-code allowlist. A failed stock fallback must retain the compiler.
+        broken=current+'\nfn extra() { missing_crate::call(); }\n'
+        row=s.save({'src/main.rs':broken},'history-error-retains-baseline',None)
+        assert row['path']=='error',row;s.oracle_tiny(row,None,error=True)
+        fixed=current.replace('number: 1','number: 2')
+        row=s.save({'src/main.rs':fixed},'history-good-after-error','2')
+        assert row['path']=='live',row;s.oracle_tiny(row,2)
+        assert sum(e['event']=='worker_reset_start' for e in s.read())==starts
+        # The stock-only include path fails before the daemon sees the bad save.
+        row=s.save({'src/main.rs':fixed+'\ninclude!("missing_history_input.rs");\n'},'history-stock-error',None)
+        assert row['path']=='error',row;s.oracle_tiny(row,None,error=True)
+        row=s.save({'src/main.rs':fixed.replace('number: 2','number: 3')},'history-good-after-stock-error','3')
+        assert row['path']=='live',row;s.oracle_tiny(row,3)
+        assert sum(e['event']=='worker_reset_start' for e in s.read())==starts
+        (s.out/'completed.json').write_text(json.dumps({'noops':2,'error_saves':2,'live_after_error':2,'oracle_matches':6,'resets':0}))
+    finally:s.close()
+
+def history_revert(args):
+    # Delay only the frozen stock check, so a following save deterministically
+    # supersedes an optimistic edit before its borrow-check result arrives.
+    tools=args.work/'tools';tools.mkdir()
+    cargo=shutil.which('cargo');assert cargo
+    wrapper=tools/'cargo'
+    wrapper.write_text('#!/usr/bin/env python3\nimport os,sys,time\n'
+                       'if len(sys.argv)>1 and sys.argv[1]=="check":time.sleep(2)\n'
+                       f'os.execv({cargo!r},[{cargo!r},*sys.argv[1:]])\n')
+    wrapper.chmod(0o755)
+    path=os.environ['PATH'];os.environ['PATH']=str(tools)+':'+path
+    s=None
+    try:
+        s, source=fixture(args,'history-revert')
+        s.wait(lambda:base.http(s.port)==(200,'1'))
+        broken=source.replace('number: u64 }','number: u64, flag: bool }').replace('number: 1 }','number: 2, flag: true }')+'\nfn extra() { missing_crate::call(); }\n'
+        row=s.save({'src/main.rs':broken},'optimistic-before-noop','2',error=True)
+        assert row['path']=='restart',row
+        assert not any(e['event']=='revert' for e in s.read()),'check delay did not exercise supersession'
+        row=s.save({'src/main.rs':broken+'\n// later no-codegen save\n'},'checked-noop-rejects-prior-live',error=True)
+        s.wait(lambda:any(e['event']=='revert' and e['revision']==row['event']['revision'] for e in s.read()))
+        s.wait(lambda:base.http(s.port)==(200,'1'))
+        assert row['path']=='error',row
+        s.oracle_tiny(row,None,error=True)
+        assert 'missing_crate' in (s.project/'src/main.rs').read_text(),'editor was overwritten'
+        row=s.save({'src/main.rs':source.replace('number: 1','number: 3')},'good-after-noop-revert','3')
+        assert row['path'] in ('live','restart'),row;s.oracle_tiny(row,3)
+        assert not any(e['event']=='worker_reset_start' for e in s.read())
+        (s.out/'completed.json').write_text(json.dumps({'optimistic_edits':1,'no_effect_rejections':1,'reverts':1,'oracle_matches':2,'resets':0}))
+    finally:
+        if s:s.close()
+        os.environ['PATH']=path
+
 def split(args):
     s,source=fixture(args,'split','\nmod extra;\n',
                      {'src/extra.rs':'pub fn offset() -> u64 { 0 }\n'},
@@ -117,5 +181,5 @@ def split(args):
     finally:s.close()
 
 if __name__=='__main__':
-    ap=argparse.ArgumentParser();ap.add_argument('mode',choices=['recovery','cfg','split']);ap.add_argument('--controller',type=Path,required=True);ap.add_argument('--work',type=Path,required=True);ap.add_argument('--tag',default='');args=ap.parse_args();args.work.mkdir(parents=True,exist_ok=True)
+    ap=argparse.ArgumentParser();ap.add_argument('mode',choices=['recovery','cfg','history','history_revert','split']);ap.add_argument('--controller',type=Path,required=True);ap.add_argument('--work',type=Path,required=True);ap.add_argument('--tag',default='');args=ap.parse_args();args.work.mkdir(parents=True,exist_ok=True)
     globals()[args.mode](args)

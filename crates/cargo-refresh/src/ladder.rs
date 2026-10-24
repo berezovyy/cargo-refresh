@@ -536,7 +536,9 @@ impl Pipeline {
         Ok(())
     }
     fn stock(&mut self, job: &mut Job, reason: String) -> Result<()> {
-        self.quarantine();
+        // A failed stock build leaves the running image unchanged. Keep the
+        // transactional compiler's last-good baseline until a replacement exists.
+        // Configuration changes are different: their capture is no longer valid.
         if let Some((mut check, _)) = self.checker.take() {
             check.cancel();
         }
@@ -546,6 +548,7 @@ impl Pipeline {
             .iter()
             .any(|c| c.kind == PathKind::Manifest);
         if manifest_change {
+            self.quarantine();
             // Configuration changes invalidate the capture itself. Unlike source
             // saves, these must stop the old reset before starting a new one.
             if let Some(reset) = self.reset.take() {
@@ -605,6 +608,7 @@ impl Pipeline {
             self.publish(job, SavePath::Error, result.diagnostic, false)?;
             return Ok(());
         }
+        self.quarantine();
         self.runtime
             .start(&result.executable.context("stock binary missing")?)?;
         mark(&mut job.phases, Phase::SpawnEnd);
@@ -692,6 +696,64 @@ impl Pipeline {
         checker::apply(&mut self.checked, changes);
         self.checked_available = true;
         self.unchecked.clear();
+    }
+    /// Restore earlier optimistic updates if a later checked save rejects them.
+    fn reject_checked(&mut self, changes: &ChangeSet, diagnostic: String) -> Result<()> {
+        self.event("tainted", format!("⚠ borrowck: {}", diagnostic));
+        if self.checked_available && !self.unchecked.is_empty() {
+            // A borrow-check failure does not invalidate the warm
+            // compiler. Keep it quarantined from the reverted stock
+            // runtime by requiring a candidate restart on the next
+            // valid save, instead of discarding the whole worker.
+            if let Some(reset) = &self.reset {
+                reset
+                    .cancel
+                    .store(true, std::sync::atomic::Ordering::SeqCst);
+            }
+            self.recovery_restart = true;
+            let workspace = self
+                .workspace
+                .as_ref()
+                .context("checked snapshot unavailable")?;
+            // Restore only the private checker tree, never the user's working tree.
+            let paths: BTreeSet<_> = self
+                .unchecked
+                .iter()
+                .cloned()
+                .chain(changes.changes.iter().map(|c| c.path.clone()))
+                .collect();
+            for path in &paths {
+                workspace.write(path, self.checked.get(path).map(|v| v.as_ref()))?;
+            }
+            let result = fallback::build(&self.config, &workspace.root, &self.fence, self.floor)?;
+            if self.fence.current() && result.success {
+                self.runtime
+                    .start(&result.executable.context("revert binary missing")?)?;
+                let restored = paths
+                    .iter()
+                    .map(|p| (p.clone(), self.checked.get(p).cloned()))
+                    .collect();
+                for path in paths {
+                    if let Some(bytes) = self.checked.get(&path) {
+                        self.sources.insert(path, bytes.clone());
+                    } else {
+                        self.sources.remove(&path);
+                    }
+                }
+                self.sender.send(Update::Reverted {
+                    paths: restored,
+                    revision: self.fence.revision,
+                })?;
+                self.unchecked.clear();
+                self.event(
+                    "revert",
+                    "last checked snapshot rebuilt and restarted; editor files preserved",
+                );
+            } else if !result.success {
+                self.event("revert_failed", result.diagnostic);
+            }
+        }
+        Ok(())
     }
     pub fn process(&mut self, mut job: Job) -> Result<()> {
         mark(&mut job.phases, Phase::WorkerStart);
@@ -1026,6 +1088,8 @@ impl Pipeline {
                 return self.stock(&mut job, reason);
             }
         };
+        // Empty transactions deliberately preserve the compiler/loader baseline.
+        let promote = promote && !build.no_effect;
         if build.repeated {
             self.event(
                 "compiler_pending_reused",
@@ -1074,7 +1138,8 @@ impl Pipeline {
         }
         // Fresh manifest != delivered edit. An untracked callback can produce
         // a successful zero-function splice of old code.
-        // Only a compiler cfg proof authorizes a zero-output source edit.
+        // Only an explicit compiler proof authorizes a zero-output source edit.
+        // A recovered compiler still needs to deliver its native baseline.
         if !build.repeated
             && let Err(error) = build.ensure_compiled_change(&self.fast.as_ref().unwrap().manifest)
         {
@@ -1084,10 +1149,36 @@ impl Pipeline {
                     fast.manifest.update(&build.manifest)?,
                     "stale no-effect manifest"
                 );
+                // Zero code/data proves the runtime is unaffected, but an
+                // unused new body can still contain a stock compile error.
+                // Finish the check already in flight before acknowledging a
+                // no-op; errors keep both the runtime and warm baseline intact.
+                if let Some((mut check, changes)) = self.checker.take() {
+                    let result = check.finish()?;
+                    if !self.fence.current() {
+                        return Ok(());
+                    }
+                    if !result.success {
+                        self.reject_checked(&changes, result.diagnostic.clone())?;
+                        return self.publish(
+                            &job,
+                            SavePath::Error,
+                            format!("borrowck: {}", result.diagnostic),
+                            false,
+                        );
+                    }
+                    self.advance_checked(&changes);
+                    self.event("check_ok", "no-effect source passed borrow checking");
+                }
                 return self.publish(&job, SavePath::Skip, "no effect on this build".into(), true);
             }
-            self.event("compiler_no_change", error.to_string());
-            return self.stock(&mut job, error.to_string());
+            if !build.no_effect {
+                self.event("compiler_no_change", error.to_string());
+                return self.stock(&mut job, error.to_string());
+            }
+            // The fresh/pending candidate may contain changes absent from the
+            // running stock image even when this delta has no executable pages.
+            // Consume it through the normal extraction + restart/patch path.
         }
         self.fast.as_mut().unwrap().binary = build.candidate_path.clone();
         let result = (|| -> Result<_> {
@@ -1303,62 +1394,7 @@ impl Pipeline {
                     self.event("check_ok", "borrow check passed");
                 }
                 Ok(result) => {
-                    self.event("tainted", format!("⚠ borrowck: {}", result.diagnostic));
-                    if self.checked_available {
-                        // A borrow-check failure does not invalidate the warm
-                        // compiler. Keep it quarantined from the reverted stock
-                        // runtime by requiring a candidate restart on the next
-                        // valid save, instead of discarding the whole worker.
-                        if let Some(reset) = &self.reset {
-                            reset
-                                .cancel
-                                .store(true, std::sync::atomic::Ordering::SeqCst);
-                        }
-                        self.recovery_restart = true;
-                        let workspace = self
-                            .workspace
-                            .as_ref()
-                            .context("checked snapshot unavailable")?;
-                        // Restore only the private checker tree, never the user's working tree.
-                        let paths: BTreeSet<_> = self
-                            .unchecked
-                            .iter()
-                            .cloned()
-                            .chain(changes.changes.iter().map(|c| c.path.clone()))
-                            .collect();
-                        for path in &paths {
-                            workspace.write(path, self.checked.get(path).map(|v| v.as_ref()))?;
-                        }
-                        let result = fallback::build(
-                            &self.config,
-                            &workspace.root,
-                            &self.fence,
-                            self.floor,
-                        )?;
-                        if self.fence.current() && result.success {
-                            self.runtime
-                                .start(&result.executable.context("revert binary missing")?)?;
-                            let restored = paths
-                                .iter()
-                                .map(|p| (p.clone(), self.checked.get(p).cloned()))
-                                .collect();
-                            for path in paths {
-                                if let Some(bytes) = self.checked.get(&path) {
-                                    self.sources.insert(path, bytes.clone());
-                                } else {
-                                    self.sources.remove(&path);
-                                }
-                            }
-                            self.sender.send(Update::Reverted {
-                                paths: restored,
-                                revision: self.fence.revision,
-                            })?;
-                            self.unchecked.clear();
-                            self.event("revert","last checked snapshot rebuilt and restarted; editor files preserved");
-                        } else if !result.success {
-                            self.event("revert_failed", result.diagnostic);
-                        }
-                    }
+                    self.reject_checked(&changes, result.diagnostic)?;
                 }
                 Err(error) => self.event("check_failed", error.to_string()),
             }

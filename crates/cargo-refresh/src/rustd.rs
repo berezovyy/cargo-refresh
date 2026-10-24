@@ -260,8 +260,20 @@ impl Build {
             .restores
             .iter()
             .any(|write| write.kind == 1 && previous.writes.contains_key(&write.addr));
+        // An explicitly empty compiler patch may still restore prior native
+        // data writes. Deliver those restores rather than treating the save as
+        // a no-op. Without the proof, data alone cannot excuse missing codegen.
+        let proven_data_change = self.no_effect
+            && (manifest
+                .writes
+                .iter()
+                .any(|write| previous.writes.get(&write.addr) != Some(write))
+                || manifest
+                    .restores
+                    .iter()
+                    .any(|write| previous.writes.contains_key(&write.addr)));
         ensure!(
-            code_page || redirect || restore,
+            code_page || redirect || restore || proven_data_change,
             "compiler produced no compiled change for changed Rust source; using Cargo"
         );
         Ok(())
@@ -799,6 +811,13 @@ mod tests {
                 .ensure_compiled_change(&previous)
                 .is_ok()
         );
+        let mut data = write.clone();
+        data.kind = 2;
+        previous.writes.insert(data.addr, data.clone());
+        let mut restored = encode(None, None, Some(&data));
+        assert!(restored.ensure_compiled_change(&previous).is_err());
+        restored.no_effect = true;
+        assert!(restored.ensure_compiled_change(&previous).is_ok());
     }
 
     #[test]
