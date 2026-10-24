@@ -715,6 +715,8 @@ impl Pipeline {
         {
             let reason = if self.config.support.is_none() {
                 "live patching disabled; using normal cargo builds + restart"
+            } else if !self.stock_stringification.is_empty() {
+                "assert!/debug_assert! message printing is unqualified; using stock Cargo"
             } else {
                 "compiler unavailable or recovering; using normal cargo builds + restart"
             };
