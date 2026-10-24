@@ -132,6 +132,9 @@ pub struct Config {
     /// Without an instantiation/inlining proof, even a restart may be stale.
     pub stock_frontier_roots: Vec<PathBuf>,
     pub package_roots: Vec<PathBuf>,
+    /// Declaring package roots for build-script rerun inputs, including dependencies.
+    #[serde(skip)]
+    pub build_package_roots: std::collections::BTreeMap<String, Vec<PathBuf>>,
     pub input_files: Vec<PathBuf>,
 }
 
@@ -606,6 +609,18 @@ impl Config {
             captured_rust_inputs: BTreeSet::new(),
             opaque_build_roots,
             stock_frontier_roots,
+            build_package_roots: {
+                let mut roots = std::collections::BTreeMap::<String, Vec<PathBuf>>::new();
+                for p in &metadata.packages {
+                    if let Some(root) = p.manifest_path.parent() {
+                        roots
+                            .entry(p.name.clone())
+                            .or_default()
+                            .push(root.to_path_buf());
+                    }
+                }
+                roots
+            },
             package_roots: local
                 .iter()
                 .filter_map(|p| p.manifest_path.parent().map(Path::to_path_buf))

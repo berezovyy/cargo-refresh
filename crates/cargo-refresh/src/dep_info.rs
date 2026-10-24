@@ -160,9 +160,20 @@ pub fn extend(config: &mut Config) -> Result<()> {
                         let input = PathBuf::from(input);
                         if input.is_absolute() {
                             files.insert(input);
-                        } else {
-                            for root in &config.package_roots {
-                                files.insert(root.join(&input));
+                        } else if let Some(roots) = entry
+                            .path()
+                            .parent()
+                            .and_then(|p| p.file_name())
+                            .and_then(|n| n.to_str())
+                            .and_then(|n| n.rsplit_once('-').map(|(name, _)| name))
+                            .and_then(|name| config.build_package_roots.get(name))
+                        {
+                            // Cargo names this directory <package-name>-<unit-hash>.
+                            // Relative directives belong to that package, not every
+                            // workspace root (typenum's `tests` is not the app's tests).
+                            for root in roots {
+                                let path = root.join(&input);
+                                files.insert(path.canonicalize().unwrap_or(path));
                             }
                         }
                     }
@@ -309,6 +320,37 @@ mod tests {
         assert!(config.input_files.contains(&root.join("future.dat")));
         assert!(config.input_files.contains(&root.join("gone.txt")));
         assert!(!config.input_files.contains(&root.join("checker-only.dat")));
+    }
+
+    #[test]
+    fn relative_build_inputs_belong_only_to_the_declaring_package() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let registry = root.join("registry/typenum");
+        fs::create_dir_all(registry.join("tests")).unwrap();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::create_dir_all(root.join("tests")).unwrap();
+        let output = root.join("target/refresh/stock/debug/build/typenum-abcdef");
+        fs::create_dir_all(&output).unwrap();
+        fs::write(output.join("output"), "cargo:rerun-if-changed=tests\n").unwrap();
+        let meta = serde_json::from_value(serde_json::json!({
+            "packages":[{"id":"app-id","name":"app","manifest_path":root.join("Cargo.toml"),
+                "source":null,"targets":[{"name":"app","kind":["bin"],"src_path":root.join("src/main.rs")}],
+                "metadata":{},"default_run":null}],
+            "workspace_root":root,"target_directory":root.join("target"),"workspace_default_members":["app-id"]
+        })).unwrap();
+        let mut config = Config::resolve(Default::default(), &meta, root).unwrap();
+        config
+            .build_package_roots
+            .insert("typenum".into(), vec![registry.clone()]);
+        extend(&mut config).unwrap();
+        assert!(config.input_files.contains(&registry.join("tests")));
+        assert!(!config.input_files.contains(&root.join("tests")));
+        let own_output = output.parent().unwrap().join("app-123456");
+        fs::create_dir(&own_output).unwrap();
+        fs::write(own_output.join("output"), "cargo::rerun-if-changed=tests\n").unwrap();
+        extend(&mut config).unwrap();
+        assert!(config.input_files.contains(&root.join("tests")));
     }
 
     #[test]
