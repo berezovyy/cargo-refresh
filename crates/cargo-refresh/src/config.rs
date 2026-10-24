@@ -447,7 +447,7 @@ impl Config {
                         if node
                             .runtime_dependencies()
                             .iter()
-                            .any(|dep| callers.contains(dep.as_str()))
+                            .any(|dep| callers.contains(*dep))
                         {
                             callers.insert(node.id.as_str());
                         }
