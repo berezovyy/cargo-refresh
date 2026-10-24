@@ -514,6 +514,10 @@ int main(int argc, char **argv) {
             )
             .env("REFRESH_RUSTD", "/not/the/validated/compiler")
             .env("FIX1_RUSTD_SCRIPT", rustd)
+            // Product test-profile overrides must not change this qualified
+            // application's admission environment.
+            .env_remove("CARGO_PROFILE_DEV_DEBUG")
+            .env_remove("CARGO_PROFILE_TEST_DEBUG")
             .env("CARGO_REFRESH_SUPPORT", support)
             .env("CARGO_REFRESH_WARM_PEAK_BYTES", "0")
             .env_remove("REFRESH_LANE_TOOL")
