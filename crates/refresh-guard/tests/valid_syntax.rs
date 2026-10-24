@@ -100,3 +100,34 @@ fn async_macro_arguments_are_distinct_from_outer_async_and_token_text() {
         assert!(!needs_stock(source.as_bytes()), "{source}");
     }
 }
+
+#[test]
+fn opaque_async_blocks_need_stock_without_fencing_owned_async_functions() {
+    use refresh_guard::has_opaque_async_blocks as needs_stock;
+    for source in [
+        "fn f() { block_on(async { println!(\"{:?}\", vec![1; 3]); }); }",
+        "fn f() { let _ = async move || { 1 }; }",
+    ] {
+        assert!(needs_stock(source.as_bytes()), "{source}");
+    }
+    for source in [
+        "async fn f() { println!(\"x\"); }",
+        "fn f() { let _ = || { 1 }; println!(\"async\"); /* async {} */ }",
+    ] {
+        assert!(!needs_stock(source.as_bytes()), "{source}");
+    }
+    let before = [FileSnapshot::new(
+        "main.rs",
+        b"fn f() { block_on(async { println!(\"{:?}\", vec![1, 2, 3]); }); }".to_vec(),
+    )];
+    let after = [FileSnapshot::new(
+        "main.rs",
+        b"fn f() { block_on(async { println!(\"{:?}\", vec![4; 3]); }); }".to_vec(),
+    )];
+    assert!(matches!(
+        Guard::new().classify(&before, &after),
+        Class::Restart {
+            reason: refresh_guard::Reason::MacroBody { .. }
+        }
+    ));
+}

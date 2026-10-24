@@ -890,6 +890,21 @@ impl Pipeline {
                 "async bodies inside macro arguments require a stock rebuild".into(),
             );
         }
+        if matches!(
+            class,
+            Class::Restart {
+                reason: Reason::MacroBody { .. }
+            }
+        ) && before
+            .iter()
+            .chain(after.iter())
+            .any(|snapshot| refresh_guard::has_opaque_async_blocks(&snapshot.bytes))
+        {
+            return self.stock(
+                &mut job,
+                "opaque async blocks require a stock rebuild".into(),
+            );
+        }
         let mut restart_reason = match class {
             Class::Restart { reason } => Some(reason_text(&reason)),
             Class::Stock { reason } => return self.stock(&mut job, reason_text(&reason)),

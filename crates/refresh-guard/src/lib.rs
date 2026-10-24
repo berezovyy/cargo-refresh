@@ -542,6 +542,33 @@ pub fn has_async_macro_arguments(bytes: &[u8]) -> bool {
         .is_some_and(scan)
 }
 
+/// Async blocks and async closures are opaque bodies, unlike owned `async fn`
+/// bodies that the certificate policy can identify. A MacroBody restart must
+/// obtain a stock image when these bodies change: reusing the compiler epoch
+/// can retain an earlier coroutine body even across process restart.
+pub fn has_opaque_async_blocks(bytes: &[u8]) -> bool {
+    use syn::visit::Visit;
+    struct Find(bool);
+    impl<'ast> Visit<'ast> for Find {
+        fn visit_expr_async(&mut self, _: &'ast syn::ExprAsync) {
+            self.0 = true;
+        }
+        fn visit_expr_closure(&mut self, item: &'ast syn::ExprClosure) {
+            self.0 |= item.asyncness.is_some();
+            syn::visit::visit_expr_closure(self, item);
+        }
+    }
+    let Some(tree) = std::str::from_utf8(bytes)
+        .ok()
+        .and_then(|source| syn::parse_file(source).ok())
+    else {
+        return false;
+    };
+    let mut find = Find(false);
+    find.visit_file(&tree);
+    find.0
+}
+
 /// Token-stringifying macros whose exact expansion remains unqualified.
 /// `assert!` uses rustc's AST expression printer, whereas `stringify!` uses its
 /// token printer. Until the AST printer is ported, even startup code containing

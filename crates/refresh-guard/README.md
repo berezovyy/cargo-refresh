@@ -209,5 +209,7 @@ Changed async bodies inside macro arguments also require a stock rebuild when
 the guard reports `macro-body`. The macro campaign found that switching `vec!`
 between repeat and list forms could reuse coroutine bodies with stale constants
 after a compiler-backed restart. This narrow controller fence remains until
-coroutine identity invalidation is qualified; outer async code keeps its existing
-certificate policy.
+coroutine identity invalidation is qualified. Opaque outer async blocks and async
+closures also require stock for `macro-body` changes: the MERGE-T3 campaign
+reproduced a previous macro body after a compiler-backed process restart. Owned
+`async fn` bodies retain their certificate policy.
