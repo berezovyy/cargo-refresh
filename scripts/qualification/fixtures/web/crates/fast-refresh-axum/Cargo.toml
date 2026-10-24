@@ -1,0 +1,10 @@
+[package]
+name = "fast-refresh-axum"
+version = "0.1.0"
+edition = "2024"
+[dependencies]
+axum.workspace = true
+tokio.workspace = true
+[dev-dependencies]
+tower.workspace = true
+futures-core = "0.3"

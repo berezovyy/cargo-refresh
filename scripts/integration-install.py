@@ -107,9 +107,8 @@ def main():
             env.pop(key)
     env.update(HOME=str(home), RUSTUP_HOME=str(rustup), CARGO_HOME=str(cargo), RUSTUP_TOOLCHAIN='1.99.0', PORT=str(number),
                REFRESH_MEMORY_MIN_BYTES=str(6 * 1024**3), REFRESH_RUSTD_FRONTIER='1')
-    lane = Path(__file__).resolve().parents[2] / 'rust-fast-compiler/tools/lane.sh'
-    if lane.exists():
-        env['REFRESH_LANE_TOOL'] = str(lane)
+    if lane := os.environ.get('REFRESH_LANE_TOOL'):
+        env['REFRESH_LANE_TOOL'] = lane
     trap = root / 'rustd-started'
     fakebin = root / 'bin'
     fakebin.mkdir()
@@ -175,7 +174,7 @@ def main():
     oracle_env = env.copy()
     oracle_env.pop('RUSTC', None)
     oracle_env['CARGO_TARGET_DIR'] = str(root / 'oracle-target')
-    build = ['nice', '-n', '19', 'cargo', 'build', '--offline', '-j', '4']
+    build = ['nice', '-n', '19', 'cargo', 'build', '-j', '4']
     if 'REFRESH_LANE_TOOL' in env:
         build = [env['REFRESH_LANE_TOOL'], 'build', '--', *build]
     with (root / 'stock-build.log').open('w') as output:
@@ -194,7 +193,7 @@ def main():
     if args.mode == 'unsupported':
         assert '[refresh] cargo-refresh has no qualified support for rustc 1.99.0 (' + '0' * 40 + ').' in text
     if args.mode == 'low-memory':
-        assert 'plus 2 GiB reserve' in text and 'Continuing in cargo mode' in text
+        assert '+ 1 GiB reserve' in text and 'Continuing in cargo mode' in text
     summary = dict(mode=args.mode, save_path=saved['path'], stock_oracle_match=True,
                    pid_preserved=first[1] == after[1], state_preserved=first[1] == after[1] and after[2] > first[2], unvalidated_rustd_started=trap.exists())
     (root / 'result.json').write_text(json.dumps(summary, indent=2) + '\n')

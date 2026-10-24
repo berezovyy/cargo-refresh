@@ -19,17 +19,35 @@ The M2 controller now builds and supervises applications, checks saves, and rout
 
 ## Install and first run
 
-Planned release workflow, once the package and toolchain artifacts are published:
+This pre-release currently installs from source. The crates.io package and public
+toolchain downloads are not published yet. You need this repository and the
+**qualified rustd fork on `refresh/m1`**, including its rust-analyzer submodule;
+unmodified upstream rustd does not provide the required protocol. The public fork
+URL remains a release prerequisite; obtain both repository URLs from the release
+maintainer. See [the source installation recipe](docs/install-layout.md#source-install)
+for clone commands and system dependencies.
+
+With `cargo-refresh/` and `rustd/` cloned beside each other:
 
 ```sh
-cargo install cargo-refresh
-cd your-project
+export RUSTUP_TOOLCHAIN=1.99.0
+rustup toolchain install 1.99.0 --profile minimal
+rustup component add rustc-dev rust-src --toolchain 1.99.0
+cd cargo-refresh
+cargo install --locked --path crates/cargo-refresh -j 4
+scripts/release.sh --native 0.1.0-dev
+# Use an absolute path; retain its adjacent .sha256 checksum file.
+export CARGO_REFRESH_DIST="$(pwd)/dist/cargo-refresh-0.1.0-dev-b940084d7eb6a299eb4bfeb8e34901bc051e7ac4-x86_64-linux.tar.zst"
+cd /path/to/your-project
 cargo refresh run --bin my-server
 ```
 
-For source builds and current checks, see [CONTRIBUTING.md](CONTRIBUTING.md).
-Toolchain artifact downloads are a controller integration task; see the
-[installation contract](docs/install-layout.md).
+`--native` builds for the current host. Use `--portable` with Zig and
+cargo-zigbuild when preparing an artifact for older glibc systems. In a workspace with several default packages, also pass `--package my-package`.
+After the first
+run, support is cached by rustc commit, so subsequent runs need only
+`cargo refresh run`. A missing or rejected support bundle selects normal Cargo
+builds and restarts; it does not enable live patching.
 
 ## What happens when you save
 
@@ -48,9 +66,20 @@ an invalid save must produce a diagnostic.
 
 ## Requirements
 
-GNU/Linux on the supported Intel/AMD architecture. Toolchain support is tied to
-the **exact rustc commit**, not just its version name. Unsupported toolchains must
-use normal Cargo builds and restarts.
+Linux x86_64 with glibc, Rust **1.99.0** (commit
+`b940084d7eb6a299eb4bfeb8e34901bc051e7ac4`). Source support builds need the
+matching **rustc-dev** component; rustd also needs **rust-src** for the selected
+toolchain. Support is tied to the exact rustc commit. Unsupported toolchains use
+normal Cargo builds and restarts.
+
+Live patching needs several GiB of free RAM; larger frontiers need more. Startup
+prints a project-specific estimate and falls back to Cargo if the estimate plus
+1 GiB reserve exceeds effective available memory. See [memory guidance](docs/memory.md).
+The source release builder requires at least 6 GiB available and stops its own
+build below that floor. This is a build guard, not a universal laptop minimum.
+Source builds need a C compiler, linker, make, Python 3, binutils, GNU tar, zstd,
+and Git. The production agent needs libc and libgcc_s; its test suites additionally
+need libunwind. See [installation details](docs/install-layout.md).
 
 <!-- BENCH:SUPPORTED_TARGET_AND_RUSTC_VERSIONS -->
 <!-- BENCH:RAM_GUIDANCE_FROM_FINAL_APP_RUNS -->
@@ -97,8 +126,8 @@ is insufficient evidence: probe the rendered page and compare it with stock.
 - Retained old code supports old closures and pointers but consumes memory.
 - Tracing callsite line numbers may lag after edits; release qualification must
   confirm the precise behavior.
-- Download/install behavior, the cache hook and full live semantics qualification
-  remain integration work. See contributor documentation before relying on them.
+- Public downloads and full release qualification remain work in progress.
+  Local archive installation is implemented; see contributor documentation.
 
 <!-- BENCH:BORROW_CHECK_WINDOW -->
 <!-- BENCH:PATCHED_CODE_RUNTIME_RATIO -->
@@ -109,7 +138,7 @@ is insufficient evidence: probe the rendered page and compare it with stock.
 If an edit does not appear, check whether the app caches its output, then inspect
 its selected path and diagnostic. If it fell back to Cargo, check the editing
 frontier and refusal reason. If memory is high, narrow the frontier or use stock
-mode. Proposed diagnostic commands for the completed controller:
+mode. Useful diagnostic commands:
 
 ```sh
 cargo refresh status
@@ -118,7 +147,15 @@ cargo refresh run --events events.jsonl
 
 Their implementation status and current alternatives are described in
 [controller.md](docs/controller.md). A low-memory or unsupported-toolchain warning
-must select stock mode before warming rustd.
+selects stock mode before warming rustd.
+
+If startup selects Cargo because support is missing, pass `--from-archive` with
+an absolute local archive path (and keep the adjacent checksum file). If source
+packaging reports missing `rustc-dev`, run the component command above for 1.99.0.
+For dependency download errors, check network access and Cargo proxy/registry
+configuration. Normal builds allow Cargo to fetch missing dependencies; explicit
+Cargo offline settings still apply. A nonempty Cargo config currently selects
+stock mode conservatively. See [installation troubleshooting](docs/install-layout.md#troubleshooting).
 
 ## Release numbers
 

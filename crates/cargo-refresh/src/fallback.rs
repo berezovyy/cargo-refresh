@@ -40,7 +40,6 @@ pub fn cargo(config: &Config, project: &Path, target: &Path, verb: &str) -> Comm
         .current_dir(project)
         .args([
             verb,
-            "--offline",
             "-j",
             "4",
             "--package",

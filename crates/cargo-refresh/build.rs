@@ -11,6 +11,8 @@ fn main() {
         .arg("-C")
         .arg(&agent)
         .arg(format!("BUILD={}", out.display()))
+        // The production agent excludes the test-only libunwind CFI walker.
+        .arg("LDLIBS=-Wl,-z,now -ldl -lpthread")
         .arg("all")
         .status()
         .expect("build bundled agent with make");

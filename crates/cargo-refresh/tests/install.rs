@@ -2,7 +2,7 @@
 use std::{path::PathBuf, process::Command};
 
 #[test]
-#[ignore = "requires a built release archive; runs an owned rustd session in the resource lane"]
+#[ignore = "requires a built release archive; shared machines need a rustd resource lane"]
 fn archive_first_run_live_save_matches_stock() {
     let archive = std::env::var_os("CARGO_REFRESH_TEST_ARCHIVE")
         .map(PathBuf::from)
@@ -10,16 +10,15 @@ fn archive_first_run_live_save_matches_stock() {
             "set CARGO_REFRESH_TEST_ARCHIVE to the release .tar.zst (adjacent .sha256 required)",
         );
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let lane = std::env::var_os("CARGO_REFRESH_TEST_LANE")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| root.join("../rust-fast-compiler/tools/lane.sh"));
-    assert!(
-        lane.is_file(),
-        "set CARGO_REFRESH_TEST_LANE to tools/lane.sh"
-    );
     let work = tempfile::tempdir().unwrap();
-    let status = Command::new(lane)
-        .args(["rustd", "--", "python3"])
+    let mut command = if let Some(lane) = std::env::var_os("CARGO_REFRESH_TEST_LANE") {
+        let mut command = Command::new(lane);
+        command.args(["rustd", "--", "python3"]);
+        command
+    } else {
+        Command::new("python3")
+    };
+    let status = command
         .arg(root.join("scripts/run-guarded.py"))
         .arg("python3")
         .arg(root.join("scripts/integration-install.py"))
