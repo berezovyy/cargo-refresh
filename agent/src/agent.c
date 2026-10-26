@@ -8,6 +8,11 @@
 #include <sys/time.h>
 #include <locale.h>
 
+/* This query must not start a server or depend on application state. */
+__attribute__((visibility("default"))) uint32_t refresh_agent_support_protocol(void) {
+    return REFRESH_SUPPORT_PROTOCOL;
+}
+
 uintptr_t load_base;
 pthread_rwlock_t tick_gate = PTHREAD_RWLOCK_INITIALIZER;
 int use_safepoint;
@@ -49,7 +54,7 @@ static void send_reply(int fd, const struct refresh_message *message,
     locale_t previous_locale = uselocale(numeric_locale);
     int len = snprintf(reply, sizeof(reply),
         "{\"ok\":%s,\"code\":\"%s\",\"message\":%s,\"error\":%s,"
-        "\"txid\":%u,\"generation\":%llu,\"agent_us\":%.3f,\"threads\":%d,"
+        "\"support_protocol\":%u,\"txid\":%u,\"generation\":%llu,\"agent_us\":%.3f,\"threads\":%d,"
         "\"pages\":%d,\"patch_bytes_total\":%llu,\"patch_count\":%llu,"
         "\"retained_bytes\":%llu,\"unwind_copies\":%d,\"near_slots_used\":%d,\"pressure\":%s,"
         "\"conflict_address\":%llu,\"conflict_start\":%llu,\"conflict_end\":%llu,"
@@ -66,7 +71,7 @@ static void send_reply(int fd, const struct refresh_message *message,
         "\"callback_invoked\":%s,\"callback\":%s,\"safe_point\":%s,"
         "\"tick_enters\":%llu,\"tick_leaves\":%llu}\n",
         code == REFRESH_OK ? "true" : "false", refresh_code_name(code), escaped, escaped,
-        message->txid, (unsigned long long)patch_count, elapsed, threads,
+        REFRESH_SUPPORT_PROTOCOL, message->txid, (unsigned long long)patch_count, elapsed, threads,
         npages, (unsigned long long)patch_bytes_total, (unsigned long long)patch_count,
         (unsigned long long)npages * 4096 + unwind_bytes122(), nframes, nframes,
         (npages > MAX_PAGES * 3 / 4 || nframes > MAX_RECORDS * 3 / 4 ||
@@ -99,15 +104,33 @@ static void send_reply(int fd, const struct refresh_message *message,
         pos += (size_t)sent;
     }
 }
+/* Report startup failures to stderr and the controller's private error file.
+   A failed preload must not terminate the application or wait out a timeout. */
+static void startup_failed(const char *reason) {
+    fprintf(stderr, "cargo-refresh: agent startup failed: %s\n", reason);
+    const char *path = getenv("REFRESH_AGENT_ERROR");
+    if (path && path[0]) {
+        int fd = open(path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
+        if (fd >= 0) {
+            dprintf(fd, "%s\n", reason);
+            close(fd);
+        }
+    }
+}
 static void *server(void *unused) {
     (void)unused;
     struct sockaddr_un addr = {.sun_family = AF_UNIX};
-    if (strlen(socket_path) >= sizeof(addr.sun_path)) return NULL;
     int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if (fd < 0) return NULL;
+    if (fd < 0) { startup_failed(strerror(errno)); return NULL; }
     strcpy(addr.sun_path, socket_path);
     unlink(socket_path);
-    if (bind(fd, (void *)&addr, sizeof(addr)) || listen(fd, 16)) { close(fd); return NULL; }
+    if (bind(fd, (void *)&addr, sizeof(addr)) || listen(fd, 16)) {
+        char reason[256];
+        snprintf(reason, sizeof(reason), "cannot bind/listen on agent socket: %s", strerror(errno));
+        startup_failed(reason);
+        close(fd);
+        return NULL;
+    }
     for (;;) {
         int c = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
         if (c < 0) continue;
@@ -163,6 +186,11 @@ __attribute__((constructor)) static void init(void) {
         exe[n] = 0;
         if (strcmp(exe, host)) return;
     }
+    struct sockaddr_un address;
+    if (strlen(socket_path) >= sizeof(address.sun_path)) {
+        startup_failed("Unix socket path too long (maximum 107 bytes)");
+        return;
+    }
     const char *debug = refresh_env("REFRESH_DEBUG", "E121_DEBUG");
     const char *hook = refresh_env("REFRESH_AFTER_PATCH", "E099_AUTO_HOOK");
     const char *inherited = refresh_env("REFRESH_INHERITED", "E106_INHERITED_SEGMENTS");
@@ -196,5 +224,7 @@ __attribute__((constructor)) static void init(void) {
     numeric_locale = newlocale(LC_NUMERIC_MASK, "C", (locale_t)0);
     if (!numeric_locale) return;
     pthread_t t;
-    if (!pthread_create(&t, NULL, server, NULL)) pthread_detach(t);
+    int error = pthread_create(&t, NULL, server, NULL);
+    if (!error) pthread_detach(t);
+    else startup_failed(strerror(error));
 }

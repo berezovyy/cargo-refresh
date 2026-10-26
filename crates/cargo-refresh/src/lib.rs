@@ -11,6 +11,7 @@ pub mod data_policy;
 pub mod elf;
 pub mod extractor;
 pub mod manifest;
+mod runtime_dir;
 pub mod rustd;
 #[cfg(test)]
 mod test_images;

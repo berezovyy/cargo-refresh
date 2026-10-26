@@ -1,0 +1,503 @@
+app,commit,commit_index,file,hunk,path,reason
+mdbook,63ff5c06f8ddcc88d430d5f516cb6b78cb99f86f,3,tests/testsuite/search.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,50ccd8721015a5091c48815ab6559a7dd2eb7841,13,crates/mdbook-summary/src/lib.rs,1,stock,native relink required: tracing scalar/discriminant changed
+mdbook,50ccd8721015a5091c48815ab6559a7dd2eb7841,13,crates/mdbook-summary/src/lib.rs,2,restart,compiler recovered; establishing the live baseline; retaining the current compiler epoch
+mdbook,4a6720c8cc1ae56ecbb2afa8080216e2de57c28b,18,crates/mdbook-html/src/utils.rs,1,waiting,waiting for valid code: <run>/history/repos/mdbook/crates/mdbook-html/src/utils.rs (after): expected `;`
+mdbook,4a6720c8cc1ae56ecbb2afa8080216e2de57c28b,18,crates/mdbook-html/src/utils.rs,2,restart,compiler recovered; establishing the live baseline; retaining the current compiler epoch
+mdbook,4a6720c8cc1ae56ecbb2afa8080216e2de57c28b,18,crates/mdbook-html/src/utils.rs,3,restart,macro code in tests::it_normalizes_ids changed
+mdbook,4a6720c8cc1ae56ecbb2afa8080216e2de57c28b,18,crates/mdbook-html/src/utils.rs,4,skip,no effect on this build
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,crates/mdbook-driver/src/builtin_preprocessors/links.rs,1,waiting,waiting for valid code: <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs (after): expected `;`
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,crates/mdbook-driver/src/builtin_preprocessors/links.rs,2,restart,macro code in ::replace_all changed; retaining the current compiler epoch
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,tests/testsuite/includes.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,tests/testsuite/includes.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,tests/testsuite/includes/all_includes/src/hello_world.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,tests/testsuite/includes/all_includes/src/multiline/another-included-test.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,tests/testsuite/includes/all_includes/src/multiline/linear_search.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,tests/testsuite/includes/all_includes/src/multiline/main.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,tests/testsuite/includes/all_includes/src/multiline/myfn.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,78cd8333bf0f354d846ca0eb7545aea168a6d659,21,crates/mdbook-driver/src/builtin_preprocessors/links.rs,1,restart,compiler recovered; establishing the live baseline; retaining the current compiler epoch
+mdbook,78cd8333bf0f354d846ca0eb7545aea168a6d659,21,crates/mdbook-driver/src/builtin_preprocessors/links.rs,2,error,E0425 cannot find value `typ` in this scope
+mdbook,78cd8333bf0f354d846ca0eb7545aea168a6d659,21,crates/mdbook-driver/src/builtin_preprocessors/links.rs,3,live,
+mdbook,54e4f3bf6d25b4b1b5082d9979f126f0b4129831,22,crates/mdbook-core/src/config.rs,1,error,E0063 missing field `zoomable_images` in initializer of `HtmlConfig`
+mdbook,54e4f3bf6d25b4b1b5082d9979f126f0b4129831,22,crates/mdbook-core/src/config.rs,2,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-core/src/config.rs; retaining the current compiler epoch
+mdbook,54e4f3bf6d25b4b1b5082d9979f126f0b4129831,22,crates/mdbook-html/src/html/tree.rs,1,stock,native relink required: tracing scalar/discriminant changed
+mdbook,54e4f3bf6d25b4b1b5082d9979f126f0b4129831,22,tests/testsuite/config.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,dc21064fc21d955a0e1f67e65e336883c3e5260b,23,src/cmd/init.rs,1,restart,compiler recovered; establishing the live baseline; retaining the current compiler epoch
+mdbook,dc21064fc21d955a0e1f67e65e336883c3e5260b,23,src/cmd/init.rs,2,live,
+mdbook,dc21064fc21d955a0e1f67e65e336883c3e5260b,23,tests/testsuite/init.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,dc21064fc21d955a0e1f67e65e336883c3e5260b,23,tests/testsuite/init.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,1,error,"rustd command exit status: 1: Error: daemon: error: <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs:218:15: missing match arm: `Invalid(_)` not covered [E0004] <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs:339:15: missing match arm: `Invalid(_)` not covered [E0004]
+"
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,2,error,"rustd command exit status: 1: Error: daemon: error: <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs:339:15: missing match arm: `Invalid(_)` not covered [E0004]
+"
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,3,error,borrowck: E0425 cannot find value `parts` in this scope
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,4,waiting,waiting for valid code: <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs (after): cannot parse string into token stream
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,5,error,borrowck: E0425 cannot find function `parse_include_path` in this scope
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,6,waiting,waiting for valid code: <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs (after): cannot parse string into token stream
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,7,waiting,waiting for valid code: <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs (after): cannot parse string into token stream
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,8,error,borrowck: E0308 `match` arms have incompatible types
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,9,error,borrowck: E0004 non-exhaustive patterns: `LinkType::Invalid(_)` not covered
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,10,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs; retaining the current compiler epoch
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,11,restart,new function tests::test_find_links_playground_with_space_in_path needs a fresh process
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,12,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,13,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,14,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,15,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,16,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,17,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,18,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,19,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,20,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,21,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,22,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,23,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,24,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,25,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,26,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,27,skip,no effect on this build
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,tests/testsuite/includes.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,tests/testsuite/includes.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,b89e1c848e5826bcf32150eab490ca5af1301279,29,crates/mdbook-driver/src/mdbook.rs,1,restart,macro code in ::determine_preprocessors changed; retaining the current compiler epoch
+mdbook,77fff93dfd3efb082adc6970e81b80d8e597f782,30,crates/mdbook-html/src/html/tree.rs,1,error,borrowck: E0425 cannot find function `strip_infostring_comments` in this scope
+mdbook,77fff93dfd3efb082adc6970e81b80d8e597f782,30,crates/mdbook-html/src/html/tree.rs,2,stock,native relink required: tracing scalar/discriminant changed
+mdbook,77fff93dfd3efb082adc6970e81b80d8e597f782,30,crates/mdbook-html/src/html/tree.rs,3,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-html/src/html/tree.rs; retaining the current compiler epoch
+mdbook,88bed0792d427e8c7b672784d7d73b472b7e129d,32,crates/xtask/src/changelog.rs,1,stock,file is outside the editable compiler frontier
+mdbook,88bed0792d427e8c7b672784d7d73b472b7e129d,32,examples/remove-emphasis/mdbook-remove-emphasis/src/main.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,88bed0792d427e8c7b672784d7d73b472b7e129d,32,tests/testsuite/rendering.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,88bed0792d427e8c7b672784d7d73b472b7e129d,32,tests/testsuite/rendering.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-core/src/config.rs,1,error,E0425 cannot find type `BuiltinTheme` in this scope
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-core/src/config.rs,2,error,E0425 cannot find type `BuiltinTheme` in this scope
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-core/src/config.rs,3,error,E0599 no method named `to_lowercase` found for reference `&BuiltinTheme` in the current scope
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-core/src/config.rs,4,error,E0599 no method named `to_lowercase` found for reference `&BuiltinTheme` in the current scope
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-core/src/config.rs,5,error,borrowck: E0599 no method named `to_lowercase` found for reference `&BuiltinTheme` in the current scope
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,1,error,borrowck: E0599 no method named `to_lowercase` found for reference `&BuiltinTheme` in the current scope
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,2,error,borrowck: E0599 no method named `to_lowercase` found for reference `&BuiltinTheme` in the current scope
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,3,stock,compiler failed: no fresh compiler manifest; restart required
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,tests/testsuite/theme.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,6a75867463828eb5b0b00f78feb0224c1bbc39aa,35,tests/testsuite/includes.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,1,restart,compiler recovered; establishing the live baseline; retaining the current compiler epoch
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,2,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-html/src/html_handlebars/static_files.rs
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,3,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-html/src/html_handlebars/static_files.rs
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,4,live,
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,5,error,E0308 mismatched types
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,6,live,
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,7,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-html/src/html_handlebars/static_files.rs
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,8,error,No such file or directory (os error 2)
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,crates/mdbook-core/src/config.rs,1,error,E0063 missing field `canonical_site_url` in initializer of `HtmlConfig`
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,crates/mdbook-core/src/config.rs,2,stock,compiler unavailable or recovering; using normal cargo builds + restart
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,1,stock,compiler unavailable or recovering; using normal cargo builds + restart
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,2,error,E0599 no method named `clean_path` found for reference `&HtmlHandlebars` in the current scope
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,3,error,E0599 no method named `clean_path` found for reference `&HtmlHandlebars` in the current scope
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,4,stock,compiler unavailable or recovering; using normal cargo builds + restart
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,tests/testsuite/rendering.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,1,error,application ELF load bias unavailable
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,2,error,application exited before agent became ready
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,3,stock,application exited; rebuilding and restarting
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,4,error,borrowck: E0425 cannot find value `address` in this scope
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,5,error,borrowck: E0425 cannot find value `sockaddr` in this scope
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,6,error,borrowck: E0425 cannot find value `address` in this scope
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,7,error,borrowck: E0308 mismatched types
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,8,error,borrowck: E0425 cannot find value `address` in this scope
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,9,stock,compiler failed: rustd command exit status: 1: Error: daemon: error: the link failed (exit status: 1): >>> referenced by serve.rs:84 (src/cmd/serve.rs:84) | >>>               <run>/history/repos/mdbook/target/rustd/74be02e3a4f7dc89/programs/mdbook-1925cc70a5ca0112/patch.o:(rustd::{closure}::2696) | rust-lld: error: undefined symbol: rustd.4e8ef2c7acd11bff.<listenfd[4e8ef2c7acd11bff]::manager::ListenFd>::take_tcp_listener | >>> referenced by serve.rs:85 (src/cmd/serve.rs:85) | >>>               <run>/history/repos/mdbook/target/rustd/74be02e3a4f7dc89/programs/mdbook-1925cc70a5ca0112/patch.o:(rustd::{closure}::2696) | collect2: error: ld returned 1 exit status
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,1,waiting,"waiting for valid code: <run>/history/repos/mdbook/crates/mdbook-html/src/html_handlebars/static_files.rs (after): expected one of: `default`, `fn`, `const`, `type`, identifier, `self`, `super`, `crate`, `::`"
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,2,error,borrowck: E0425 cannot find function `normalize_path` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,3,error,borrowck: E0425 cannot find function `normalize_path` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,4,error,borrowck: E0425 cannot find value `normalized` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,5,error,borrowck: E0425 cannot find function `normalize_path` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,6,error,borrowck: E0425 cannot find value `normalized` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,7,error,borrowck: E0425 cannot find function `normalize_path` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,8,error,borrowck: E0425 cannot find function `normalize_path` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,9,error,borrowck: E0425 cannot find function `normalize_path` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,10,error,borrowck: E0425 cannot find function `normalize_path` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,11,error,borrowck: E0425 cannot find value `normalized_name` in this scope
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,12,error,borrowck: E0308 mismatched types
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,13,stock,compiler failed: rustd command exit status: 1: Error: daemon: 
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,14,restart,macro code in tests::test_normalize_path_forward_slashes_unchanged changed; retaining the current compiler epoch
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,15,skip,no effect on this build
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,16,skip,no effect on this build
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,17,skip,no effect on this build
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,18,skip,no effect on this build
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,1,stock,Cargo configuration changed; recapturing the project
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,2,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-core/src/config.rs; retaining the current compiler epoch
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,3,error,borrowck: E0599 no method named `get_logo_absolute_path` found for struct `BookConfig` in the current scope
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,4,error,borrowck: E0599 no method named `get_logo_absolute_path` found for struct `BookConfig` in the current scope
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,5,error,borrowck: E0599 no method named `get_logo_absolute_path` found for struct `BookConfig` in the current scope
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,6,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-core/src/config.rs
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,7,skip,no effect on this build
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,8,skip,no effect on this build
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-driver/src/mdbook.rs,1,stock,native relink required: tracing scalar/discriminant changed
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-html/src/html_handlebars/hbs_renderer.rs,1,restart,macro code in ::make_data changed; retaining the current compiler epoch
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,tests/testsuite/config.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,tests/testsuite/config.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,tests/testsuite/main.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,tests/testsuite/preprocessor.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,tests/testsuite/renderer.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,tests/testsuite/sidebar_logo.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,ae0bc6996bf45cd9e93b9222fd4cd264ee69e6d4,47,tests/gui/runner.rs,1,stock,Cargo configuration changed; recapturing the project
+mdbook,ae0bc6996bf45cd9e93b9222fd4cd264ee69e6d4,47,tests/gui/runner.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,ae0bc6996bf45cd9e93b9222fd4cd264ee69e6d4,47,tests/gui/runner.rs,3,skip,"only integration tests, benches or examples outside the running binary changed"
+mdbook,ae0bc6996bf45cd9e93b9222fd4cd264ee69e6d4,47,tests/gui/runner.rs,4,skip,"only integration tests, benches or examples outside the running binary changed"
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-client/src/database.rs,1,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-common/src/utils.rs,1,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-common/src/utils.rs,2,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-common/src/utils.rs,3,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-common/src/utils.rs,4,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-common/src/utils.rs,5,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-daemon/src/client.rs,1,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-daemon/src/client.rs,2,restart,types or layout changed in <run>/history/repos/atuin/crates/atuin-daemon/src/client.rs
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-daemon/src/server.rs,1,restart,types or layout changed in <run>/history/repos/atuin/crates/atuin-daemon/src/server.rs
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-daemon/src/server.rs,2,skip,no effect on this build
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-scripts/src/execution.rs,1,error,E0433 cannot find module or crate `fs` in this scope
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-scripts/src/execution.rs,2,error,E0433 cannot find module or crate `fs` in this scope
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-scripts/src/execution.rs,3,restart,types or layout changed in <run>/history/repos/atuin/crates/atuin-scripts/src/execution.rs
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin/src/command/client/search/interactive.rs,1,error,E0425 cannot find value `PopKeyboardEnhancementFlags` in this scope
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,3,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,4,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,5,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,6,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,7,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,8,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,9,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,10,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,11,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,12,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,13,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,14,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,15,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,16,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,17,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,18,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,19,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,20,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,21,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,22,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token.rs,3,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,3,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,4,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,5,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,6,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,7,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,8,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,9,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,10,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,11,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,12,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,13,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,14,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,15,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/tenant_token_multi_search.rs,16,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,3,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,4,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,5,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,6,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,7,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,8,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,9,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,10,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,11,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,12,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,13,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,14,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,15,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,16,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,17,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,18,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,19,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,20,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,21,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,22,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,23,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,24,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,25,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,26,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,27,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,28,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,29,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,30,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,31,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,32,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,33,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,34,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,35,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,36,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,37,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,38,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,39,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,40,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,41,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,42,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,43,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,44,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,45,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,46,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,47,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,48,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,49,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,50,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,51,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,52,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,53,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,54,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,55,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,56,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,57,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,58,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,59,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,60,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,61,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,62,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,63,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,64,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,65,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,66,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,67,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,68,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,69,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,70,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,71,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,72,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,73,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,74,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,75,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,76,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,77,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,78,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,79,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,80,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,81,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,82,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,83,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,84,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,85,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,86,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,87,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,88,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,89,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,90,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,91,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,92,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,93,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,94,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,95,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,96,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,97,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,98,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,99,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,100,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,101,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,102,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,103,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,104,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,105,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,106,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,107,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,108,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,109,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,110,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,111,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,112,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,113,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,114,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,115,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,116,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,117,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,118,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,119,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,120,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,121,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,122,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,123,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,124,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,125,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,126,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,127,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,128,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,129,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,130,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,131,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,132,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,133,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,134,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,135,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,136,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,137,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,138,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,139,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,140,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,141,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,142,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,143,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,144,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,145,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,146,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,147,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,148,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,149,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,150,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,151,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,152,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,153,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,154,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,155,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,156,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,157,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,158,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,159,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,160,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,161,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,162,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,163,skip,"only integration tests, benches or examples outside the running binary changed"
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/batches/mod.rs,164,skip,"only integration tests, benches or examples outside the running binary changed"
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/fence.rs,1,error,E0063 missing field `enable_copy` in initializer of `FenceSettings<'a>`
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/fence.rs,2,stock,file is outside the editable compiler frontier
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/fence.rs,3,error,"E0599 no variant, associated function, or constant named `EnableCopy` found for enum `FenceToken<'a>` in the current scope"
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/fence.rs,4,stock,file is outside the editable compiler frontier
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/fence.rs,5,stock,file is outside the editable compiler frontier
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/mod.rs,1,error,E0061 this function takes 6 arguments but 5 arguments were supplied
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/mod.rs,2,error,E0061 this function takes 6 arguments but 5 arguments were supplied
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/mod.rs,3,stock,file is outside the editable compiler frontier
+zola,bfd5e55e55353a4542b0bf2f5de72e83d50213b6,28,components/site/src/feeds.rs,1,restart,compiler recovered; establishing the live baseline; retaining the current compiler epoch
+zola,bfd5e55e55353a4542b0bf2f5de72e83d50213b6,28,components/site/src/feeds.rs,2,restart,macro code in ::render_feeds changed
+zola,69fa8978796fd2f49377f1d737f8bbdb2fe1f1f8,31,components/content/src/library.rs,1,stock,file is outside the editable compiler frontier
+zola,69fa8978796fd2f49377f1d737f8bbdb2fe1f1f8,31,components/content/src/sorting.rs,1,error,"E0599 no variant, associated function, or constant named `Permalink` found for enum `types::SortBy` in the current scope"
+zola,69fa8978796fd2f49377f1d737f8bbdb2fe1f1f8,31,components/content/src/sorting.rs,2,error,"E0599 no variant, associated function, or constant named `Permalink` found for enum `types::SortBy` in the current scope"
+zola,69fa8978796fd2f49377f1d737f8bbdb2fe1f1f8,31,components/content/src/types.rs,1,stock,file is outside the editable compiler frontier
+zola,4aae4e6b156ef8137ed91025c68ea7f1260f96fa,32,src/cmd/serve.rs,1,stock,compiler failed: no fresh compiler manifest; restart required
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/init.rs,1,restart,macro code in ::create_new_project changed; retaining the current compiler epoch
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,1,restart,missing coroutine coverage for <run>/history/repos/zola/src/cmd/serve.rs:::response_error_injector; retaining the current compiler epoch
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,2,live,
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,3,live,
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,4,live,
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,5,restart,macro code in ::serve changed
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,6,skip,no effect on this build
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,7,skip,no effect on this build
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,8,skip,no effect on this build
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,9,skip,no effect on this build
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,10,skip,no effect on this build
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/serve.rs,11,skip,no effect on this build
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/fs_utils.rs,1,skip,no effect on this build
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/messages.rs,1,live,
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/messages.rs,2,live,
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/prompt.rs,1,live,
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/prompt.rs,2,live,
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/prompt.rs,3,live,
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,1,error,E0425 cannot find value `DEFAULT_Q_JPG` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,2,error,E0425 cannot find value `DEFAULT_Q_JPG` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,3,error,E0425 cannot find value `DEFAULT_Q_JPG` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,4,error,E0425 cannot find value `DEFAULT_Q_JPG` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,5,error,E0425 cannot find value `jpg_quality` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,6,error,E0532 cannot find tuple struct or tuple variant `Jpeg` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,7,error,E0532 cannot find tuple struct or tuple variant `Jpeg` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,8,error,E0532 cannot find tuple struct or tuple variant `Jpeg` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,9,error,E0532 cannot find tuple struct or tuple variant `Jpeg` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,10,error,E0425 cannot find value `q` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,11,error,"E0164 expected tuple struct or tuple variant, found struct variant `Format::Jpeg`"
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,12,error,"E0164 expected tuple struct or tuple variant, found struct variant `Format::Jpeg`"
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/processor.rs,1,error,"E0164 expected tuple struct or tuple variant, found struct variant `Format::WebP`"
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/processor.rs,2,error,E0425 cannot find value `q` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/processor.rs,3,error,"E0164 expected tuple struct or tuple variant, found struct variant `Format::Avif`"
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/processor.rs,4,error,E0425 cannot find value `q` in this scope
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/processor.rs,5,error,E0061 this function takes 4 arguments but 3 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/processor.rs,6,error,E0061 this function takes 4 arguments but 3 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/processor.rs,7,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,1,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,2,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,3,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,4,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,5,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,6,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,7,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,8,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,9,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,10,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,11,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,12,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,13,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,14,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,15,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,16,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,17,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,18,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,19,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,20,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,21,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,22,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,23,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,24,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/tests/resize_image.rs,25,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/templates/src/global_fns/images.rs,1,error,E0061 this method takes 6 arguments but 5 arguments were supplied
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/templates/src/global_fns/images.rs,2,stock,file is outside the editable compiler frontier
+zola,107a36e8fef28ffd9d3d6adef6fa8b9eebb535ff,35,components/imageproc/src/format.rs,1,error,E0308 mismatched types
+zola,107a36e8fef28ffd9d3d6adef6fa8b9eebb535ff,35,components/imageproc/src/format.rs,2,error,E0308 mismatched types
+zola,107a36e8fef28ffd9d3d6adef6fa8b9eebb535ff,35,components/imageproc/src/format.rs,3,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,1,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,2,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,3,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,4,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,5,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,6,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,7,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,8,stock,file is outside the editable compiler frontier
+zola,220cad6b860fdeb08f86c038fbb2462b79e4c9af,38,components/imageproc/src/processor.rs,1,error,E0433 cannot find type `ExtendedColorType` in this scope
+zola,220cad6b860fdeb08f86c038fbb2462b79e4c9af,38,components/imageproc/src/processor.rs,2,error,E0425 cannot find value `color_type` in this scope
+zola,220cad6b860fdeb08f86c038fbb2462b79e4c9af,38,components/imageproc/src/processor.rs,3,stock,file is outside the editable compiler frontier
+zola,543363f4a64b3d7f9ff84923e567c229cb57274b,39,components/templates/src/lib.rs,1,stock,file is outside the editable compiler frontier
+zola,a784d493d1a58c8c33b7fb0287246b9936a3e565,40,components/search/src/fuse.rs,1,restart,macro code in ::build_index changed; retaining the current compiler epoch
+zola,a784d493d1a58c8c33b7fb0287246b9936a3e565,40,components/search/src/fuse.rs,2,restart,macro code in ::build_index changed
+zola,a784d493d1a58c8c33b7fb0287246b9936a3e565,40,components/search/src/fuse.rs,3,restart,macro code in ::build_index changed
+zola,a784d493d1a58c8c33b7fb0287246b9936a3e565,40,components/search/src/fuse.rs,4,restart,macro code in ::build_index changed
+zola,8b2a4923346ce896152e2bdcf6019ad0d3258f72,42,components/config/src/config/markup.rs,1,error,E0063 missing field `github_alerts` in initializer of `markup::Markdown`
+zola,8b2a4923346ce896152e2bdcf6019ad0d3258f72,42,components/config/src/config/markup.rs,2,stock,file is outside the editable compiler frontier
+zola,8b2a4923346ce896152e2bdcf6019ad0d3258f72,42,components/markdown/src/markdown.rs,1,stock,file is outside the editable compiler frontier
+zola,8b2a4923346ce896152e2bdcf6019ad0d3258f72,42,components/markdown/tests/markdown.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+zola,53d5636977c776ce8da191650d6aff1a45dc6556,44,components/markdown/src/markdown.rs,1,stock,file is outside the editable compiler frontier
+zola,53d5636977c776ce8da191650d6aff1a45dc6556,44,components/markdown/src/markdown.rs,2,stock,file is outside the editable compiler frontier
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/helpers.rs,1,error,E0425 cannot find function `get_orientation` in this scope
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/helpers.rs,2,error,E0308 mismatched types
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/lib.rs,1,error,E0308 mismatched types
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/meta.rs,1,error,E0308 mismatched types
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/meta.rs,2,error,E0308 mismatched types
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/meta.rs,3,error,E0308 mismatched types
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/processor.rs,1,error,E0308 mismatched types
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/processor.rs,2,error,E0433 cannot find module or crate `image` in this scope
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/processor.rs,3,stock,file is outside the editable compiler frontier
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/tests/resize_image.rs,1,skip,"only integration tests, benches or examples outside the running binary changed"
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/tests/resize_image.rs,2,skip,"only integration tests, benches or examples outside the running binary changed"
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/tests/resize_image.rs,3,skip,"only integration tests, benches or examples outside the running binary changed"
+zola,0d7c93e21d28dc6ec9f208e1900ec89739e0453f,47,components/content/src/page.rs,1,stock,file is outside the editable compiler frontier
+zola,0d7c93e21d28dc6ec9f208e1900ec89739e0453f,47,components/markdown/src/markdown.rs,1,error,E0277 `Vec<Event<'_>>` is not an iterator
+zola,0d7c93e21d28dc6ec9f208e1900ec89739e0453f,47,components/markdown/src/markdown.rs,2,error,E0277 `Vec<Event<'_>>` is not an iterator
+zola,0d7c93e21d28dc6ec9f208e1900ec89739e0453f,47,components/markdown/src/markdown.rs,3,error,E0277 `Vec<Event<'_>>` is not an iterator
+zola,0d7c93e21d28dc6ec9f208e1900ec89739e0453f,47,components/markdown/src/markdown.rs,4,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/site/src/minify.rs,1,stock,compiler unavailable or recovering; using normal cargo builds + restart
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,1,stock,compiler unavailable or recovering; using normal cargo builds + restart
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,2,stock,compiler unavailable or recovering; using normal cargo builds + restart
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,3,stock,compiler unavailable or recovering; using normal cargo builds + restart
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,4,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,5,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,6,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,7,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,8,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,9,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,10,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,11,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,12,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/templates/src/global_fns/files.rs,13,stock,file is outside the editable compiler frontier
+zola,f2bcdfa83cd9df052fd507c85ee7c1c80db80675,49,components/content/src/page.rs,1,stock,file is outside the editable compiler frontier
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,1,error,E0433 cannot find type `File` in this scope
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,2,error,E0433 cannot find type `File` in this scope
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,3,error,E0433 cannot find type `File` in this scope
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,4,error,E0425 cannot find value `buffered_f` in this scope
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,5,error,E0425 cannot find value `buffered_f` in this scope
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,6,error,E0425 cannot find value `buffered_f` in this scope
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,7,error,E0425 cannot find value `buffered_f` in this scope
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,8,stock,file is outside the editable compiler frontier
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,9,stock,file is outside the editable compiler frontier

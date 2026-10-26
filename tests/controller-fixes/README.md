@@ -1,6 +1,5 @@
-M4-T6 controller regressions use a copied tiny axum fixture, its stock Cargo oracle,
-and explicit disposable disk directories. Hold the rustd resource lane around each
-run, set `TMPDIR` to a short disk directory, and set qualified support normally.
+Controller regressions use a copied tiny axum fixture, its stock Cargo oracle,
+and explicit disposable disk directories. On shared machines an optional external wrapper can coordinate runs. Set `TMPDIR` to a short disk directory, and set qualified support normally.
 
 ```sh
 RUSTUP_TOOLCHAIN=1.99.0 REFRESH_CORRECTNESS_ONLY=1 \

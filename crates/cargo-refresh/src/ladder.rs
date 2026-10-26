@@ -362,9 +362,20 @@ impl Pipeline {
                 "assert!/debug_assert! message printing is unqualified; using stock Cargo baseline"
             ))
         };
+        // A runtime handshake is the final compatibility check. If it fails,
+        // discard this compiler and restart a stock build without injection.
+        let fast = fast.and_then(|fast| {
+            if let Err(error) = self.runtime.start(&fast.binary) {
+                self.runtime.stop();
+                self.runtime.configure_agent(None);
+                self.config.support = None;
+                self.workspace = None;
+                return Err(error.context("application agent startup failed; using normal Cargo"));
+            }
+            Ok(fast)
+        });
         match fast {
             Ok(fast) => {
-                self.runtime.start(&native_binary(&self.config)?)?;
                 self.event(
                     "compiler_ready",
                     fast.client.config.home.display().to_string(),

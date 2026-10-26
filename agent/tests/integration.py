@@ -196,7 +196,30 @@ def activation_suite(library):
         env['REFRESH_HOST_EXE'] = '/not/the/host'
         result = subprocess.run([str(BUILD/'host'), 'o'], env=env, text=True, capture_output=True, timeout=10)
         assert result.returncode == 0 and result.stdout.strip() == '1 17' and not Path(tmp+'/agent.sock').exists(), result
-    print('activation: missing v1 host rejected, inherited child executable filtered PASS')
+        env['REFRESH_HOST_EXE'] = str((BUILD/'host').resolve())
+        env['REFRESH_AGENT_SOCKET'] = tmp+'/'+'x'*120
+        result = subprocess.run([str(BUILD/'host'), 'o'], env=env, text=True, capture_output=True, timeout=5)
+        assert result.returncode == 0 and 'Unix socket path too long' in result.stderr, result
+        for socket_path, expected in [(tmp+'/'+'x'*120, 'Unix socket path too long'),
+                                      (tmp+'/missing/agent.sock', 'cannot bind/listen')]:
+            error_path = Path(tmp)/'agent.error'
+            error_path.unlink(missing_ok=True)
+            env.update(REFRESH_AGENT_SOCKET=socket_path, REFRESH_AGENT_ERROR=str(error_path))
+            # Interactive host stays alive long enough for the server thread to report.
+            proc = subprocess.Popen([str(BUILD/'host')], env=env, text=True,
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                deadline = time.monotonic()+2
+                while not error_path.exists() and time.monotonic() < deadline:
+                    time.sleep(.005)
+                assert expected in error_path.read_text()
+                proc.stdin.write('o\nq\n'); proc.stdin.flush()
+                stdout, stderr = proc.communicate(timeout=5)
+                assert expected in stderr and proc.returncode == 0, (stdout, stderr)
+            finally:
+                if proc.poll() is None:
+                    proc.kill(); proc.wait()
+    print('activation: host identity and immediate socket startup errors PASS')
 
 def locale_suite(library):
     h = Host(library, env={'REFRESH_TEST_LOCALE': 'en_DK.utf8'})

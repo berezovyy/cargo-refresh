@@ -1,0 +1,13 @@
+[alias]
+tq = "test -- -q"
+qt = "tq"
+lint = "clippy --all-targets -- --cap-lints warn"
+
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld"
+
+[target.arm-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc-8"
+
+[env]
+CARGO_WORKSPACE_DIR = { value = "", relative = true }

@@ -11,7 +11,7 @@ Run from the product repository:
 python3 tests/semantics/test_runner.py
 python3 tests/semantics/run.py --mode stock
 python3 tests/semantics/run.py --mode stock --case 03 --case 17
-python3 tests/semantics/run.py --mode stock --offline --results /tmp/semantics.json
+python3 tests/semantics/run.py --mode stock --offline --results /path/to/work/semantics.json
 # Intentionally update recorded observations after changing a fixture:
 python3 tests/semantics/run.py --mode stock --record --case 03
 # Equivalent per-case wrapper, usable from any directory:
@@ -83,7 +83,7 @@ Run the real controller with qualified installed support:
 python3 tests/semantics/run.py --mode refresh --offline \
   --controller /absolute/path/to/cargo-refresh \
   --support /absolute/path/to/verified/support \
-  --results /tmp/semantics-refresh.json
+  --results /path/to/work/semantics-refresh.json
 # Or use --archive /path/to/release.tar.zst (with its adjacent checksum).
 # With Cargo and support installed normally, no controller/support flags are needed.
 ```
@@ -156,11 +156,10 @@ runs use `--locked`. Refresh capture/check/build commands are owned by the
 controller and keep the copied fixture lockfile. Runs take a nonblocking exclusive lock so they cannot corrupt each
 other's source copies or targets. Build/probe timeouts fail the case. A memory
 guard stops owned child process groups below 6 GiB MemAvailable. No rustd is
-started by stock mode. Refresh mode automatically re-executes under the research
-rustd lane when `--lane` exists; do not wrap it in another rustd lane. Controller
-capture/fallback builds and the stock oracle acquire the build lane separately,
-using four jobs. Outside the research machine, set `--lane` to a suitable lane
-script, or a nonexistent path when no shared lane service is required.
+started by stock mode. Refresh mode runs directly by default. On a shared machine, an optional `--lane`
+(or `REFRESH_LANE`) wrapper can coordinate compiler sessions and four-job builds.
+When supplied, the runner acquires its own session lane; avoid a duplicate outer
+session lane. No wrapper is required on a private machine.
 
 Refresh uses `.work-refresh/` by default; `--work` selects another private warm
 root. Its Cargo builds use each copied case's default `target/`, preserved across

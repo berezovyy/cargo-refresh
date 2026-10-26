@@ -59,10 +59,7 @@ pub fn action(reply: &Reply) -> Action {
 fn connect(path: &Path, deadline: Instant) -> Result<UnixStream> {
     let bytes = path.as_os_str().as_bytes();
     let mut address: libc::sockaddr_un = unsafe { std::mem::zeroed() };
-    ensure!(
-        !bytes.contains(&0) && bytes.len() < address.sun_path.len(),
-        "invalid agent socket path"
-    );
+    crate::runtime_dir::validate_socket(path)?;
     address.sun_family = libc::AF_UNIX as libc::sa_family_t;
     for (to, from) in address.sun_path.iter_mut().zip(bytes) {
         *to = *from as libc::c_char;
@@ -206,6 +203,23 @@ impl Client {
         }
         Ok(reply)
     }
+    /// Production startup requires the current contract; legacy transport is
+    /// retained only for explicit compatibility/testing clients.
+    pub fn ping_compatible(&mut self) -> Result<Reply> {
+        let reply = self.ping()?;
+        ensure!(
+            reply.ok
+                && reply
+                    .counters
+                    .get("support_protocol")
+                    .and_then(|v| v.as_u64())
+                    == Some(u64::from(crate::install::SUPPORT_PROTOCOL)),
+            "application agent is incompatible with controller {} (support protocol {}); reinstall with --from-archive <matching-bundle.tar.zst>",
+            env!("CARGO_PKG_VERSION"),
+            crate::install::SUPPORT_PROTOCOL
+        );
+        Ok(reply)
+    }
     pub fn hook(&mut self) -> Result<Reply> {
         self.request(2, &[])
     }
@@ -252,6 +266,39 @@ mod tests {
         assert!(client.hook().unwrap().ok);
         host.join().unwrap();
     }
+    #[test]
+    fn startup_handshake_requires_matching_support_protocol() {
+        for protocol in [None, Some(999), Some(crate::install::SUPPORT_PROTOCOL)] {
+            let temp = tempfile::tempdir().unwrap();
+            let socket = temp.path().join("a");
+            let listener = UnixListener::bind(&socket).unwrap();
+            let host = thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut header = [0; 24];
+                stream.read_exact(&mut header).unwrap();
+                let txid = u32::from_le_bytes(header[12..16].try_into().unwrap());
+                writeln!(
+                    stream,
+                    "{}",
+                    serde_json::json!({"ok":true,"txid":txid,"support_protocol":protocol})
+                )
+                .unwrap();
+            });
+            let result = Client::new(socket).ping_compatible();
+            if protocol == Some(crate::install::SUPPORT_PROTOCOL) {
+                result.unwrap();
+            } else {
+                assert!(
+                    result
+                        .unwrap_err()
+                        .to_string()
+                        .contains("incompatible with controller")
+                );
+            }
+            host.join().unwrap();
+        }
+    }
+
     #[test]
     fn legacy_negotiation_does_not_apply_an_empty_patch() {
         let temp = tempfile::tempdir().unwrap();

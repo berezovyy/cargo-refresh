@@ -77,8 +77,8 @@ def build(source: Path, target: Path, env: dict, log: Path, offline: bool, recor
         command.append("--locked")
     if offline:
         command.append("--offline")
-    lane = Path(os.environ.get("REFRESH_LANE", "/path/to/research/tools/lane.sh"))
-    if lane.exists():
+    lane = Path(os.environ["REFRESH_LANE"]) if os.environ.get("REFRESH_LANE") else None
+    if lane and lane.exists():
         command = [str(lane), "build", "--", *command]
     with log.open("w") as output:
         process = subprocess.Popen(command, cwd=source, env=env, stdout=output,
@@ -371,7 +371,7 @@ def run_refresh(case: Path, work: Path, args, frontier: dict | None = None) -> d
     logs.mkdir(parents=True, exist_ok=True)
     env = case_environment(spec)
     env.update(REFRESH_MEMORY_MIN_BYTES=str(6 * 1024**3), REFRESH_RUSTD_FRONTIER="1")
-    if args.lane.exists():
+    if args.lane and args.lane.exists():
         env["REFRESH_LANE_TOOL"] = str(args.lane)
     if args.offline:
         env["CARGO_NET_OFFLINE"] = "true"
@@ -519,9 +519,8 @@ def main() -> int:
     parser.add_argument("--support", type=Path, help="complete verified installed-support directory")
     parser.add_argument("--archive", type=Path, help="local support archive with adjacent checksum")
     parser.add_argument("--work", type=Path, help="private work directory (default: .work or .work-refresh)")
-    parser.add_argument("--lane", type=Path, default=Path(os.environ.get("REFRESH_LANE",
-                        "/path/to/research/tools/lane.sh")),
-                        help="research lane.sh; sessions automatically acquire rustd lane")
+    parser.add_argument("--lane", type=Path, default=os.environ.get("REFRESH_LANE"),
+                        help="optional external resource lane wrapper")
     parser.add_argument("--timeout", type=float, default=180, help="ready/save timeout in seconds")
     parser.add_argument("--default-profile", action="store_true",
                         help="explicit supplemental run: remove sole debug=0 dev overrides in copies; retain optimized case 11")
@@ -529,7 +528,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.mode == "refresh" and args.record:
         parser.error("--record is only supported for the independent stock oracle")
-    if args.mode == "refresh" and args.lane.exists() and not os.environ.get("M4_SEMANTICS_LANE_HELD"):
+    if args.mode == "refresh" and args.lane and args.lane.exists() and not os.environ.get("M4_SEMANTICS_LANE_HELD"):
         env = dict(os.environ, M4_SEMANTICS_LANE_HELD="1")
         return subprocess.call([str(args.lane), "rustd", "--", sys.executable,
                                 str(Path(__file__).resolve()), *sys.argv[1:]], env=env)

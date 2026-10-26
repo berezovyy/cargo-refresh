@@ -1,30 +1,30 @@
 [
   {
-    "path": "work/m0/v4/gw/bin/refresh-guard-m0",
-    "sha256": "a501792ce168fc3eb415d4fde473dd9bec07ca9fbeadc8d235a13c4aa41dfd9f"
+    "sha256": "a501792ce168fc3eb415d4fde473dd9bec07ca9fbeadc8d235a13c4aa41dfd9f",
+    "origin": "prototype guard executable"
   },
   {
-    "path": "experiments/EXP-119-strict-gate-preemption/bin/strict-admission119",
-    "sha256": "87845e04588fd1d3aa69c2d3bdab3fd41198d90ddf5debafa3adaddedbed7bf8"
+    "sha256": "87845e04588fd1d3aa69c2d3bdab3fd41198d90ddf5debafa3adaddedbed7bf8",
+    "origin": "prototype strict admission executable"
   },
   {
-    "path": "experiments/EXP-128-fast-refresh-v4/gw/scripts/scenarios.py",
-    "sha256": "589e19f29a96f701513bba66b6d7a570f2e6d71e2233eeb02fe60906c2506c2b"
+    "sha256": "589e19f29a96f701513bba66b6d7a570f2e6d71e2233eeb02fe60906c2506c2b",
+    "origin": "web session generator"
   },
   {
-    "path": "work/m0/v4/results/smoke-c/live-session/events.jsonl",
-    "sha256": "798e434d09b0d95233a1cf4f68048c9553eed76c1915bbb87a91b383e15151ea"
+    "sha256": "798e434d09b0d95233a1cf4f68048c9553eed76c1915bbb87a91b383e15151ea",
+    "origin": "reference session event log"
   },
   {
-    "path": "fixtures/web/crates/api/src/handlers.rs",
-    "sha256": "e074e8141d9feb474e2ce60e85a7e8436b9eed19289dbc30a3ebdccd1e4f43e8"
+    "sha256": "e074e8141d9feb474e2ce60e85a7e8436b9eed19289dbc30a3ebdccd1e4f43e8",
+    "origin": "web handler source"
   },
   {
-    "path": "work/m0/v4/gw/tools/guard/src/main.rs",
-    "sha256": "597befe75c0a7d71768d0072ec282e16ef5f155a3d03d533794e0ff9235e30e1"
+    "sha256": "597befe75c0a7d71768d0072ec282e16ef5f155a3d03d533794e0ff9235e30e1",
+    "origin": "prototype guard source"
   },
   {
-    "path": "experiments/EXP-128-fast-refresh-v4/gw/scripts/source_guard.py",
-    "sha256": "35fbfed17c3bcb5fa38a54af09c8b29af468dd02459b3a084023d59c55beb8c8"
+    "sha256": "35fbfed17c3bcb5fa38a54af09c8b29af468dd02459b3a084023d59c55beb8c8",
+    "origin": "source classification reference"
   }
 ]

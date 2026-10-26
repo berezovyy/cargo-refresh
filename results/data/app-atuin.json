@@ -1,0 +1,127 @@
+{
+  "app": "atuin",
+  "baseline_match": true,
+  "completed": true,
+  "rows": [
+    {
+      "id": 1,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 01: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:00 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 2,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 02: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:00 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 3,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 03: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:01 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 4,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 04: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:01 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 5,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 05: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:03 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 6,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 06: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:03 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 7,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 07: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:05 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 8,
+      "kind": "comment-and-body",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 08: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:07 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 9,
+      "kind": "line-insert-and-body",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 09: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:07 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    },
+    {
+      "id": 10,
+      "kind": "new-helper-and-call",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "command",
+        "exit_code": 1,
+        "body": "Error: status: NotFound, message: \"history lookup revision 10: m4-missing\", details: [], metadata: MetadataMap { headers: {\"content-type\": \"application/grpc\", \"date\": \"Sat, 24 Oct 2026 14:54:08 GMT\", \"content-length\": \"0\"} }\n\nLocation:\n    crates/atuin-daemon/src/client.rs:93:20\n"
+      },
+      "reason": ""
+    }
+  ]
+}

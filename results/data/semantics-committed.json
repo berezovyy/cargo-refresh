@@ -1,0 +1,3444 @@
+{
+  "mode": "refresh",
+  "toolchain": "1.99.0",
+  "profile-mode": "fixture",
+  "cases": [
+    {
+      "case": "01-atomic-counter",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3846458,
+            "11666208"
+          ],
+          "after-identity": [
+            3846458,
+            "11666208"
+          ],
+          "expected-output": [
+            "probe=22",
+            "probe=32"
+          ],
+          "observed-output": [
+            "probe=22",
+            "probe=32"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852823.2457972,
+              "monotonic": 116662.260505975,
+              "generation": 1,
+              "loadavg": "3.10 3.69 3.92 2/2104 3846537",
+              "available_bytes": 20094222336,
+              "agent_us": 291.645,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 107348032618496,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 68.731,
+              "patch_bytes_total": 12301,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 107349376892928,
+              "region_ok": true,
+              "region_start": 107348303151104,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 309,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 15.635
+            },
+            {
+              "event": "save",
+              "time": 1792852823.2458534,
+              "monotonic": 116662.260562384,
+              "generation": 1,
+              "loadavg": "3.10 3.69 3.92 2/2104 3846537",
+              "available_bytes": 20094222336,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 18.09400101006031,
+              "phases": {
+                "notice": 116662239.237353,
+                "sources": 116662240.318782,
+                "worker_start": 116662240.332175,
+                "mirror_end": 116662240.42182699,
+                "gate": 116662240.831512,
+                "classify": 116662241.06137401,
+                "build_start": 116662241.139413,
+                "build_end": 116662256.78579101,
+                "manifest_end": 116662256.795992,
+                "candidate_end": 116662256.816512,
+                "extract_start": 116662256.816584,
+                "extract_end": 116662256.83381699,
+                "patch_sent": 116662256.884921,
+                "patch_ack": 116662257.32107,
+                "commit_end": 116662257.328198,
+                "trigger_end": 116662257.327474
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/01-atomic-counter/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852819.882476,
+          "monotonic": 116658.897184976,
+          "generation": 0,
+          "loadavg": "3.10 3.69 3.92 2/2078 3845163",
+          "available_bytes": 21430104064
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852823.0848465,
+          "monotonic": 116662.099555508,
+          "generation": 0,
+          "loadavg": "3.10 3.69 3.92 3/2104 3846467",
+          "available_bytes": 20080390144,
+          "message": "<run>/semantics-committed/sources/01-atomic-counter/target/refresh/session-qBscWl/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852823.2077045,
+          "monotonic": 116662.222413634,
+          "generation": 0,
+          "loadavg": "3.10 3.69 3.92 13/2100 3846490",
+          "available_bytes": 20076122112,
+          "message": "application pid 3846458",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=11",
+        "probe=12"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3846458,
+        "11666208"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "02-static-mut",
+      "configuration": "default",
+      "expected-paths": [
+        "live",
+        "restart"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live",
+            "restart"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3848474,
+            "11667083"
+          ],
+          "after-identity": [
+            3848474,
+            "11667083"
+          ],
+          "expected-output": [
+            "probe=22",
+            "probe=32"
+          ],
+          "observed-output": [
+            "probe=22",
+            "probe=32"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852831.9534862,
+              "monotonic": 116670.968195219,
+              "generation": 1,
+              "loadavg": "2.70 3.59 3.88 2/2098 3848553",
+              "available_bytes": 20039761920,
+              "agent_us": 261.191,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 110319229616128,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 65.93,
+              "patch_bytes_total": 12301,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 110320573890560,
+              "region_ok": true,
+              "region_start": 110319500148736,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 581,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 18.152
+            },
+            {
+              "event": "save",
+              "time": 1792852831.9535658,
+              "monotonic": 116670.968275008,
+              "generation": 1,
+              "loadavg": "2.70 3.59 3.88 2/2098 3848553",
+              "available_bytes": 20039761920,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 18.16312399506569,
+              "phases": {
+                "notice": 116670946.800248,
+                "sources": 116670948.027176,
+                "worker_start": 116670948.060364,
+                "mirror_end": 116670948.131546,
+                "gate": 116670948.47413999,
+                "classify": 116670948.679212,
+                "build_start": 116670948.750359,
+                "build_end": 116670964.379624,
+                "manifest_end": 116670964.392753,
+                "candidate_end": 116670964.412951,
+                "extract_start": 116670964.413044,
+                "extract_end": 116670964.430857,
+                "patch_sent": 116670964.480784,
+                "patch_ack": 116670964.952526,
+                "commit_end": 116670964.96043399,
+                "trigger_end": 116670964.959602
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/02-static-mut/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852828.714165,
+          "monotonic": 116667.728873911,
+          "generation": 0,
+          "loadavg": "2.85 3.63 3.90 1/2062 3846645",
+          "available_bytes": 21339779072
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852831.8382483,
+          "monotonic": 116670.852957362,
+          "generation": 0,
+          "loadavg": "2.70 3.59 3.88 4/2098 3848482",
+          "available_bytes": 20060467200,
+          "message": "<run>/semantics-committed/sources/02-static-mut/target/refresh/session-SqoHKE/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852831.9192793,
+          "monotonic": 116670.933988197,
+          "generation": 0,
+          "loadavg": "2.70 3.59 3.88 1/2094 3848506",
+          "available_bytes": 20056760320,
+          "message": "application pid 3848474",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=11",
+        "probe=12"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3848474,
+        "11667083"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "03-new-static",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": false,
+          "reason": "compiler requested a full native rebase",
+          "delivery": "watcher-save",
+          "actual-path": "restart",
+          "before-identity": [
+            3849945,
+            "11667955"
+          ],
+          "after-identity": [
+            3850194,
+            "11667997"
+          ],
+          "expected-output": [
+            "probe=101",
+            "probe=102"
+          ],
+          "observed-output": [
+            "probe=101",
+            "probe=102"
+          ],
+          "events": [
+            {
+              "event": "save",
+              "time": 1792852840.9763176,
+              "monotonic": 116679.991026745,
+              "generation": 1,
+              "loadavg": "3.81 3.78 3.94 4/2098 3850196",
+              "available_bytes": 20227977216,
+              "path": "restart",
+              "reason": "compiler requested a full native rebase",
+              "latency_ms": 326.73899099230766,
+              "phases": {
+                "notice": 116679656.757436,
+                "sources": 116679657.845127,
+                "worker_start": 116679657.854542,
+                "mirror_end": 116679657.937138,
+                "gate": 116679658.28804399,
+                "classify": 116679658.488774,
+                "build_start": 116679658.62773399,
+                "build_end": 116679912.61344999,
+                "spawn_end": 116679983.492924
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/03-new-static/src/main.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852840.9763634,
+              "monotonic": 116679.991072233,
+              "generation": 1,
+              "loadavg": "3.81 3.78 3.94 5/2098 3850196",
+              "available_bytes": 20227977216,
+              "message": "borrow check passed",
+              "revision": 1
+            }
+          ]
+        },
+        {
+          "name": "edit-2",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3850194,
+            "11667997"
+          ],
+          "after-identity": [
+            3850194,
+            "11667997"
+          ],
+          "expected-output": [
+            "probe=112",
+            "probe=122"
+          ],
+          "observed-output": [
+            "probe=112",
+            "probe=122"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852841.0199852,
+              "monotonic": 116680.034694145,
+              "generation": 1,
+              "loadavg": "3.81 3.78 3.94 2/2102 3850239",
+              "available_bytes": 20222869504,
+              "agent_us": 301.162,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 102165815160832,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 69.797,
+              "patch_bytes_total": 12301,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 102167159435264,
+              "region_ok": true,
+              "region_start": 102166085693440,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 2,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 549,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 17.781
+            },
+            {
+              "event": "save",
+              "time": 1792852841.020065,
+              "monotonic": 116680.034773891,
+              "generation": 2,
+              "loadavg": "3.81 3.78 3.94 2/2102 3850239",
+              "available_bytes": 20222869504,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 17.95261199772358,
+              "phases": {
+                "notice": 116680013.40049,
+                "sources": 116680014.515239,
+                "worker_start": 116680014.550479,
+                "mirror_end": 116680014.631771,
+                "gate": 116680014.825779,
+                "classify": 116680015.04646501,
+                "build_start": 116680015.127424,
+                "build_end": 116680030.79725899,
+                "manifest_end": 116680030.804661,
+                "candidate_end": 116680030.826831,
+                "extract_start": 116680030.826895,
+                "extract_end": 116680030.840533,
+                "patch_sent": 116680030.90422699,
+                "patch_ack": 116680031.344301,
+                "commit_end": 116680031.350325,
+                "trigger_end": 116680031.349575
+              },
+              "revision": 2,
+              "files": [
+                "<run>/semantics-committed/sources/03-new-static/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852837.4205258,
+          "monotonic": 116676.435234785,
+          "generation": 0,
+          "loadavg": "2.48 3.53 3.86 2/2060 3848659",
+          "available_bytes": 21443801088
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852840.5503666,
+          "monotonic": 116679.565075633,
+          "generation": 0,
+          "loadavg": "3.81 3.78 3.94 4/2102 3849954",
+          "available_bytes": 20186710016,
+          "message": "<run>/semantics-committed/sources/03-new-static/target/refresh/session-43zxqO/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852840.6313121,
+          "monotonic": 116679.646020965,
+          "generation": 0,
+          "loadavg": "3.81 3.78 3.94 1/2098 3849977",
+          "available_bytes": 20187312128,
+          "message": "application pid 3849945",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=absent",
+        "probe=absent"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3849945,
+        "11667955"
+      ],
+      "coverage-complete": true,
+      "path-match": false
+    },
+    {
+      "case": "04-thread-local",
+      "configuration": "default",
+      "expected-paths": [
+        "live",
+        "restart"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live",
+            "restart"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3852256,
+            "11668874"
+          ],
+          "after-identity": [
+            3852256,
+            "11668874"
+          ],
+          "expected-output": [
+            "probe=112,212",
+            "probe=122,222"
+          ],
+          "observed-output": [
+            "probe=112,212",
+            "probe=122,222"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852849.881105,
+              "monotonic": 116688.89581383,
+              "generation": 1,
+              "loadavg": "3.30 3.67 3.90 2/2107 3852337",
+              "available_bytes": 20161142784,
+              "agent_us": 317.052,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 42,
+              "fp_hits": 0,
+              "fp_incomplete": 2,
+              "load_base": 95501578764288,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 88.874,
+              "patch_bytes_total": 12301,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 95502923038720,
+              "region_ok": true,
+              "region_start": 95501849296896,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 3427,
+              "threads": 3,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 61.269
+            },
+            {
+              "event": "save",
+              "time": 1792852849.8811798,
+              "monotonic": 116688.895888826,
+              "generation": 1,
+              "loadavg": "3.30 3.67 3.90 2/2107 3852337",
+              "available_bytes": 20161142784,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 18.685401991009712,
+              "phases": {
+                "notice": 116688874.378749,
+                "sources": 116688875.598135,
+                "worker_start": 116688875.607829,
+                "mirror_end": 116688875.663228,
+                "gate": 116688876.280838,
+                "classify": 116688876.689877,
+                "build_start": 116688876.747416,
+                "build_end": 116688892.480165,
+                "manifest_end": 116688892.493325,
+                "candidate_end": 116688892.51487799,
+                "extract_start": 116688892.514953,
+                "extract_end": 116688892.536026,
+                "patch_sent": 116688892.587244,
+                "patch_ack": 116688893.05616699,
+                "commit_end": 116688893.061347,
+                "trigger_end": 116688893.06074299
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/04-thread-local/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852846.4844193,
+          "monotonic": 116685.4991283,
+          "generation": 0,
+          "loadavg": "3.50 3.72 3.92 2/2068 3850351",
+          "available_bytes": 21492908032
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852849.74625,
+          "monotonic": 116688.76095891,
+          "generation": 0,
+          "loadavg": "3.30 3.67 3.90 3/2107 3852267",
+          "available_bytes": 20156379136,
+          "message": "<run>/semantics-committed/sources/04-thread-local/target/refresh/session-AliuB2/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852849.8372614,
+          "monotonic": 116688.85197055,
+          "generation": 0,
+          "loadavg": "3.30 3.67 3.90 2/2103 3852290",
+          "available_bytes": 20132499456,
+          "message": "application pid 3852256",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=101,201",
+        "probe=102,202"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3852256,
+        "11668874"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "05-lazy-init",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3853750,
+            "11669769"
+          ],
+          "after-identity": [
+            3853750,
+            "11669769"
+          ],
+          "expected-output": [
+            "probe=v2:7,7,7",
+            "probe=v2:7,7,7"
+          ],
+          "observed-output": [
+            "probe=v2:7,7,7",
+            "probe=v2:7,7,7"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852858.8690715,
+              "monotonic": 116697.883780347,
+              "generation": 1,
+              "loadavg": "3.04 3.61 3.88 2/2076 3853837",
+              "available_bytes": 20148527104,
+              "agent_us": 296.153,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 108705950994432,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 73.984,
+              "patch_bytes_total": 12306,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 108707295268864,
+              "region_ok": true,
+              "region_start": 108706221527040,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 669,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 18.54
+            },
+            {
+              "event": "save",
+              "time": 1792852858.8691251,
+              "monotonic": 116697.883833934,
+              "generation": 1,
+              "loadavg": "3.04 3.61 3.88 2/2076 3853837",
+              "available_bytes": 20148527104,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 18.397042006254196,
+              "phases": {
+                "notice": 116697862.37124099,
+                "sources": 116697863.57086499,
+                "worker_start": 116697863.60921499,
+                "mirror_end": 116697863.681171,
+                "gate": 116697864.139224,
+                "classify": 116697864.40861501,
+                "build_start": 116697864.48176299,
+                "build_end": 116697880.13081901,
+                "manifest_end": 116697880.142522,
+                "candidate_end": 116697880.16245401,
+                "extract_start": 116697880.162523,
+                "extract_end": 116697880.180057,
+                "patch_sent": 116697880.241899,
+                "patch_ack": 116697880.759637,
+                "commit_end": 116697880.765422,
+                "trigger_end": 116697880.764654
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/05-lazy-init/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852855.3890212,
+          "monotonic": 116694.403730063,
+          "generation": 0,
+          "loadavg": "3.04 3.61 3.88 1/2039 3852446",
+          "available_bytes": 21469020160
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852858.6902175,
+          "monotonic": 116697.704926601,
+          "generation": 0,
+          "loadavg": "3.04 3.61 3.88 4/2076 3853756",
+          "available_bytes": 20174544896,
+          "message": "<run>/semantics-committed/sources/05-lazy-init/target/refresh/session-iCoLkU/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852858.8421173,
+          "monotonic": 116697.856826176,
+          "generation": 0,
+          "loadavg": "3.04 3.61 3.88 1/2072 3853786",
+          "available_bytes": 20156792832,
+          "message": "application pid 3853750",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=v1:7,7,7",
+        "probe=v1:7,7,7"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3853750,
+        "11669769"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "06-lazy-static",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3855808,
+            "11670657"
+          ],
+          "after-identity": [
+            3855808,
+            "11670657"
+          ],
+          "expected-output": [
+            "probe=v2:7",
+            "probe=v2:7"
+          ],
+          "observed-output": [
+            "probe=v2:7",
+            "probe=v2:7"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852867.741012,
+              "monotonic": 116706.755721094,
+              "generation": 1,
+              "loadavg": "2.72 3.53 3.85 19/2084 3855899",
+              "available_bytes": 20135645184,
+              "agent_us": 390.748,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 96788795371520,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 58.282,
+              "patch_bytes_total": 12306,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 96790139645952,
+              "region_ok": true,
+              "region_start": 96789065904128,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 381,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 23.916
+            },
+            {
+              "event": "save",
+              "time": 1792852867.7411146,
+              "monotonic": 116706.755823631,
+              "generation": 1,
+              "loadavg": "2.72 3.53 3.85 19/2084 3855899",
+              "available_bytes": 20135645184,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 23.92935898900032,
+              "phases": {
+                "notice": 116706724.343813,
+                "sources": 116706725.460059,
+                "worker_start": 116706725.474349,
+                "mirror_end": 116706725.613314,
+                "gate": 116706726.222741,
+                "classify": 116706726.621346,
+                "build_start": 116706726.760774,
+                "build_end": 116706747.59477599,
+                "manifest_end": 116706747.608779,
+                "candidate_end": 116706747.63366601,
+                "extract_start": 116706747.633753,
+                "extract_end": 116706747.65390499,
+                "patch_sent": 116706747.670091,
+                "patch_ack": 116706748.26138,
+                "commit_end": 116706748.270197,
+                "trigger_end": 116706748.26924099
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/06-lazy-static/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852864.3528597,
+          "monotonic": 116703.367568681,
+          "generation": 0,
+          "loadavg": "2.87 3.57 3.87 1/2050 3854505",
+          "available_bytes": 21458313216
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852867.571942,
+          "monotonic": 116706.58665112,
+          "generation": 0,
+          "loadavg": "2.72 3.53 3.85 5/2084 3855813",
+          "available_bytes": 20154273792,
+          "message": "<run>/semantics-committed/sources/06-lazy-static/target/refresh/session-Hx9j3S/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852867.7039883,
+          "monotonic": 116706.71869732,
+          "generation": 0,
+          "loadavg": "2.72 3.53 3.85 15/2080 3855844",
+          "available_bytes": 20143112192,
+          "message": "application pid 3855808",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=v1:7",
+        "probe=v1:7"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3855808,
+        "11670657"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "07-retained-closure",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": false,
+          "reason": "macro code in ::make changed",
+          "delivery": "watcher-save",
+          "actual-path": "restart",
+          "before-identity": [
+            3857303,
+            "11671533"
+          ],
+          "after-identity": [
+            3857389,
+            "11671553"
+          ],
+          "expected-output": [
+            "probe=old=captured:2;new=captured:2",
+            "probe=old=captured:2;new=captured:2"
+          ],
+          "observed-output": [
+            "probe=old=captured:2;new=captured:2",
+            "probe=old=captured:2;new=captured:2"
+          ],
+          "events": [
+            {
+              "event": "save",
+              "time": 1792852876.5367098,
+              "monotonic": 116715.551418802,
+              "generation": 1,
+              "loadavg": "2.38 3.43 3.82 1/2086 3857392",
+              "available_bytes": 20138508288,
+              "path": "restart",
+              "reason": "macro code in ::make changed",
+              "latency_ms": 93.0577799975872,
+              "phases": {
+                "notice": 116715449.332,
+                "sources": 116715450.44940199,
+                "worker_start": 116715450.465535,
+                "mirror_end": 116715450.540565,
+                "gate": 116715450.894809,
+                "classify": 116715451.123478,
+                "build_start": 116715451.258164,
+                "build_end": 116715466.94431199,
+                "manifest_end": 116715466.957218,
+                "candidate_end": 116715466.977349,
+                "extract_start": 116715466.97741,
+                "extract_end": 116715466.995125,
+                "spawn_end": 116715542.214894
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/07-retained-closure/src/main.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852876.5469527,
+              "monotonic": 116715.561661657,
+              "generation": 1,
+              "loadavg": "2.38 3.43 3.82 1/2084 3857392",
+              "available_bytes": 20138508288,
+              "message": "borrow check passed",
+              "revision": 1
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852873.2436535,
+          "monotonic": 116712.258362575,
+          "generation": 0,
+          "loadavg": "2.50 3.47 3.83 1/2054 3856016",
+          "available_bytes": 21461651456
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852876.3327246,
+          "monotonic": 116715.347433593,
+          "generation": 0,
+          "loadavg": "2.38 3.43 3.82 3/2088 3857309",
+          "available_bytes": 20166074368,
+          "message": "<run>/semantics-committed/sources/07-retained-closure/target/refresh/session-ya5d5z/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852876.4136424,
+          "monotonic": 116715.428351371,
+          "generation": 0,
+          "loadavg": "2.38 3.43 3.82 2/2084 3857335",
+          "available_bytes": 20165087232,
+          "message": "application pid 3857303",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=old=captured:1;new=captured:1",
+        "probe=old=captured:1;new=captured:1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3857303,
+        "11671533"
+      ],
+      "coverage-complete": true,
+      "path-match": false
+    },
+    {
+      "case": "08-retained-vtable",
+      "configuration": "default",
+      "expected-paths": [
+        "live",
+        "restart"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live",
+            "restart"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "agent refused patch: stack collision retry limit",
+          "delivery": "watcher-save",
+          "actual-path": "restart",
+          "before-identity": [
+            3859339,
+            "11672407"
+          ],
+          "after-identity": [
+            3859426,
+            "11672450"
+          ],
+          "expected-output": [
+            "probe=old=2;new=2;saved=2;direct=2",
+            "probe=old=2;new=2;saved=2;direct=2"
+          ],
+          "observed-output": [
+            "probe=old=2;new=2;saved=2;direct=2",
+            "probe=old=2;new=2;saved=2;direct=2"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852885.4756787,
+              "monotonic": 116724.49038763,
+              "generation": 0,
+              "loadavg": "3.86 3.70 3.90 2/2078 3859425",
+              "available_bytes": 20148637696,
+              "agent_us": 122269.607,
+              "attempts": 100,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "STACK_COLLISION",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "stack collision retry limit",
+              "fp_frames": 1000,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 105853474557952,
+              "message": "stack collision retry limit",
+              "mode": 4,
+              "near_slots_used": 0,
+              "ok": false,
+              "pages": 0,
+              "park_us": 8999.305,
+              "patch_bytes_total": 0,
+              "patch_count": 0,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 105854818832384,
+              "region_ok": true,
+              "region_start": 105853745090560,
+              "region_used": 0,
+              "retained_bytes": 0,
+              "retries": 100,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 100,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 69900,
+              "threads": 0,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 3,
+              "unregistered_threads": 0,
+              "unwind_active": 0,
+              "unwind_copies": 0,
+              "unwind_deregistered_total": 2,
+              "unwind_registered_total": 2,
+              "unwind_retained_bytes": 0,
+              "unwind_us": 1511.103
+            },
+            {
+              "event": "save",
+              "time": 1792852885.4961553,
+              "monotonic": 116724.510864172,
+              "generation": 1,
+              "loadavg": "3.86 3.70 3.90 1/2078 3859428",
+              "available_bytes": 20148408320,
+              "path": "restart",
+              "reason": "agent refused patch: stack collision retry limit",
+              "latency_ms": 331.8941100090742,
+              "phases": {
+                "notice": 116724176.197905,
+                "sources": 116724177.395016,
+                "worker_start": 116724177.437123,
+                "mirror_end": 116724177.538121,
+                "gate": 116724178.350547,
+                "classify": 116724178.880521,
+                "build_start": 116724178.978407,
+                "build_end": 116724194.622997,
+                "manifest_end": 116724194.636745,
+                "candidate_end": 116724194.657096,
+                "extract_start": 116724194.657175,
+                "extract_end": 116724194.673496,
+                "patch_sent": 116724194.713058,
+                "patch_ack": 116724488.345066,
+                "spawn_end": 116724508.086837
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/08-retained-vtable/src/main.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852885.4961894,
+              "monotonic": 116724.510898223,
+              "generation": 1,
+              "loadavg": "3.86 3.70 3.90 1/2078 3859428",
+              "available_bytes": 20148408320,
+              "message": "borrow check passed",
+              "revision": 1
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852882.0147662,
+          "monotonic": 116721.029475277,
+          "generation": 0,
+          "loadavg": "2.19 3.37 3.80 1/2046 3858060",
+          "available_bytes": 21468110848
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852885.0665724,
+          "monotonic": 116724.081281244,
+          "generation": 0,
+          "loadavg": "3.86 3.70 3.90 4/2081 3859344",
+          "available_bytes": 20176830464,
+          "message": "<run>/semantics-committed/sources/08-retained-vtable/target/refresh/session-Lk5Kbp/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852885.1576269,
+          "monotonic": 116724.172335727,
+          "generation": 0,
+          "loadavg": "3.86 3.70 3.90 3/2078 3859371",
+          "available_bytes": 20174127104,
+          "message": "application pid 3859339",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=old=1;new=1;saved=1;direct=1",
+        "probe=old=1;new=1;saved=1;direct=1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3859339,
+        "11672407"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "09-fn-pointer",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": false,
+          "reason": "agent refused patch: stack collision retry limit",
+          "delivery": "watcher-save",
+          "actual-path": "restart",
+          "before-identity": [
+            3861360,
+            "11673319"
+          ],
+          "after-identity": [
+            3861447,
+            "11673362"
+          ],
+          "expected-output": [
+            "probe=saved=2;direct=2",
+            "probe=saved=2;direct=2"
+          ],
+          "observed-output": [
+            "probe=saved=2;direct=2",
+            "probe=saved=2;direct=2"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852894.5943487,
+              "monotonic": 116733.609057632,
+              "generation": 0,
+              "loadavg": "4.36 3.81 3.93 6/2069 3861446",
+              "available_bytes": 20131983360,
+              "agent_us": 120799.724,
+              "attempts": 100,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "STACK_COLLISION",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "stack collision retry limit",
+              "fp_frames": 1000,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 96423467425792,
+              "message": "stack collision retry limit",
+              "mode": 4,
+              "near_slots_used": 0,
+              "ok": false,
+              "pages": 0,
+              "park_us": 8613.336,
+              "patch_bytes_total": 0,
+              "patch_count": 0,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 96424811700224,
+              "region_ok": true,
+              "region_start": 96423737958400,
+              "region_used": 0,
+              "retained_bytes": 0,
+              "retries": 100,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 100,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 47100,
+              "threads": 0,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 3,
+              "unregistered_threads": 0,
+              "unwind_active": 0,
+              "unwind_copies": 0,
+              "unwind_deregistered_total": 2,
+              "unwind_registered_total": 2,
+              "unwind_retained_bytes": 0,
+              "unwind_us": 1391.45
+            },
+            {
+              "event": "save",
+              "time": 1792852894.6146033,
+              "monotonic": 116733.629312139,
+              "generation": 1,
+              "loadavg": "4.36 3.81 3.93 1/2069 3861449",
+              "available_bytes": 20131794944,
+              "path": "restart",
+              "reason": "agent refused patch: stack collision retry limit",
+              "latency_ms": 324.251193985343,
+              "phases": {
+                "notice": 116733304.59396002,
+                "sources": 116733305.708342,
+                "worker_start": 116733305.754435,
+                "mirror_end": 116733305.826294,
+                "gate": 116733306.15010001,
+                "classify": 116733306.342034,
+                "build_start": 116733306.419234,
+                "build_end": 116733317.050086,
+                "manifest_end": 116733317.069328,
+                "candidate_end": 116733317.095531,
+                "extract_start": 116733317.095613,
+                "extract_end": 116733317.12042099,
+                "patch_sent": 116733317.19675699,
+                "patch_ack": 116733608.338177,
+                "spawn_end": 116733628.840584
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/09-fn-pointer/src/main.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852894.6146414,
+              "monotonic": 116733.629350397,
+              "generation": 1,
+              "loadavg": "4.36 3.81 3.93 1/2069 3861449",
+              "available_bytes": 20131794944,
+              "message": "borrow check passed",
+              "revision": 1
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852891.118768,
+          "monotonic": 116730.133476843,
+          "generation": 0,
+          "loadavg": "3.95 3.72 3.91 1/2049 3859535",
+          "available_bytes": 21446287360
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852894.1876025,
+          "monotonic": 116733.202311485,
+          "generation": 0,
+          "loadavg": "3.95 3.72 3.91 3/2072 3861365",
+          "available_bytes": 20149829632,
+          "message": "<run>/semantics-committed/sources/09-fn-pointer/target/refresh/session-Zf5yfD/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852894.2685673,
+          "monotonic": 116733.283276246,
+          "generation": 0,
+          "loadavg": "3.95 3.72 3.91 3/2069 3861392",
+          "available_bytes": 20146012160,
+          "message": "application pid 3861360",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=saved=1;direct=1",
+        "probe=saved=1;direct=1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3861360,
+        "11673319"
+      ],
+      "coverage-complete": true,
+      "path-match": false
+    },
+    {
+      "case": "10-cross-crate-generic",
+      "configuration": "all-in-frontier",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3862884,
+            "11674231"
+          ],
+          "after-identity": [
+            3862884,
+            "11674231"
+          ],
+          "expected-output": [
+            "probe=app=11,18;caller=11,18",
+            "probe=app=11,18;caller=11,18"
+          ],
+          "observed-output": [
+            "probe=app=11,18;caller=11,18",
+            "probe=app=11,18;caller=11,18"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852903.4662428,
+              "monotonic": 116742.480951736,
+              "generation": 1,
+              "loadavg": "4.09 3.76 3.92 2/2080 3862969",
+              "available_bytes": 20127993856,
+              "agent_us": 371.794,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 102652054622208,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 60.568,
+              "patch_bytes_total": 12306,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 102653398896640,
+              "region_ok": true,
+              "region_start": 102652325154816,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 325,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 22.474
+            },
+            {
+              "event": "save",
+              "time": 1792852903.4663055,
+              "monotonic": 116742.48101445,
+              "generation": 1,
+              "loadavg": "4.09 3.76 3.92 2/2080 3862969",
+              "available_bytes": 20127993856,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 17.811187013983727,
+              "phases": {
+                "notice": 116742459.603536,
+                "sources": 116742460.718234,
+                "worker_start": 116742460.75549,
+                "mirror_end": 116742460.811406,
+                "gate": 116742460.942834,
+                "classify": 116742461.007697,
+                "build_start": 116742461.066585,
+                "build_end": 116742476.741829,
+                "manifest_end": 116742476.755671,
+                "candidate_end": 116742476.77613701,
+                "extract_start": 116742476.77622001,
+                "extract_end": 116742476.802876,
+                "patch_sent": 116742476.858984,
+                "patch_ack": 116742477.405208,
+                "commit_end": 116742477.410816,
+                "trigger_end": 116742477.41004601
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/10-cross-crate-generic--all-in-frontier/generic-lib/src/lib.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852900.0898497,
+          "monotonic": 116739.104558588,
+          "generation": 0,
+          "loadavg": "4.09 3.76 3.92 2/2045 3861560",
+          "available_bytes": 21474521088
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852903.3092098,
+          "monotonic": 116742.323918873,
+          "generation": 0,
+          "loadavg": "4.09 3.76 3.92 3/2080 3862892",
+          "available_bytes": 20129189888,
+          "message": "<run>/semantics-committed/sources/10-cross-crate-generic--all-in-frontier/target/refresh/session-ygQuMy/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852903.430574,
+          "monotonic": 116742.445282859,
+          "generation": 0,
+          "loadavg": "4.09 3.76 3.92 2/2076 3862924",
+          "available_bytes": 20124491776,
+          "message": "application pid 3862884",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=app=2,9;caller=2,9",
+        "probe=app=2,9;caller=2,9"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3862884,
+        "11674231"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "10-cross-crate-generic",
+      "configuration": "caller-outside-frontier",
+      "expected-paths": [
+        "stock"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "stock"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "edited crate has callers outside the compiler frontier; stock rebuild required for generic, inline and const dependencies",
+          "delivery": "watcher-save",
+          "actual-path": "stock",
+          "before-identity": [
+            3865005,
+            "11675116"
+          ],
+          "after-identity": [
+            3865122,
+            "11675151"
+          ],
+          "expected-output": [
+            "probe=app=11,18;caller=11,18",
+            "probe=app=11,18;caller=11,18"
+          ],
+          "observed-output": [
+            "probe=app=11,18;caller=11,18",
+            "probe=app=11,18;caller=11,18"
+          ],
+          "events": [
+            {
+              "event": "save",
+              "time": 1792852912.5081868,
+              "monotonic": 116751.522895697,
+              "generation": 1,
+              "loadavg": "3.76 3.70 3.90 2/2065 3865127",
+              "available_bytes": 21079207936,
+              "path": "stock",
+              "reason": "edited crate has callers outside the compiler frontier; stock rebuild required for generic, inline and const dependencies",
+              "latency_ms": 202.67885801196098,
+              "phases": {
+                "notice": 116751318.482542,
+                "sources": 116751319.7087,
+                "worker_start": 116751319.749049,
+                "build_start": 116751319.75659001,
+                "build_end": 116751471.79590699,
+                "stock_start": 116751319.756634,
+                "stock_end": 116751471.795597,
+                "spawn_end": 116751520.480249
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/10-cross-crate-generic--caller-outside-frontier/generic-lib/src/lib.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852912.5082183,
+              "monotonic": 116751.522927277,
+              "generation": 1,
+              "loadavg": "3.76 3.70 3.90 2/2065 3865127",
+              "available_bytes": 21078835200,
+              "message": "stock build passed borrow checking",
+              "revision": 1
+            },
+            {
+              "event": "worker_reset_start",
+              "time": 1792852912.5082407,
+              "monotonic": 116751.522949571,
+              "generation": 1,
+              "loadavg": "3.76 3.70 3.90 2/2065 3865127",
+              "available_bytes": 21078835200,
+              "message": "warming a fresh compiler in the background",
+              "revision": 1
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852908.9302382,
+          "monotonic": 116747.944947131,
+          "generation": 0,
+          "loadavg": "4.00 3.75 3.91 1/2049 3863677",
+          "available_bytes": 21381562368
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852912.1631315,
+          "monotonic": 116751.177840487,
+          "generation": 0,
+          "loadavg": "3.76 3.70 3.90 5/2093 3865011",
+          "available_bytes": 19844202496,
+          "message": "<run>/semantics-committed/sources/10-cross-crate-generic--caller-outside-frontier/target/refresh/session-QG7aQl/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852912.2846045,
+          "monotonic": 116751.299313537,
+          "generation": 0,
+          "loadavg": "3.76 3.70 3.90 2/2089 3865045",
+          "available_bytes": 19826737152,
+          "message": "application pid 3865005",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=app=2,9;caller=2,9",
+        "probe=app=2,9;caller=2,9"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3865005,
+        "11675116"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "11-inline-caller",
+      "configuration": "default",
+      "expected-paths": [
+        "live",
+        "restart"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live",
+            "restart"
+          ],
+          "output-verdict": "PASS",
+          "path-match": false,
+          "reason": "live patching disabled; using normal cargo builds + restart",
+          "delivery": "watcher-save",
+          "actual-path": "stock",
+          "before-identity": [
+            3865249,
+            "11675683"
+          ],
+          "after-identity": [
+            3865296,
+            "11675697"
+          ],
+          "expected-output": [
+            "probe=20,40",
+            "probe=20,40"
+          ],
+          "observed-output": [
+            "probe=20,40",
+            "probe=20,40"
+          ],
+          "events": [
+            {
+              "event": "save",
+              "time": 1792852917.969892,
+              "monotonic": 116756.984600902,
+              "generation": 1,
+              "loadavg": "3.54 3.66 3.88 1/2059 3865297",
+              "available_bytes": 21069803520,
+              "path": "stock",
+              "reason": "live patching disabled; using normal cargo builds + restart",
+              "latency_ms": 134.80750201642513,
+              "phases": {
+                "notice": 116756841.412069,
+                "sources": 116756842.507057,
+                "worker_start": 116756842.52129,
+                "build_start": 116756842.526279,
+                "build_end": 116756965.20282799,
+                "stock_start": 116756842.52635299,
+                "stock_end": 116756965.202355,
+                "spawn_end": 116756975.88907
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/11-inline-caller/src/main.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852917.9699292,
+              "monotonic": 116756.984638047,
+              "generation": 1,
+              "loadavg": "3.54 3.66 3.88 1/2059 3865297",
+              "available_bytes": 21069803520,
+              "message": "stock build passed borrow checking",
+              "revision": 1
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852917.6727612,
+          "monotonic": 116756.687470198,
+          "generation": 0,
+          "loadavg": "3.54 3.66 3.88 2/2056 3865195",
+          "available_bytes": 21025492992
+        },
+        {
+          "event": "fast_unavailable",
+          "time": 1792852917.6829169,
+          "monotonic": 116756.697625947,
+          "generation": 0,
+          "loadavg": "3.54 3.66 3.88 2/2059 3865201",
+          "available_bytes": 21024706560,
+          "message": "live patching disabled; using stock Cargo",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852917.8242626,
+          "monotonic": 116756.838971698,
+          "generation": 0,
+          "loadavg": "3.54 3.66 3.88 10/2059 3865250",
+          "available_bytes": 21038211072,
+          "message": "application pid 3865249",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=11,22",
+        "probe=11,22"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3865249,
+        "11675683"
+      ],
+      "coverage-complete": true,
+      "path-match": false
+    },
+    {
+      "case": "12-caught-panic",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3867286,
+            "11676562"
+          ],
+          "after-identity": [
+            3867286,
+            "11676562"
+          ],
+          "expected-output": [
+            "probe=caught=panic-v2",
+            "probe=caught=panic-v2"
+          ],
+          "observed-output": [
+            "probe=caught=panic-v2",
+            "probe=caught=panic-v2"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852926.7379375,
+              "monotonic": 116765.75264634,
+              "generation": 1,
+              "loadavg": "3.15 3.57 3.85 3/2089 3867367",
+              "available_bytes": 19887579136,
+              "agent_us": 240.83,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 94227561771008,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 49.533,
+              "patch_bytes_total": 12301,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 94228906045440,
+              "region_ok": true,
+              "region_start": 94227832303616,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 781,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 18.953
+            },
+            {
+              "event": "save",
+              "time": 1792852926.7379928,
+              "monotonic": 116765.752701652,
+              "generation": 1,
+              "loadavg": "3.15 3.57 3.85 3/2089 3867367",
+              "available_bytes": 19887579136,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 19.51112200319767,
+              "phases": {
+                "notice": 116765731.3189,
+                "sources": 116765732.436393,
+                "worker_start": 116765732.475965,
+                "mirror_end": 116765732.557694,
+                "gate": 116765732.93135,
+                "classify": 116765733.166568,
+                "build_start": 116765733.244517,
+                "build_end": 116765750.195363,
+                "manifest_end": 116765750.210072,
+                "candidate_end": 116765750.230563,
+                "extract_start": 116765750.230638,
+                "extract_end": 116765750.249469,
+                "patch_sent": 116765750.354969,
+                "patch_ack": 116765750.821832,
+                "commit_end": 116765750.827234,
+                "trigger_end": 116765750.82653299
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/12-caught-panic/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852923.3988795,
+          "monotonic": 116762.413588503,
+          "generation": 0,
+          "loadavg": "3.25 3.60 3.86 4/2055 3865389",
+          "available_bytes": 21156265984
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852926.618668,
+          "monotonic": 116765.633377154,
+          "generation": 0,
+          "loadavg": "3.15 3.57 3.85 3/2089 3867293",
+          "available_bytes": 19901308928,
+          "message": "<run>/semantics-committed/sources/12-caught-panic/target/refresh/session-MaRHf8/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852926.709658,
+          "monotonic": 116765.724366853,
+          "generation": 0,
+          "loadavg": "3.15 3.57 3.85 2/2085 3867318",
+          "available_bytes": 19886338048,
+          "message": "application pid 3867286",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=caught=panic-v1",
+        "probe=caught=panic-v1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3867286,
+        "11676562"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "13-tracing-lines",
+      "configuration": "default",
+      "expected-paths": [
+        "live",
+        "restart"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live",
+            "restart"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "agent refused patch: stack collision retry limit",
+          "delivery": "watcher-save",
+          "actual-path": "restart",
+          "before-identity": [
+            3869879,
+            "11677918"
+          ],
+          "after-identity": [
+            3870210,
+            "11678416"
+          ],
+          "expected-output": [
+            "probe=value=1;line=52;fmt-line=52",
+            "probe=value=1;line=52;fmt-line=52"
+          ],
+          "observed-output": [
+            "probe=value=1;line=52;fmt-line=52",
+            "probe=value=1;line=52;fmt-line=52"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792852945.1209967,
+              "monotonic": 116784.135705592,
+              "generation": 0,
+              "loadavg": "2.69 3.43 3.80 1/2089 3870209",
+              "available_bytes": 19166076928,
+              "agent_us": 124966.813,
+              "attempts": 100,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "STACK_COLLISION",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "stack collision retry limit",
+              "fp_frames": 1000,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 100683154534400,
+              "message": "stack collision retry limit",
+              "mode": 4,
+              "near_slots_used": 0,
+              "ok": false,
+              "pages": 0,
+              "park_us": 11612.204,
+              "patch_bytes_total": 0,
+              "patch_count": 0,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 100684503003136,
+              "region_ok": true,
+              "region_start": 100683429261312,
+              "region_used": 0,
+              "retained_bytes": 0,
+              "retries": 100,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 100,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 131900,
+              "threads": 0,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 3,
+              "unregistered_threads": 0,
+              "unwind_active": 0,
+              "unwind_copies": 0,
+              "unwind_deregistered_total": 2,
+              "unwind_registered_total": 2,
+              "unwind_retained_bytes": 0,
+              "unwind_us": 2304.647
+            },
+            {
+              "event": "save",
+              "time": 1792852945.181814,
+              "monotonic": 116784.19652302,
+              "generation": 1,
+              "loadavg": "2.69 3.43 3.80 14/2089 3870212",
+              "available_bytes": 19291987968,
+              "path": "restart",
+              "reason": "agent refused patch: stack collision retry limit",
+              "latency_ms": 1420.1177460104227,
+              "phases": {
+                "notice": 116782769.23351099,
+                "sources": 116782770.454676,
+                "worker_start": 116782770.48829,
+                "mirror_end": 116782770.555724,
+                "gate": 116782772.124027,
+                "classify": 116782773.187011,
+                "build_start": 116782773.266027,
+                "build_end": 116783831.243704,
+                "manifest_end": 116783831.26124799,
+                "candidate_end": 116783831.28414099,
+                "extract_start": 116783831.284215,
+                "extract_end": 116783831.376433,
+                "patch_sent": 116783831.45224099,
+                "patch_ack": 116784130.132389,
+                "spawn_end": 116784189.344249
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/13-tracing-lines/src/main.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852945.1819172,
+              "monotonic": 116784.196626105,
+              "generation": 1,
+              "loadavg": "2.69 3.43 3.80 9/2089 3870212",
+              "available_bytes": 19291987968,
+              "message": "borrow check passed",
+              "revision": 1
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852932.2417781,
+          "monotonic": 116771.256487089,
+          "generation": 0,
+          "loadavg": "2.90 3.51 3.83 2/2059 3867482",
+          "available_bytes": 21237452800
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852940.1981156,
+          "monotonic": 116779.212824624,
+          "generation": 0,
+          "loadavg": "2.84 3.47 3.81 4/2098 3869885",
+          "available_bytes": 19366395904,
+          "message": "<run>/semantics-committed/sources/13-tracing-lines/target/refresh/session-Qgb3CQ/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852943.7381485,
+          "monotonic": 116782.752857495,
+          "generation": 0,
+          "loadavg": "2.84 3.47 3.81 1/2089 3870141",
+          "available_bytes": 18989256704,
+          "message": "application pid 3869879",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=value=1;line=49;fmt-line=49",
+        "probe=value=1;line=49;fmt-line=49"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3869879,
+        "11677918"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "14-include-str",
+      "configuration": "default",
+      "expected-paths": [
+        "stock",
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "stock",
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "Cargo configuration changed; recapturing the project",
+          "delivery": "watcher-save",
+          "actual-path": "stock",
+          "before-identity": [
+            3871625,
+            "11679311"
+          ],
+          "after-identity": [
+            3871915,
+            "11679375"
+          ],
+          "expected-output": [
+            "probe=message-v2",
+            "probe=message-v2"
+          ],
+          "observed-output": [
+            "probe=message-v2",
+            "probe=message-v2"
+          ],
+          "events": [
+            {
+              "event": "worker_reset_start",
+              "time": 1792852954.6160765,
+              "monotonic": 116793.630785406,
+              "generation": 0,
+              "loadavg": "2.36 3.34 3.76 4/2041 3871744",
+              "available_bytes": 21087191040,
+              "message": "warming a fresh compiler in the background",
+              "revision": 1
+            },
+            {
+              "event": "save",
+              "time": 1792852954.7482584,
+              "monotonic": 116793.762967329,
+              "generation": 1,
+              "loadavg": "2.36 3.34 3.76 12/2055 3871929",
+              "available_bytes": 21050798080,
+              "path": "stock",
+              "reason": "Cargo configuration changed; recapturing the project",
+              "latency_ms": 524.7001329809427,
+              "phases": {
+                "notice": 116793235.13454202,
+                "sources": 116793236.216566,
+                "worker_start": 116793236.253823,
+                "build_start": 116793630.601952,
+                "build_end": 116793742.062234,
+                "stock_start": 116793630.603388,
+                "stock_end": 116793742.06191899,
+                "spawn_end": 116793759.22133699
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/14-include-str/message.txt"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852954.7483659,
+              "monotonic": 116793.763074692,
+              "generation": 1,
+              "loadavg": "2.36 3.34 3.76 11/2055 3871929",
+              "available_bytes": 21050798080,
+              "message": "stock build passed borrow checking",
+              "revision": 1
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852950.7364485,
+          "monotonic": 116789.751157423,
+          "generation": 0,
+          "loadavg": "2.48 3.38 3.78 1/2059 3870317",
+          "available_bytes": 21087285248
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852954.1069121,
+          "monotonic": 116793.121621197,
+          "generation": 0,
+          "loadavg": "2.48 3.38 3.78 5/2068 3871630",
+          "available_bytes": 19847720960,
+          "message": "<run>/semantics-committed/sources/14-include-str/target/refresh/session-TLIUIA/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852954.1980288,
+          "monotonic": 116793.212738075,
+          "generation": 0,
+          "loadavg": "2.48 3.38 3.78 5/2065 3871657",
+          "available_bytes": 19830370304,
+          "message": "application pid 3871625",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=message-v1",
+        "probe=message-v1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3871625,
+        "11679311"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "15-compile-env",
+      "configuration": "default",
+      "expected-paths": [
+        "stock"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "stock"
+          ],
+          "output-verdict": "PASS",
+          "path-match": false,
+          "delivery": "explicit-controller-relaunch",
+          "limitation": "No in-session environment update API; no stock save event claimed",
+          "reason": "environment changed through explicit controller relaunch; save path unqualified",
+          "actual-path": "session-relaunch",
+          "before-identity": [
+            3873795,
+            "11680241"
+          ],
+          "after-identity": [
+            3875192,
+            "11680603"
+          ],
+          "expected-output": [
+            "probe=22:present",
+            "probe=22:present"
+          ],
+          "observed-output": [
+            "probe=22:present",
+            "probe=22:present"
+          ],
+          "events": [
+            {
+              "event": "start",
+              "time": 1792852963.9318779,
+              "monotonic": 116802.946586791,
+              "generation": 0,
+              "loadavg": "2.17 3.28 3.74 2/2043 3873923",
+              "available_bytes": 21203324928
+            },
+            {
+              "event": "compiler_ready",
+              "time": 1792852967.0318778,
+              "monotonic": 116806.046587063,
+              "generation": 0,
+              "loadavg": "2.24 3.28 3.74 15/2077 3875198",
+              "available_bytes": 20040376320,
+              "message": "<run>/semantics-committed/sources/15-compile-env/target/refresh/session-J7ydwc/d-0",
+              "revision": 0
+            },
+            {
+              "event": "ready",
+              "time": 1792852967.0926864,
+              "monotonic": 116806.107395279,
+              "generation": 0,
+              "loadavg": "2.24 3.28 3.74 4/2075 3875220",
+              "available_bytes": 20030902272,
+              "message": "application pid 3875192",
+              "revision": 0
+            }
+          ]
+        }
+      ],
+      "result": "PARTIAL",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852960.2116334,
+          "monotonic": 116799.226342365,
+          "generation": 0,
+          "loadavg": "2.17 3.28 3.74 1/2034 3872496",
+          "available_bytes": 21165678592
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852963.410797,
+          "monotonic": 116802.425505943,
+          "generation": 0,
+          "loadavg": "2.17 3.28 3.74 3/2077 3873802",
+          "available_bytes": 19930173440,
+          "message": "<run>/semantics-committed/sources/15-compile-env/target/refresh/session-aOpJ0V/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852963.5026186,
+          "monotonic": 116802.517327493,
+          "generation": 0,
+          "loadavg": "2.17 3.28 3.74 2/2073 3873827",
+          "available_bytes": 19921973248,
+          "message": "application pid 3873795",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=11:missing",
+        "probe=11:missing"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3873795,
+        "11680241"
+      ],
+      "coverage-complete": false,
+      "path-match": false
+    },
+    {
+      "case": "16-build-output",
+      "configuration": "default",
+      "expected-paths": [
+        "stock"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "stock"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "compiler unavailable or recovering; using normal cargo builds + restart",
+          "delivery": "watcher-save",
+          "actual-path": "stock",
+          "before-identity": [
+            3877305,
+            "11681468"
+          ],
+          "after-identity": [
+            3877822,
+            "11681622"
+          ],
+          "expected-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "observed-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "recapture-event": {
+            "event": "worker_reset",
+            "time": 1792852980.161269,
+            "monotonic": 116819.175977883,
+            "generation": 2,
+            "loadavg": "4.04 3.60 3.83 3/2068 3879114",
+            "available_bytes": 20010856448,
+            "message": "fast path ready; synchronizing latest sources",
+            "revision": 3
+          },
+          "recapture-verdict": "PASS",
+          "events": [
+            {
+              "event": "worker_reset_start",
+              "time": 1792852976.1987033,
+              "monotonic": 116815.213412133,
+              "generation": 0,
+              "loadavg": "2.21 3.23 3.72 3/2047 3877456",
+              "available_bytes": 21203558400,
+              "message": "warming a fresh compiler in the background",
+              "revision": 1
+            },
+            {
+              "event": "superseded",
+              "time": 1792852976.3712046,
+              "monotonic": 116815.385913467,
+              "generation": 1,
+              "loadavg": "2.21 3.23 3.72 1/2046 3877607",
+              "available_bytes": 21179043840,
+              "message": "runtime commit overlapped a new save; reconciling its current bytes",
+              "revision": 1
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852976.3712418,
+              "monotonic": 116815.385950816,
+              "generation": 1,
+              "loadavg": "2.21 3.23 3.72 1/2046 3877607",
+              "available_bytes": 21179043840,
+              "message": "stock build passed borrow checking",
+              "revision": 1
+            },
+            {
+              "event": "worker_reset_start",
+              "time": 1792852976.7753294,
+              "monotonic": 116815.790038353,
+              "generation": 1,
+              "loadavg": "2.21 3.23 3.72 1/2045 3877703",
+              "available_bytes": 21178716160,
+              "message": "warming a fresh compiler in the background",
+              "revision": 2
+            },
+            {
+              "event": "superseded",
+              "time": 1792852976.7854278,
+              "monotonic": 116815.800136658,
+              "generation": 1,
+              "loadavg": "2.21 3.23 3.72 1/2044 3877703",
+              "available_bytes": 21178466304,
+              "message": "operation cancelled for a newer save",
+              "revision": 2
+            },
+            {
+              "event": "operation_failed",
+              "time": 1792852976.785466,
+              "monotonic": 116815.80017482,
+              "generation": 1,
+              "loadavg": "2.21 3.23 3.72 1/2044 3877703",
+              "available_bytes": 21178466304,
+              "message": "superseded",
+              "revision": 3
+            },
+            {
+              "event": "worker_reset_start",
+              "time": 1792852977.1691287,
+              "monotonic": 116816.183837589,
+              "generation": 1,
+              "loadavg": "2.21 3.23 3.72 2/2046 3877792",
+              "available_bytes": 21213827072,
+              "message": "warming a fresh compiler in the background",
+              "revision": 3
+            },
+            {
+              "event": "save",
+              "time": 1792852977.2199264,
+              "monotonic": 116816.234635422,
+              "generation": 2,
+              "loadavg": "2.21 3.23 3.72 2/2056 3877834",
+              "available_bytes": 21213872128,
+              "path": "stock",
+              "reason": "compiler unavailable or recovering; using normal cargo builds + restart",
+              "latency_ms": 841.9334039986134,
+              "phases": {
+                "notice": 116815385.912129,
+                "sources": 116815385.912129,
+                "worker_start": 116815792.048259,
+                "build_start": 116816179.27186099,
+                "build_end": 116816209.97270499,
+                "stock_start": 116816179.273275,
+                "stock_end": 116816209.972104,
+                "spawn_end": 116816226.954118
+              },
+              "revision": 3,
+              "files": [
+                "<run>/semantics-committed/sources/16-build-output/target/debug/build/m4-semantics-16-82c3c883659edff0/out/generated.rs"
+              ]
+            },
+            {
+              "event": "check_ok",
+              "time": 1792852977.219961,
+              "monotonic": 116816.234669867,
+              "generation": 2,
+              "loadavg": "2.21 3.23 3.72 1/2056 3877834",
+              "available_bytes": 21213872128,
+              "message": "stock build passed borrow checking",
+              "revision": 3
+            },
+            {
+              "event": "worker_reset",
+              "time": 1792852980.161269,
+              "monotonic": 116819.175977883,
+              "generation": 2,
+              "loadavg": "4.04 3.60 3.83 3/2068 3879114",
+              "available_bytes": 20010856448,
+              "message": "fast path ready; synchronizing latest sources",
+              "revision": 3
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852972.5555787,
+          "monotonic": 116811.570287608,
+          "generation": 0,
+          "loadavg": "2.06 3.22 3.72 2/2031 3875930",
+          "available_bytes": 21268385792
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792852975.6874404,
+          "monotonic": 116814.702149518,
+          "generation": 0,
+          "loadavg": "2.21 3.23 3.72 3/2072 3877314",
+          "available_bytes": 19985416192,
+          "message": "<run>/semantics-committed/sources/16-build-output/target/refresh/session-yEvaQS/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792852975.81915,
+          "monotonic": 116814.833858836,
+          "generation": 0,
+          "loadavg": "2.21 3.23 3.72 1/2068 3877365",
+          "available_bytes": 19985727488,
+          "message": "application pid 3877305",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=1",
+        "probe=1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3877305,
+        "11681468"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "17-sqlx-query",
+      "configuration": "default",
+      "expected-paths": [
+        "restart",
+        "stock"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "restart",
+            "stock"
+          ],
+          "output-verdict": "PASS",
+          "path-match": false,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3885262,
+            "11684644"
+          ],
+          "after-identity": [
+            3885262,
+            "11684644"
+          ],
+          "expected-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "observed-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792853026.4875362,
+              "monotonic": 116865.502245151,
+              "generation": 1,
+              "loadavg": "5.00 3.92 3.93 3/2059 3888380",
+              "available_bytes": 18064592896,
+              "agent_us": 320.014,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 12,
+              "fp_hits": 0,
+              "fp_incomplete": 1,
+              "load_base": 104220055990272,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 59.103,
+              "patch_bytes_total": 12301,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 104221404459008,
+              "region_ok": true,
+              "region_start": 104220330717184,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 2372,
+              "threads": 2,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 32.53
+            },
+            {
+              "event": "save",
+              "time": 1792853026.4876008,
+              "monotonic": 116865.502309675,
+              "generation": 1,
+              "loadavg": "5.00 3.92 3.93 3/2059 3888380",
+              "available_bytes": 18064592896,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 33.56460699439049,
+              "phases": {
+                "notice": 116865460.819827,
+                "sources": 116865461.937582,
+                "worker_start": 116865461.979597,
+                "mirror_end": 116865462.04037,
+                "gate": 116865462.443056,
+                "classify": 116865462.700678,
+                "build_start": 116865462.75902501,
+                "build_end": 116865493.771729,
+                "manifest_end": 116865493.781795,
+                "candidate_end": 116865493.804053,
+                "extract_start": 116865493.804151,
+                "extract_end": 116865493.846138,
+                "patch_sent": 116865493.90733701,
+                "patch_ack": 116865494.374454,
+                "commit_end": 116865494.379813,
+                "trigger_end": 116865494.37908301
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/17-sqlx-query/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792852985.7497838,
+          "monotonic": 116824.764492823,
+          "generation": 0,
+          "loadavg": "3.79 3.55 3.82 5/2085 3879615",
+          "available_bytes": 20887650304
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792853007.4764957,
+          "monotonic": 116846.491204745,
+          "generation": 0,
+          "loadavg": "5.02 3.84 3.91 3/2088 3885272",
+          "available_bytes": 18630365184,
+          "message": "<run>/semantics-committed/sources/17-sqlx-query/target/refresh/session-nDHDE3/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792853026.438825,
+          "monotonic": 116865.453533951,
+          "generation": 0,
+          "loadavg": "5.00 3.92 3.93 2/2055 3888328",
+          "available_bytes": 18011832320,
+          "message": "application pid 3885262",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=1",
+        "probe=1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3885262,
+        "11684644"
+      ],
+      "coverage-complete": true,
+      "path-match": false
+    },
+    {
+      "case": "18-async-body",
+      "configuration": "default",
+      "expected-paths": [
+        "restart"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "restart"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "compiler frame or protected resume region changed: rustd::{async}::75; retaining the current compiler epoch",
+          "delivery": "watcher-save",
+          "actual-path": "restart",
+          "before-identity": [
+            3890519,
+            "11687588"
+          ],
+          "after-identity": [
+            3890653,
+            "11687742"
+          ],
+          "expected-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "observed-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "events": [
+            {
+              "event": "save",
+              "time": 1792853038.4210775,
+              "monotonic": 116877.435786602,
+              "generation": 1,
+              "loadavg": "4.39 3.82 3.90 3/2037 3890655",
+              "available_bytes": 19991179264,
+              "path": "restart",
+              "reason": "compiler frame or protected resume region changed: rustd::{async}::75; retaining the current compiler epoch",
+              "latency_ms": 45.26207700371742,
+              "phases": {
+                "notice": 116877384.23387,
+                "sources": 116877385.315104,
+                "worker_start": 116877385.351501,
+                "mirror_end": 116877385.417136,
+                "gate": 116877385.731822,
+                "classify": 116877385.937699,
+                "build_start": 116877386.01258999,
+                "build_end": 116877401.739624,
+                "manifest_end": 116877401.747747,
+                "candidate_end": 116877401.768951,
+                "extract_start": 116877401.769039,
+                "extract_end": 116877401.782046,
+                "spawn_end": 116877429.487271
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/18-async-body/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792853032.003744,
+          "monotonic": 116871.018452951,
+          "generation": 0,
+          "loadavg": "4.60 3.85 3.91 2/2002 3888596",
+          "available_bytes": 21188763648
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792853036.8792145,
+          "monotonic": 116875.893923462,
+          "generation": 0,
+          "loadavg": "4.39 3.82 3.90 4/2031 3890528",
+          "available_bytes": 19995897856,
+          "message": "<run>/semantics-committed/sources/18-async-body/target/refresh/session-KcjPmW/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792853038.3573136,
+          "monotonic": 116877.372022581,
+          "generation": 0,
+          "loadavg": "4.39 3.82 3.90 1/2028 3890596",
+          "available_bytes": 19963101184,
+          "message": "application pid 3890519",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=1",
+        "probe=1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3890519,
+        "11687588"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "19-retained-drop",
+      "configuration": "default",
+      "expected-paths": [
+        "live"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "",
+          "delivery": "watcher-save",
+          "actual-path": "live",
+          "before-identity": [
+            3892031,
+            "11688579"
+          ],
+          "after-identity": [
+            3892031,
+            "11688579"
+          ],
+          "expected-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "observed-output": [
+            "probe=2",
+            "probe=2"
+          ],
+          "events": [
+            {
+              "event": "agent_reply",
+              "time": 1792853046.9168499,
+              "monotonic": 116885.931558868,
+              "generation": 1,
+              "loadavg": "3.79 3.71 3.86 2/2033 3892110",
+              "available_bytes": 20349546496,
+              "agent_us": 307.989,
+              "attempts": 1,
+              "callback": false,
+              "callback_invoked": false,
+              "callback_present": false,
+              "cfi_fail": 0,
+              "cfi_frames": 0,
+              "code": "OK",
+              "conflict_address": 0,
+              "conflict_end": 0,
+              "conflict_start": 0,
+              "error": "",
+              "fp_frames": 10,
+              "fp_hits": 0,
+              "fp_incomplete": 0,
+              "load_base": 94566515351552,
+              "message": "",
+              "mode": 4,
+              "near_slots_used": 1,
+              "ok": true,
+              "pages": 3,
+              "park_us": 82.426,
+              "patch_bytes_total": 12301,
+              "patch_count": 1,
+              "pc_hits": 0,
+              "pressure": false,
+              "reclaimed123": 0,
+              "region_end": 94567859625984,
+              "region_ok": true,
+              "region_start": 94566785884160,
+              "region_used": 12288,
+              "retained_bytes": 16384,
+              "retries": 0,
+              "revision": 1,
+              "safe_point": false,
+              "scan_bytes123": 0,
+              "scan_candidates123": 0,
+              "scan_errors123": 0,
+              "scan_first_root123": 0,
+              "scan_hits": 0,
+              "scan_hits123": 0,
+              "scan_retained123": 0,
+              "scan_us123": 0.0,
+              "scan_words": 757,
+              "threads": 1,
+              "tick_enters": 0,
+              "tick_leaves": 0,
+              "txid": 2,
+              "unregistered_threads": 0,
+              "unwind_active": 1,
+              "unwind_copies": 1,
+              "unwind_deregistered_total": 0,
+              "unwind_registered_total": 1,
+              "unwind_retained_bytes": 4096,
+              "unwind_us": 18.568
+            },
+            {
+              "event": "save",
+              "time": 1792853046.9169078,
+              "monotonic": 116885.931616765,
+              "generation": 1,
+              "loadavg": "3.79 3.71 3.86 2/2033 3892110",
+              "available_bytes": 20349546496,
+              "path": "live",
+              "reason": "",
+              "latency_ms": 13.191957980394363,
+              "phases": {
+                "notice": 116885910.263665,
+                "sources": 116885911.346432,
+                "worker_start": 116885911.385076,
+                "mirror_end": 116885911.454788,
+                "gate": 116885911.91113399,
+                "classify": 116885912.198595,
+                "build_start": 116885912.270705,
+                "build_end": 116885922.827168,
+                "manifest_end": 116885922.842902,
+                "candidate_end": 116885922.870258,
+                "extract_start": 116885922.87040901,
+                "extract_end": 116885922.894786,
+                "patch_sent": 116885922.938389,
+                "patch_ack": 116885923.443322,
+                "commit_end": 116885923.45104,
+                "trigger_end": 116885923.45008901
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/19-retained-drop/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792853043.8989162,
+          "monotonic": 116882.913625238,
+          "generation": 0,
+          "loadavg": "4.04 3.76 3.88 2/1998 3890763",
+          "available_bytes": 21518680064
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792853046.7890418,
+          "monotonic": 116885.803750588,
+          "generation": 0,
+          "loadavg": "3.79 3.71 3.86 3/2033 3892038",
+          "available_bytes": 20323348480,
+          "message": "<run>/semantics-committed/sources/19-retained-drop/target/refresh/session-5TannQ/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792853046.870053,
+          "monotonic": 116885.88476191,
+          "generation": 0,
+          "loadavg": "3.79 3.71 3.86 1/2029 3892063",
+          "available_bytes": 20353732608,
+          "message": "application pid 3892031",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=1",
+        "probe=1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3892031,
+        "11688579"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    },
+    {
+      "case": "20-extern-c",
+      "configuration": "default",
+      "expected-paths": [
+        "live",
+        "restart"
+      ],
+      "normalized-profiles": [],
+      "steps": [
+        {
+          "name": "edit-1",
+          "expected-paths": [
+            "live",
+            "restart"
+          ],
+          "output-verdict": "PASS",
+          "path-match": true,
+          "reason": "macro code in ::exported changed",
+          "delivery": "watcher-save",
+          "actual-path": "restart",
+          "before-identity": [
+            3894117,
+            "11689448"
+          ],
+          "after-identity": [
+            3894232,
+            "11689470"
+          ],
+          "expected-output": [
+            "probe=c=2;rust=2",
+            "probe=c=2;rust=2"
+          ],
+          "observed-output": [
+            "probe=c=2;rust=2",
+            "probe=c=2;rust=2"
+          ],
+          "events": [
+            {
+              "event": "save",
+              "time": 1792853055.702868,
+              "monotonic": 116894.717577048,
+              "generation": 1,
+              "loadavg": "3.53 3.66 3.84 2/2044 3894240",
+              "available_bytes": 20393394176,
+              "path": "restart",
+              "reason": "macro code in ::exported changed",
+              "latency_ms": 33.24769897758961,
+              "phases": {
+                "notice": 116894676.11111802,
+                "sources": 116894677.21608199,
+                "worker_start": 116894677.229233,
+                "mirror_end": 116894677.293653,
+                "gate": 116894677.627635,
+                "classify": 116894677.843182,
+                "build_start": 116894677.97180401,
+                "build_end": 116894688.546042,
+                "manifest_end": 116894688.555298,
+                "candidate_end": 116894688.572717,
+                "extract_start": 116894688.572808,
+                "extract_end": 116894688.59012501,
+                "spawn_end": 116894709.180464
+              },
+              "revision": 1,
+              "files": [
+                "<run>/semantics-committed/sources/20-extern-c/src/main.rs"
+              ]
+            }
+          ]
+        }
+      ],
+      "result": "PASS",
+      "startup-events": [
+        {
+          "event": "start",
+          "time": 1792853052.387785,
+          "monotonic": 116891.402493947,
+          "generation": 0,
+          "loadavg": "3.49 3.65 3.84 1/2003 3892772",
+          "available_bytes": 21677518848
+        },
+        {
+          "event": "compiler_ready",
+          "time": 1792853055.4805253,
+          "monotonic": 116894.495234097,
+          "generation": 0,
+          "loadavg": "3.53 3.66 3.84 3/2037 3894122",
+          "available_bytes": 20435582976,
+          "message": "<run>/semantics-committed/sources/20-extern-c/target/refresh/session-xadqXL/d-0",
+          "revision": 0
+        },
+        {
+          "event": "ready",
+          "time": 1792853055.6424155,
+          "monotonic": 116894.65712445,
+          "generation": 0,
+          "loadavg": "3.53 3.66 3.84 1/2034 3894181",
+          "available_bytes": 20416307200,
+          "message": "application pid 3894117",
+          "revision": 0
+        }
+      ],
+      "base": [
+        "probe=c=1;rust=1",
+        "probe=c=1;rust=1"
+      ],
+      "base-verdict": "PASS",
+      "base-identity": [
+        3894117,
+        "11689448"
+      ],
+      "coverage-complete": true,
+      "path-match": true
+    }
+  ]
+}

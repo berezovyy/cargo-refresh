@@ -1,0 +1,133 @@
+{
+  "date": "2026-10-25",
+  "isolation": "Same user ID with env -i, empty HOME and PATH=/usr/bin:/bin; independent rustup install, no developer Cargo/rustup caches copied.",
+  "runtime_components": [
+    "cargo",
+    "rustc",
+    "rust-std",
+    "rust-src"
+  ],
+  "final_demo": {
+    "command": "./try.sh --smoke",
+    "exit_code": 0,
+    "steps": [
+      {
+        "path": "live",
+        "before": {
+          "pid": 98352,
+          "tick": 8,
+          "total": 36,
+          "message": "hello from version 1"
+        },
+        "after": {
+          "pid": 98352,
+          "tick": 10,
+          "total": 55,
+          "message": "hello from version 2"
+        },
+        "stock_match": true
+      },
+      {
+        "path": "live",
+        "before": {
+          "pid": 98352,
+          "tick": 15,
+          "total": 120,
+          "message": "hello from version 2"
+        },
+        "after": {
+          "pid": 98352,
+          "tick": 16,
+          "total": 152,
+          "message": "hello from version 2"
+        },
+        "stock_match": true
+      },
+      {
+        "path": "restart",
+        "before": {
+          "pid": 98352,
+          "tick": 21,
+          "total": 342,
+          "message": "hello from version 2"
+        },
+        "after": {
+          "pid": 98673,
+          "tick": 2,
+          "total": 6,
+          "message": "hello from version 2"
+        },
+        "stock_match": true
+      },
+      {
+        "path": "error",
+        "old_program_kept_running": true,
+        "stock_diagnostic": "E0308"
+      },
+      {
+        "path": "live",
+        "before": {
+          "pid": 98673,
+          "tick": 20,
+          "total": 420,
+          "message": "hello from version 2"
+        },
+        "after": {
+          "pid": 98673,
+          "tick": 23,
+          "total": 552,
+          "message": "hello from version 3"
+        },
+        "stock_match": true
+      }
+    ],
+    "stock_checks": "Baseline and every valid edited source compared with independent cargo run; invalid source compared with cargo check E0308."
+  },
+  "product_checks": {
+    "command": "scripts/test.sh",
+    "exit_code": 0,
+    "format": "PASS",
+    "clippy_warnings_denied": "PASS",
+    "passed": 183,
+    "ignored": 2,
+    "raw_summaries": [
+      "121 passed; 0 failed; 1 ignored",
+      "0 passed; 0 failed; 0 ignored",
+      "4 passed; 0 failed; 0 ignored",
+      "0 passed; 0 failed; 1 ignored",
+      "8 passed; 0 failed; 0 ignored",
+      "6 passed; 0 failed; 0 ignored",
+      "7 passed; 0 failed; 0 ignored",
+      "14 passed; 0 failed; 0 ignored",
+      "5 passed; 0 failed; 0 ignored",
+      "6 passed; 0 failed; 0 ignored",
+      "12 passed; 0 failed; 0 ignored",
+      "0 passed; 0 failed; 0 ignored",
+      "0 passed; 0 failed; 0 ignored",
+      "0 passed; 0 failed; 0 ignored"
+    ]
+  },
+  "source_build": {
+    "command": "scripts/build-bundle.sh --native",
+    "exit_code": 0,
+    "source_directory": "./rustd",
+    "extra_components": [
+      "rustc-dev",
+      "llvm-tools-preview"
+    ],
+    "initial_attempt": "Failed to link LLVM with rustc-dev alone. Added a release preflight and documented llvm-tools-preview, installed it in the private build HOME, and reran successfully. Runtime demo used a separate fresh HOME without those development components.",
+    "checks": [
+      "native compiler and shims built with four jobs",
+      "agent rebuilt",
+      "ABI/reference comparison and stock TypeId/personality checks passed",
+      "all payload SHA256SUMS passed"
+    ]
+  },
+  "bundle": {
+    "bytes": 20567342,
+    "sha256": "3eaa3c05ddba608f536b33f13ef4f340fb04f60982f863cd5091bc2e6ba7f497",
+    "kind": "native Linux x86_64, requires GLIBC_2.43"
+  },
+  "benchmark": "UNMEASURED: bench/run.sh --validate-only passed; no timing run performed",
+  "scope": "Source build and product checks ran in the first independent clone; the committed clean-build archive then passed the demo in a second fresh clone/HOME. Subsequent changes only document/export verification and do not change executable sources."
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M4-T6 regressions. Hold the rustd lane; pass disposable disk directories.
+"""M4-T6 regressions. Pass disposable disk directories; an external resource wrapper is optional.
 The 100-save test is a correctness stress, with no latency/performance claim.
 """
 import argparse, importlib.util, json, os, re, shutil, signal, threading, time

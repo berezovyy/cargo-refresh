@@ -1,0 +1,11 @@
+{
+  "saves": 64,
+  "valid": 62,
+  "oracle_matches": 64,
+  "paths": {
+    "skip": 1,
+    "live": 46,
+    "waiting": 1,
+    "restart": 16
+  }
+}

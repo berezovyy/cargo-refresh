@@ -1,0 +1,710 @@
+{
+  "hunk": {
+    "apps": {
+      "mdbook": {
+        "saves": 136,
+        "counts": {
+          "skip": 51,
+          "stock": 14,
+          "restart": 19,
+          "waiting": 6,
+          "error": 42,
+          "live": 4
+        },
+        "shares_percent": {
+          "skip": 37.5,
+          "stock": 10.2941,
+          "restart": 13.9706,
+          "waiting": 4.4118,
+          "error": 30.8824,
+          "live": 2.9412
+        },
+        "completed": 48,
+        "context_only_commits": 29,
+        "context_save_counts": {
+          "stock": 19,
+          "error": 3
+        },
+        "matched": 48,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "2ea30c00f00647d2b3f4c0f79b3e0e1eabc0b66d",
+        "frontier": [
+          "mdbook-driver",
+          "mdbook-html",
+          "mdbook-markdown",
+          "mdbook-preprocessor",
+          "mdbook-renderer",
+          "mdbook-summary",
+          "mdbook-core"
+        ]
+      },
+      "atuin": {
+        "saves": 14,
+        "counts": {
+          "skip": 8,
+          "restart": 3,
+          "error": 3
+        },
+        "shares_percent": {
+          "skip": 57.1429,
+          "restart": 21.4286,
+          "error": 21.4286
+        },
+        "completed": 1,
+        "context_only_commits": 1,
+        "context_save_counts": {},
+        "matched": 1,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": {
+          "stock_build_returncode": 101
+        },
+        "pin": "5614596c8165e6f5e22b5524c7bb127bf55bc48a",
+        "frontier": [
+          "atuin-daemon",
+          "atuin-dotfiles",
+          "atuin-history",
+          "atuin-kv",
+          "atuin-scripts",
+          "atuin-client",
+          "atuin-common"
+        ]
+      },
+      "meilisearch": {
+        "saves": 205,
+        "counts": {
+          "skip": 205
+        },
+        "shares_percent": {
+          "skip": 100.0
+        },
+        "completed": 0,
+        "context_only_commits": 0,
+        "context_save_counts": {},
+        "matched": 0,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": {
+          "stock_build_returncode": 0,
+          "refresh_observation": {
+            "kind": "http",
+            "status": 200,
+            "body": "{\"status\":\"available\"}",
+            "headers": {
+              "content-length": "22",
+              "connection": "close",
+              "content-type": "application/json",
+              "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+              "date": "Sat, 24 Oct 2026 15:33:35 GMT"
+            }
+          },
+          "stock_observation": {
+            "kind": "http",
+            "status": 200,
+            "body": "{\"status\":\"available\"}",
+            "headers": {
+              "content-length": "22",
+              "connection": "close",
+              "content-type": "application/json",
+              "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+              "date": "Sat, 24 Oct 2026 15:33:35 GMT"
+            }
+          },
+          "match": true
+        },
+        "pin": "a2c96d40d313cb7a143a93ad5f2fb52b5eaafe47",
+        "frontier": [
+          "build-info",
+          "permissive-json-pointer",
+          "tracing-trace"
+        ]
+      },
+      "zola": {
+        "saves": 145,
+        "counts": {
+          "error": 74,
+          "stock": 43,
+          "restart": 9,
+          "live": 8,
+          "skip": 11
+        },
+        "shares_percent": {
+          "error": 51.0345,
+          "stock": 29.6552,
+          "restart": 6.2069,
+          "live": 5.5172,
+          "skip": 7.5862
+        },
+        "completed": 50,
+        "context_only_commits": 32,
+        "context_save_counts": {
+          "stock": 8,
+          "error": 1
+        },
+        "matched": 50,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "1fb69c2f9500a095c0525ffe5542711b319d2c22",
+        "frontier": [
+          "site",
+          "link_checker",
+          "search"
+        ]
+      },
+      "conduit": {
+        "saves": 4,
+        "counts": {
+          "restart": 3,
+          "stock": 1
+        },
+        "shares_percent": {
+          "restart": 75.0,
+          "stock": 25.0
+        },
+        "completed": 1,
+        "context_only_commits": 0,
+        "context_save_counts": {
+          "stock": 1
+        },
+        "matched": 1,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "d544f5b836186c080ac11be72e5495c722f2c6f0",
+        "frontier": []
+      }
+    },
+    "total_saves": 500,
+    "counts": {
+      "skip": 275,
+      "stock": 57,
+      "restart": 31,
+      "waiting": 6,
+      "error": 119,
+      "live": 12
+    },
+    "shares_percent": {
+      "skip": 55.0,
+      "stock": 11.4,
+      "restart": 6.2,
+      "waiting": 1.2,
+      "error": 23.8,
+      "live": 2.4
+    },
+    "completed_commits": 99,
+    "matched_commits": 99,
+    "top_remaining_reasons": [
+      [
+        "only integration tests, benches or examples outside the running binary changed",
+        237
+      ],
+      [
+        "file is outside the editable compiler frontier",
+        39
+      ],
+      [
+        "no effect on this build",
+        38
+      ],
+      [
+        "E0061 this method takes 6 arguments but 5 arguments were supplied",
+        27
+      ],
+      [
+        "E0308 mismatched types",
+        9
+      ],
+      [
+        "compiler unavailable or recovering; using normal cargo builds + restart",
+        7
+      ],
+      [
+        "borrowck: E0425 cannot find function `normalize_path` in this scope",
+        7
+      ],
+      [
+        "compiler recovered; establishing the live baseline; retaining the current compiler epoch",
+        6
+      ],
+      [
+        "native relink required: tracing scalar/discriminant changed",
+        4
+      ],
+      [
+        "E0425 cannot find value `DEFAULT_Q_JPG` in this scope",
+        4
+      ],
+      [
+        "E0532 cannot find tuple struct or tuple variant `Jpeg` in this scope",
+        4
+      ],
+      [
+        "E0425 cannot find value `buffered_f` in this scope",
+        4
+      ],
+      [
+        "waiting for valid code: <run>/history/repos/mdbook/crates/mdbook-driver/src/builtin_preprocessors/links.rs (after): cannot parse string into token stream",
+        3
+      ],
+      [
+        "borrowck: E0599 no method named `to_lowercase` found for reference `&BuiltinTheme` in the current scope",
+        3
+      ],
+      [
+        "types or layout changed in <run>/history/repos/mdbook/crates/mdbook-html/src/html_handlebars/static_files.rs",
+        3
+      ],
+      [
+        "borrowck: E0425 cannot find value `address` in this scope",
+        3
+      ],
+      [
+        "borrowck: E0599 no method named `get_logo_absolute_path` found for struct `BookConfig` in the current scope",
+        3
+      ],
+      [
+        "E0425 cannot find value `q` in this scope",
+        3
+      ],
+      [
+        "macro code in ::build_index changed",
+        3
+      ],
+      [
+        "E0277 `Vec<Event<'_>>` is not an iterator",
+        3
+      ],
+      [
+        "E0433 cannot find type `File` in this scope",
+        3
+      ],
+      [
+        "types or layout changed in <run>/history/repos/mdbook/crates/mdbook-core/src/config.rs; retaining the current compiler epoch",
+        2
+      ],
+      [
+        "E0425 cannot find type `BuiltinTheme` in this scope",
+        2
+      ],
+      [
+        "E0599 no method named `to_lowercase` found for reference `&BuiltinTheme` in the current scope",
+        2
+      ],
+      [
+        "compiler failed: no fresh compiler manifest; restart required",
+        2
+      ]
+    ],
+    "reason_groups": [
+      [
+        "skip: only integration tests, benches or examples outside the running binary changed",
+        237
+      ],
+      [
+        "stock: file is outside the editable compiler frontier",
+        39
+      ],
+      [
+        "skip: no effect on this build",
+        38
+      ],
+      [
+        "error: E0425",
+        35
+      ],
+      [
+        "error: E0061",
+        31
+      ],
+      [
+        "error: E0599",
+        13
+      ],
+      [
+        "restart: macro definition changed",
+        12
+      ],
+      [
+        "error: E0308",
+        12
+      ],
+      [
+        "restart: types or layout changed",
+        11
+      ],
+      [
+        "stock: compiler unavailable or recovering; using normal cargo builds + restart",
+        7
+      ],
+      [
+        "error: E0433",
+        7
+      ],
+      [
+        "restart: compiler recovered; establishing the live baseline; retaining the current compiler epoch",
+        6
+      ],
+      [
+        "waiting: syntax/incomplete code",
+        6
+      ],
+      [
+        "stock: native relink required: tracing scalar/discriminant changed",
+        4
+      ],
+      [
+        "error: E0063",
+        4
+      ],
+      [
+        "error: E0532",
+        4
+      ],
+      [
+        "error: E0164",
+        4
+      ],
+      [
+        "error: E0004",
+        3
+      ],
+      [
+        "error: other diagnostic",
+        3
+      ],
+      [
+        "error: E0277",
+        3
+      ],
+      [
+        "stock: compiler returned no fresh manifest",
+        2
+      ],
+      [
+        "stock: Cargo configuration changed; recapturing the project",
+        2
+      ],
+      [
+        "restart: new function needs fresh process",
+        1
+      ],
+      [
+        "stock: application exited; rebuilding and restarting",
+        1
+      ],
+      [
+        "stock: compiler link failed: listenfd symbol",
+        1
+      ],
+      [
+        "stock: compiler transaction failed (see exact row reason)",
+        1
+      ],
+      [
+        "restart: missing coroutine coverage for <run>/history/repos/zola/src/cmd/serve.rs:::response_error_injector; retaining the current compiler epoch",
+        1
+      ]
+    ],
+    "context_counts": {
+      "stock": 27,
+      "error": 4
+    },
+    "context_saves": 31,
+    "all_watched_saves": 531,
+    "all_watched_counts": {
+      "skip": 275,
+      "stock": 84,
+      "restart": 31,
+      "waiting": 6,
+      "error": 123,
+      "live": 12
+    },
+    "context_reason_groups": [
+      [
+        "stock: compiler unavailable or recovering; using normal cargo builds + restart",
+        12
+      ],
+      [
+        "stock: file is outside the editable compiler frontier",
+        8
+      ],
+      [
+        "stock: Cargo configuration changed; recapturing the project",
+        7
+      ],
+      [
+        "error: other diagnostic",
+        3
+      ],
+      [
+        "error: E0599",
+        1
+      ]
+    ]
+  },
+  "commit": {
+    "apps": {
+      "mdbook": {
+        "saves": 19,
+        "counts": {
+          "stock": 17,
+          "restart": 1,
+          "skip": 1
+        },
+        "shares_percent": {
+          "stock": 89.4737,
+          "restart": 5.2632,
+          "skip": 5.2632
+        },
+        "completed": 48,
+        "context_only_commits": 29,
+        "context_save_counts": {
+          "stock": 7,
+          "error": 1
+        },
+        "matched": 48,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "2ea30c00f00647d2b3f4c0f79b3e0e1eabc0b66d",
+        "frontier": [
+          "mdbook-driver",
+          "mdbook-html",
+          "mdbook-markdown",
+          "mdbook-preprocessor",
+          "mdbook-renderer",
+          "mdbook-summary",
+          "mdbook-core"
+        ]
+      },
+      "atuin": {
+        "saves": 1,
+        "counts": {
+          "restart": 1
+        },
+        "shares_percent": {
+          "restart": 100.0
+        },
+        "completed": 2,
+        "context_only_commits": 1,
+        "context_save_counts": {},
+        "matched": 2,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "5614596c8165e6f5e22b5524c7bb127bf55bc48a",
+        "frontier": [
+          "atuin-daemon",
+          "atuin-dotfiles",
+          "atuin-history",
+          "atuin-kv",
+          "atuin-scripts",
+          "atuin-client",
+          "atuin-common"
+        ]
+      },
+      "meilisearch": {
+        "saves": 1,
+        "counts": {
+          "skip": 1
+        },
+        "shares_percent": {
+          "skip": 100.0
+        },
+        "completed": 1,
+        "context_only_commits": 0,
+        "context_save_counts": {},
+        "matched": 1,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "a2c96d40d313cb7a143a93ad5f2fb52b5eaafe47",
+        "frontier": [
+          "build-info",
+          "permissive-json-pointer",
+          "tracing-trace"
+        ]
+      },
+      "zola": {
+        "saves": 18,
+        "counts": {
+          "stock": 16,
+          "restart": 2
+        },
+        "shares_percent": {
+          "stock": 88.8889,
+          "restart": 11.1111
+        },
+        "completed": 50,
+        "context_only_commits": 32,
+        "context_save_counts": {
+          "stock": 3
+        },
+        "matched": 50,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "1fb69c2f9500a095c0525ffe5542711b319d2c22",
+        "frontier": [
+          "site",
+          "link_checker",
+          "search"
+        ]
+      },
+      "conduit": {
+        "saves": 1,
+        "counts": {
+          "stock": 1
+        },
+        "shares_percent": {
+          "stock": 100.0
+        },
+        "completed": 1,
+        "context_only_commits": 0,
+        "context_save_counts": {},
+        "matched": 1,
+        "failures": null,
+        "mismatches": [],
+        "baseline_match": true,
+        "prefix_oracle": null,
+        "pin": "d544f5b836186c080ac11be72e5495c722f2c6f0",
+        "frontier": []
+      }
+    },
+    "total_saves": 39,
+    "counts": {
+      "stock": 33,
+      "restart": 4,
+      "skip": 2
+    },
+    "shares_percent": {
+      "stock": 84.6154,
+      "restart": 10.2564,
+      "skip": 5.1282
+    },
+    "completed_commits": 101,
+    "matched_commits": 101,
+    "top_remaining_reasons": [
+      [
+        "file is outside the editable compiler frontier",
+        17
+      ],
+      [
+        "Cargo configuration changed; recapturing the project",
+        9
+      ],
+      [
+        "compiler unavailable or recovering; using normal cargo builds + restart",
+        4
+      ],
+      [
+        "only integration tests, benches or examples outside the running binary changed",
+        2
+      ],
+      [
+        "native relink required: tracing scalar/discriminant changed",
+        1
+      ],
+      [
+        "types or layout changed in <run>/history/repos/mdbook/crates/mdbook-html/src/html_handlebars/static_files.rs; retaining the current compiler epoch",
+        1
+      ],
+      [
+        "compiler failed: rustd command exit status: 1: Error: daemon: ",
+        1
+      ],
+      [
+        "types or layout changed in <run>/history/repos/atuin/crates/atuin/src/command/client/search/interactive.rs",
+        1
+      ],
+      [
+        "compiler failed: no target/rustd/*/programs/*/patch.manifest",
+        1
+      ],
+      [
+        "macro code in ::create_new_project changed; retaining the current compiler epoch",
+        1
+      ],
+      [
+        "macro code in ::build_index changed; retaining the current compiler epoch",
+        1
+      ]
+    ],
+    "reason_groups": [
+      [
+        "stock: file is outside the editable compiler frontier",
+        17
+      ],
+      [
+        "stock: Cargo configuration changed; recapturing the project",
+        9
+      ],
+      [
+        "stock: compiler unavailable or recovering; using normal cargo builds + restart",
+        4
+      ],
+      [
+        "restart: types or layout changed",
+        2
+      ],
+      [
+        "skip: only integration tests, benches or examples outside the running binary changed",
+        2
+      ],
+      [
+        "restart: macro definition changed",
+        2
+      ],
+      [
+        "stock: native relink required: tracing scalar/discriminant changed",
+        1
+      ],
+      [
+        "stock: compiler transaction failed (see exact row reason)",
+        1
+      ],
+      [
+        "stock: compiler returned no fresh manifest",
+        1
+      ]
+    ],
+    "context_counts": {
+      "stock": 10,
+      "error": 1
+    },
+    "context_saves": 11,
+    "all_watched_saves": 50,
+    "all_watched_counts": {
+      "stock": 43,
+      "restart": 4,
+      "skip": 2,
+      "error": 1
+    },
+    "context_reason_groups": [
+      [
+        "stock: Cargo configuration changed; recapturing the project",
+        9
+      ],
+      [
+        "error: other diagnostic",
+        1
+      ],
+      [
+        "stock: compiler unavailable or recovering; using normal cargo builds + restart",
+        1
+      ]
+    ]
+  }
+}

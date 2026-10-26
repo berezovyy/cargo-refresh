@@ -76,6 +76,7 @@ fn snapshot_executable(source: &Path, destination: &Path) -> Result<()> {
 pub struct Supervisor {
     child: Option<Child>,
     run: Option<tempfile::TempDir>,
+    sockets: Option<tempfile::TempDir>,
     pub executable: PathBuf,
     pub socket: PathBuf,
     project: PathBuf,
@@ -127,6 +128,7 @@ impl Supervisor {
         Ok(Self {
             child: None,
             run: None,
+            sockets: None,
             executable: PathBuf::new(),
             socket: PathBuf::new(),
             project: project.into(),
@@ -150,9 +152,25 @@ impl Supervisor {
     }
     pub fn start(&mut self, binary: &Path) -> Result<()> {
         let started = Instant::now();
-        // /tmp keeps Unix socket names within sockaddr_un even in deep workspaces.
+        // Executable snapshots follow TMPDIR on disk; sockets use a short namespace.
         let run = tempfile::Builder::new().prefix("refresh-run-").tempdir()?;
         fs::set_permissions(run.path(), fs::Permissions::from_mode(0o700))?;
+        let sockets = self
+            .library
+            .as_ref()
+            .map(|_| crate::runtime_dir::socket_dir())
+            .transpose()?;
+        let socket = sockets
+            .as_ref()
+            .map(|dir| dir.path().join("agent.sock"))
+            .unwrap_or_default();
+        let startup_error = sockets
+            .as_ref()
+            .map(|dir| dir.path().join("agent.error"))
+            .unwrap_or_default();
+        if self.library.is_some() {
+            crate::runtime_dir::validate_socket(&socket)?;
+        }
         let executable = run.path().join("app");
         // Keep serving while preparing the immutable replacement. On disk a
         // sparse ELF snapshot can take much longer than process shutdown; doing
@@ -162,7 +180,6 @@ impl Supervisor {
         let snapshotted = started.elapsed();
         self.stop();
         let stopped = started.elapsed();
-        let socket = run.path().join("agent.sock");
         let mut command = Command::new(&executable);
         command
             .arg0(&self.name)
@@ -174,12 +191,14 @@ impl Supervisor {
             command
                 .env("LD_PRELOAD", library)
                 .env("REFRESH_AGENT_SOCKET", &socket)
+                .env("REFRESH_AGENT_ERROR", &startup_error)
                 .env("REFRESH_HOST_EXE", &executable)
                 .env("REFRESH_AFTER_PATCH", if self.hook { "1" } else { "0" });
         } else {
             for name in [
                 "LD_PRELOAD",
                 "REFRESH_AGENT_SOCKET",
+                "REFRESH_AGENT_ERROR",
                 "REFRESH_HOST_EXE",
                 "REFRESH_AFTER_PATCH",
             ] {
@@ -201,6 +220,7 @@ impl Supervisor {
         self.executable = executable;
         self.socket = socket;
         self.run = Some(run);
+        self.sockets = sockets;
         self.symbols = Arc::default();
         self.stderr = Some(crate::symbolize::StderrPump::start(
             stderr,
@@ -218,6 +238,11 @@ impl Supervisor {
         let indexed = started.elapsed();
         let deadline = Instant::now() + Duration::from_secs(5);
         loop {
+            if let Ok(error) = fs::read_to_string(&startup_error)
+                && !error.is_empty()
+            {
+                anyhow::bail!("application agent startup failed: {}", error.trim());
+            }
             ensure!(
                 self.child.as_mut().unwrap().try_wait()?.is_none(),
                 "application exited before agent became ready"
@@ -232,6 +257,7 @@ impl Supervisor {
             );
             thread::sleep(Duration::from_millis(5));
         }
+        crate::agent::Client::new(&self.socket).ping_compatible()?;
         if std::env::var_os("REFRESH_PROFILE_RESTART").is_some() {
             eprintln!(
                 "restart-timeline-us: stop={} snapshot={} spawn={} load_base={} symbols={} agent={}",
@@ -253,7 +279,7 @@ impl Supervisor {
         patch: &crate::extractor::PreparedPatch,
     ) -> Result<crate::agent::Reply> {
         let mut agent = crate::agent::Client::new(&self.socket);
-        agent.ping()?;
+        agent.ping_compatible()?;
         let inserted = self.symbols.write().unwrap().add_generation(
             self.load_base,
             patch.generation,
@@ -295,6 +321,7 @@ impl Supervisor {
             stderr.stop();
         }
         self.run = None;
+        self.sockets = None;
     }
 }
 impl Drop for Supervisor {

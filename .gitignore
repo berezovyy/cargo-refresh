@@ -1,8 +1,13 @@
-/target/
-/dist/
-/.release-work/
-/agent/build-release/
-
-/agent/build-portable/
-
+target/
+dist/
+.release-work/
+.try/
+.bench-work/
+agent/build*/
 __pycache__/
+
+# Films: only the rendered files are committed; the HyperFrames sources, render masters and
+# the licensed music stay local.
+/media/*
+!/media/films/
+!/media/brand/

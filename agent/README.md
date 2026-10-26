@@ -1,7 +1,6 @@
 # cargo-refresh agent
 
-Linux/x86-64 in-process patch agent, ported from EXP-128's `gw/scripts/agent.c`
-and its EXP-121/122/123 headers. The [protocol](PROTOCOL.md) defines configuration,
+Linux/x86-64 in-process patch agent, with transactional code updates and retained-generation unwind support. The [protocol](PROTOCOL.md) defines configuration,
 wire format, error codes, transaction guarantees and parking/pressure behavior.
 
 Run from this directory:
@@ -49,11 +48,9 @@ checks warning/cap accounting, and verifies a real heap-mapping refusal.
 `test` also checks a synthetic splice PT_LOAD, 20 subsequent patches, rollback
 of a delayed signal-handler timeout, and the old forward-unwind-slot collision.
 
-See [collision evidence and compiler proposal](docs/COLLISION.md). An agent
-cannot relocate a legitimate application mapping when rustd chose its address;
-those collisions remain safe MMAP_FAILED refusals with VMA diagnostics. Compiler
-placement negotiation/reservation, controller epoch scheduling, the complete
-60-case Rust panic matrix and symbolized backtraces remain follow-up work.
+An agent cannot relocate a legitimate application mapping when rustd chose its
+address; those collisions remain safe MMAP_FAILED refusals with VMA diagnostics.
+The agent protocol is described in [PROTOCOL.md](PROTOCOL.md).
 
 `make test-controlled-gc` is a separate optional smoke for the preserved E123
 controlled leaf collector's page-index/unwind-counter bookkeeping. Its fixture
@@ -61,7 +58,7 @@ promises no escaping old-generation pointers. This is not production collection;
 conservative false positives can retain pages. Do not run this full writable-root
 scan under ASan, whose shadow mappings are also writable roots.
 
-M3-T3 reserves a 1 GiB code region before allocating and accepts new generation
+The agent reserves a 1 GiB code region before allocating and accepts new generation
 pages only inside it. Replies include region availability, bounds and retained
 bytes. Sparse splice ELF notes preserve the base region across restarts; inherited
 PT_LOADs are adopted automatically. See [PROTOCOL.md](PROTOCOL.md#reserved-code-region-m3-t3--exp-122-exp-126).

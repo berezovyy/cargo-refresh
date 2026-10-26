@@ -1,6 +1,6 @@
 # refresh-guard
 
-In-process admission and edit classification for M2 step 3. No filesystem reads,
+In-process admission and edit classification for source saves. No filesystem reads,
 subprocesses, compiler session, or async certificates are used by the library.
 
 ```rust
@@ -155,34 +155,10 @@ keys, bounds, parse failures, invalid input, thread transfer, and the free API.
 The corpus is in `tests/cases/`; source blobs are named by SHA-256 and provenance
 hashes identify the original inputs. Fixtures and research history are untouched.
 
-For read-only comparisons against retained research binaries:
-
-```sh
-RUSTUP_TOOLCHAIN=1.99.0 nice -n 19 cargo build -p refresh-guard --release --example guard_probe -j 4
-python3 crates/refresh-guard/tests/compat/check.py --research /path/to/rust-fast-compiler \
-  --probe "$PWD/target/release/examples/guard_probe" --out /tmp/guard-compat.json
-python3 crates/refresh-guard/tests/compat/stock.py --out /tmp/guard-stock.json
-python3 crates/refresh-guard/tests/compat/bench.py \
-  --prototype /path/to/rust-fast-compiler/work/m0/v4/gw/bin/refresh-guard-m0 \
-  --probe "$PWD/target/release/examples/guard_probe" --out /tmp/guard-bench.json
-```
-
-`check.py` executes the strict binary and the actual `source_guard.classify109`
-logic, refusing async owners as the certificate-off controller does. Web save
-54 is a parse rejection; save 55 compares against the last successful AST.
-The expected live/restart paths come from M0 smoke-c events, independently of
-the port. `stock.py` checks the annotated std-only admission boundaries against
-stock rustc 1.99.0. `bench.py` records 30 AB pairs per mode, waits for load1 ≤ 2,
-and checks available RAM ≥ 6 GiB on each pair. Input JSON/IPC are outside the
-Rust timer. It reports classifier-only time (including shared name/outline
-analysis) separately from combined admission/classification time.
-Combined modes compare one uncached analysis, two uncached versions, a primed baseline
-plus edited version, and fully cached decisions separately. The prototype arm
-includes process startup; ratios describe that concrete architecture comparison.
-
-`freeze.py --research ...` regenerates research-derived cases; `boundaries.py`
-regenerates the manually reviewed table. These are maintenance tools, not part
-of `cargo test`. They disable Python bytecode writes to research directories.
+The frozen cases are self-contained and run through `cargo test`. Optional
+maintenance scripts under `tests/compat/` can regenerate reviewed boundaries;
+they are not needed for normal testing.
+`stock.py` checks standard-library-only admission boundaries against stock rustc.
 
 Internal parser/visitor panics are contained at every `Guard` entrypoint. Admission
 returns `internal-error`; classification returns `Restart(InternalError)`. Both

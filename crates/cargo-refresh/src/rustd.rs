@@ -27,6 +27,7 @@ const SCRUB: &[&str] = &[
     "LD_PRELOAD",
     "E077_AGENT",
     "REFRESH_AGENT_SOCKET",
+    "REFRESH_AGENT_ERROR",
     "REFRESH_HOST_EXE",
 ];
 #[derive(Clone, Debug)]
@@ -292,8 +293,9 @@ fn native_rebase_reply(reply: &str) -> Result<Option<PathBuf>> {
     Ok(None)
 }
 
-struct SocketAlias {
-    _dir: tempfile::TempDir,
+struct SocketHome {
+    _runtime: tempfile::TempDir,
+    _state: tempfile::TempDir,
     home: PathBuf,
 }
 pub struct Client {
@@ -302,7 +304,7 @@ pub struct Client {
     memory_watch: Option<MemoryWatch>,
     last_manifest: Vec<u8>,
     commands: u64,
-    socket_alias: Option<SocketAlias>,
+    socket_home: Option<SocketHome>,
     memory_checked: Option<Instant>,
 }
 impl Client {
@@ -313,7 +315,7 @@ impl Client {
             memory_watch: None,
             last_manifest: vec![],
             commands: 0,
-            socket_alias: None,
+            socket_home: None,
             memory_checked: None,
         }
     }
@@ -383,28 +385,26 @@ impl Client {
         );
         fs::create_dir_all(&self.config.home)?;
         fs::set_permissions(&self.config.home, fs::Permissions::from_mode(0o700))?;
-        // Worker paths add a 32-byte hash and a socket suffix. Deep project
-        // paths exceed Linux's sockaddr_un limit even if daemon.sock fits.
-        // Keep all daemon state under target/refresh/d, but address its sockets
-        // through a short, private symlink for this owned daemon's lifetime.
+        // Address sockets through a short private namespace. Compiler bookkeeping,
+        // symbols and logs stay on disk, including when /tmp and XDG are tmpfs.
         let result = (|| -> Result<()> {
-            let alias = tempfile::Builder::new()
-                .prefix("crfd-")
-                .tempdir_in("/tmp")?;
-            // The final component must be a real directory: rustd deliberately
-            // refuses RUSTD_HOME itself being a symlink. Only alias its parent.
-            let home = fs::canonicalize(&self.config.home)?;
-            let parent = home.parent().context("daemon home has no parent")?;
-            let name = home.file_name().context("daemon home has no basename")?;
-            std::os::unix::fs::symlink(parent, alias.path().join("p"))?;
-            let short = alias.path().join("p").join(name);
-            ensure!(
-                short.as_os_str().len() + 52 < 108,
-                "daemon home basename too long for worker sockets; use a short name such as d"
-            );
-            self.socket_alias = Some(SocketAlias {
-                _dir: alias,
-                home: short,
+            let runtime = crate::runtime_dir::socket_dir()?;
+            crate::runtime_dir::clean_stale(&self.config.home)?;
+            let state = tempfile::Builder::new()
+                .prefix(&format!("{}-", std::process::id()))
+                .rand_bytes(8)
+                .permissions(fs::Permissions::from_mode(0o700))
+                .tempdir_in(&self.config.home)?;
+            fs::create_dir(state.path().join("d"))?;
+            fs::set_permissions(state.path().join("d"), fs::Permissions::from_mode(0o700))?;
+            // rustd refuses a symlink as the final home component; alias its
+            // parent with fixed names so even a long configured basename fits.
+            std::os::unix::fs::symlink(state.path().canonicalize()?, runtime.path().join("p"))?;
+            let home = runtime.path().join("p/d");
+            self.socket_home = Some(SocketHome {
+                _runtime: runtime,
+                _state: state,
+                home,
             });
             let log = File::create(self.config.home.join("daemon.log"))?;
             let mut cmd = self.command(&self.config.rustd);
@@ -428,7 +428,7 @@ impl Client {
         result
     }
     fn transport_home(&self) -> PathBuf {
-        self.socket_alias
+        self.socket_home
             .as_ref()
             .map_or_else(|| self.config.home.clone(), |alias| alias.home.clone())
     }
@@ -439,7 +439,7 @@ impl Client {
     }
     fn initialize(&mut self) -> Result<()> {
         let deadline = Instant::now() + self.config.ready_timeout;
-        while !self.config.home.join("daemon.sock").exists() {
+        while !self.transport_home().join("daemon.sock").exists() {
             self.check_daemon()?;
             self.guard_memory()?;
             ensure!(Instant::now() < deadline, "daemon socket timeout");
@@ -616,7 +616,7 @@ impl Client {
         self.stop_with_grace(Duration::from_secs(5))
     }
     fn stop_with_grace(&mut self, grace: Duration) -> Result<()> {
-        // Join before removing the alias used by the watchdog's stop request.
+        // Join before removing the socket namespace used by the watchdog's stop request.
         if let Some(watch) = self.memory_watch.take() {
             watch.finish();
         }
@@ -624,7 +624,7 @@ impl Client {
         if let Some(mut daemon) = owned {
             stop_owned_daemon(&self.config, &self.transport_home(), &mut daemon, grace);
         }
-        self.socket_alias = None;
+        self.socket_home = None;
         Ok(())
     }
 }
@@ -871,7 +871,11 @@ else:raise Exception(sys.argv)
             no_default_features: true,
             all_features: true,
         };
-        cfg.home = tmp.path().join("deep").join("x".repeat(150)).join("d");
+        cfg.home = tmp
+            .path()
+            .join("deep")
+            .join("x".repeat(150))
+            .join("d".repeat(140));
         cfg.memory_min_bytes = 0;
         cfg.ready_timeout = Duration::from_secs(5);
         let mut c = Client::new(cfg);
@@ -880,7 +884,7 @@ else:raise Exception(sys.argv)
         let transport = c.transport_home();
         assert!(transport.as_os_str().len() < 64);
         assert!(
-            fs::metadata(c.config.home.join("daemon.sock"))
+            fs::metadata(transport.join("daemon.sock"))
                 .unwrap()
                 .file_type()
                 .is_socket()
@@ -918,7 +922,10 @@ else:raise Exception(sys.argv)
                 .contains("effective available")
         );
         assert!(c.daemon.lock().unwrap().is_none());
-        assert!(!transport.exists(), "owned socket alias must be removed");
+        assert!(
+            !transport.exists(),
+            "owned socket namespace must be removed"
+        );
         assert_eq!(
             fs::read(c.config.home.join("retain")).unwrap(),
             b"persistent"

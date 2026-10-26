@@ -7,8 +7,8 @@ and a body revert. Each valid output is compared with an independently built
 stock executable; expected errors are also compiled with stock. The borrow case
 asserts auto-revert preserves the editor's invalid source bytes.
 
-The script needs the built controller and the qualified rustd tools. Hold the
-research rustd/quiet lane for the complete run when using the shared machine:
+The script needs the built controller and qualified support from the committed
+bundle. Use a disposable copy and set `CARGO_REFRESH_DIST` to its absolute path:
 
 ```sh
 python3 scripts/integration-session.py tiny \
@@ -17,10 +17,9 @@ python3 scripts/integration-session.py tiny \
   --out /absolute/path/to/new/results-directory
 ```
 
-Set `REFRESH_RUSTD`, the M1 ABI bundle in `REFRESH_RUSTD_ENV`, and the research
-6-GiB floor as described in `docs/controller.md`. Default workspace tests do not
+Use `scripts/run-guarded.py` for a 6 GiB memory floor. Default workspace tests do not
 start a real rustd daemon. The tiny driver is an explicit, hand-run integration
-check and waits for load1 <= 2 before starting its timed session.
+check and waits for load1 <= 2 before starting its session.
 
 The same driver has `web` and `mdbook` modes. Web accepts `--scenarios` pointing
 to the research 64-save generator and `--bin web-server --edit api,domain,store`.

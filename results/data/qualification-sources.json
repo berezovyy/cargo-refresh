@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-24",
+  "compiler": "b6e0d81b2a46b3e1463bc6b73d2c8d0e8e9ac6d7",
+  "frontend": "06dd1e35671f0410c543f3498c8d14e48e488339",
+  "controller_qualification": "edade6142d4af5a4379c9d8d7b6b8994acecea04",
+  "controller_combined_validation": "0bd41a42a58436243cbb664f0ab5cc8bd1379735",
+  "assertion_printer_qualification_compiler": "168bc39612d10ce4257d7feee17c1f996ad8d992",
+  "source_notes": "Safety, semantics, macro, apps and history were rerun on the final compiler. Assertion corpus covers the unchanged frontend printer. Public packaging changes were subsequently checked with unit tests and the demo smoke, not a repeat of all app/history qualification.",
+  "export_notes": "Selected raw records; developer-local paths replaced with placeholders, large logs/events/commands omitted. Numeric observations and verdicts are unchanged."
+}

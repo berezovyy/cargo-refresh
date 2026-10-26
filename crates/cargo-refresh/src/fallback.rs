@@ -55,6 +55,7 @@ pub fn cargo(config: &Config, project: &Path, target: &Path, verb: &str) -> Comm
     for key in [
         "LD_PRELOAD",
         "REFRESH_AGENT_SOCKET",
+        "REFRESH_AGENT_ERROR",
         "REFRESH_HOST_EXE",
         "E077_AGENT",
         "RUSTD_HOME",

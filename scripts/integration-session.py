@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hand-run end-to-end controller checks. Hold the rustd lane around this script.
+"""Hand-run end-to-end controller checks. Use an optional external resource wrapper on shared machines.
 Copies fixtures before invoking; project must be a disposable work directory.
 """
 import argparse,json,os,pathlib,signal,socket,subprocess,sys,time,urllib.request,urllib.error

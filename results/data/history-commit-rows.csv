@@ -1,0 +1,40 @@
+app,commit,commit_index,file,hunk,path,reason
+mdbook,63ff5c06f8ddcc88d430d5f516cb6b78cb99f86f,3,tests/testsuite/search.rs,0,stock,Cargo configuration changed; recapturing the project
+mdbook,50ccd8721015a5091c48815ab6559a7dd2eb7841,13,crates/mdbook-summary/src/lib.rs,0,stock,native relink required: tracing scalar/discriminant changed
+mdbook,4a6720c8cc1ae56ecbb2afa8080216e2de57c28b,18,crates/mdbook-html/src/utils.rs,0,stock,Cargo configuration changed; recapturing the project
+mdbook,641d06abe7d10d981ed61dd2711a30e4119666cd,20,crates/mdbook-driver/src/builtin_preprocessors/links.rs,0,stock,file is outside the editable compiler frontier
+mdbook,78cd8333bf0f354d846ca0eb7545aea168a6d659,21,crates/mdbook-driver/src/builtin_preprocessors/links.rs,0,stock,Cargo configuration changed; recapturing the project
+mdbook,54e4f3bf6d25b4b1b5082d9979f126f0b4129831,22,crates/mdbook-core/src/config.rs,0,stock,file is outside the editable compiler frontier
+mdbook,dc21064fc21d955a0e1f67e65e336883c3e5260b,23,src/cmd/init.rs,0,stock,file is outside the editable compiler frontier
+mdbook,f5644a5e7730f621c0d1c38b7e89d98a3d5afcf2,25,crates/mdbook-driver/src/builtin_preprocessors/links.rs,0,stock,file is outside the editable compiler frontier
+mdbook,b89e1c848e5826bcf32150eab490ca5af1301279,29,crates/mdbook-driver/src/mdbook.rs,0,stock,compiler unavailable or recovering; using normal cargo builds + restart
+mdbook,77fff93dfd3efb082adc6970e81b80d8e597f782,30,crates/mdbook-html/src/html/tree.rs,0,stock,file is outside the editable compiler frontier
+mdbook,88bed0792d427e8c7b672784d7d73b472b7e129d,32,crates/xtask/src/changelog.rs,0,stock,Cargo configuration changed; recapturing the project
+mdbook,4fb9ea9bb3a9d7f6848c1810fcc578aa6b11a3ef,34,crates/mdbook-core/src/config.rs,0,stock,Cargo configuration changed; recapturing the project
+mdbook,6a75867463828eb5b0b00f78feb0224c1bbc39aa,35,tests/testsuite/includes.rs,0,stock,file is outside the editable compiler frontier
+mdbook,b622cc4b037b792711d40ee24cc04fad350aab73,37,crates/mdbook-html/src/html_handlebars/static_files.rs,0,restart,types or layout changed in <run>/history/repos/mdbook/crates/mdbook-html/src/html_handlebars/static_files.rs; retaining the current compiler epoch
+mdbook,e18773a967eb7f3f1392c831cb2caf9af9bdf5a5,38,crates/mdbook-core/src/config.rs,0,stock,Cargo configuration changed; recapturing the project
+mdbook,afe6eb8836bf49bf6e23d15ccf1b87d8a5395ca4,41,src/cmd/serve.rs,0,stock,compiler unavailable or recovering; using normal cargo builds + restart
+mdbook,ea1b91d0ea1fa2d62e4c1faeeffd910ce19306fd,42,crates/mdbook-html/src/html_handlebars/static_files.rs,0,stock,compiler failed: rustd command exit status: 1: Error: daemon: 
+mdbook,22cce19e14eecd3a4695a84d4173f994d739c3d2,44,crates/mdbook-core/src/config.rs,0,stock,compiler unavailable or recovering; using normal cargo builds + restart
+mdbook,ae0bc6996bf45cd9e93b9222fd4cd264ee69e6d4,47,tests/gui/runner.rs,0,skip,"only integration tests, benches or examples outside the running binary changed"
+atuin,6d49fdb70e1be87b9c1fd4aa078c4e3421f3a46d,2,crates/atuin-client/src/database.rs,0,restart,types or layout changed in <run>/history/repos/atuin/crates/atuin/src/command/client/search/interactive.rs
+meilisearch,6f30dfa41c160bd94175a4f7ccdac7470e237455,1,crates/meilisearch/tests/auth/authorization.rs,0,skip,"only integration tests, benches or examples outside the running binary changed"
+zola,79de1fad185b54de67e638902cb992054db8b9d8,25,components/markdown/src/codeblock/fence.rs,0,stock,file is outside the editable compiler frontier
+zola,bfd5e55e55353a4542b0bf2f5de72e83d50213b6,28,components/site/src/feeds.rs,0,stock,Cargo configuration changed; recapturing the project
+zola,69fa8978796fd2f49377f1d737f8bbdb2fe1f1f8,31,components/content/src/library.rs,0,stock,file is outside the editable compiler frontier
+zola,4aae4e6b156ef8137ed91025c68ea7f1260f96fa,32,src/cmd/serve.rs,0,stock,compiler failed: no target/rustd/*/programs/*/patch.manifest
+zola,4fc05924ee30655cc50716e54ee2a5e680a5a9eb,33,src/cmd/init.rs,0,restart,macro code in ::create_new_project changed; retaining the current compiler epoch
+zola,ded0d445525f6687dc293ec8a5eb9b408d9c45e3,34,components/imageproc/src/format.rs,0,stock,file is outside the editable compiler frontier
+zola,107a36e8fef28ffd9d3d6adef6fa8b9eebb535ff,35,components/imageproc/src/format.rs,0,stock,file is outside the editable compiler frontier
+zola,2c1880538cb1d3124c8bb78dea56b13ea6d8dd32,36,components/templates/src/global_fns/images.rs,0,stock,file is outside the editable compiler frontier
+zola,220cad6b860fdeb08f86c038fbb2462b79e4c9af,38,components/imageproc/src/processor.rs,0,stock,file is outside the editable compiler frontier
+zola,543363f4a64b3d7f9ff84923e567c229cb57274b,39,components/templates/src/lib.rs,0,stock,file is outside the editable compiler frontier
+zola,a784d493d1a58c8c33b7fb0287246b9936a3e565,40,components/search/src/fuse.rs,0,restart,macro code in ::build_index changed; retaining the current compiler epoch
+zola,8b2a4923346ce896152e2bdcf6019ad0d3258f72,42,components/config/src/config/markup.rs,0,stock,file is outside the editable compiler frontier
+zola,53d5636977c776ce8da191650d6aff1a45dc6556,44,components/markdown/src/markdown.rs,0,stock,file is outside the editable compiler frontier
+zola,c27e4c528b8e026bb8bc7ddf95f6f3cd8ee0dc53,45,components/imageproc/src/helpers.rs,0,stock,file is outside the editable compiler frontier
+zola,0d7c93e21d28dc6ec9f208e1900ec89739e0453f,47,components/content/src/page.rs,0,stock,file is outside the editable compiler frontier
+zola,9e224c9fbfca5bb450c6f042660ded61e8365296,48,components/site/src/minify.rs,0,stock,Cargo configuration changed; recapturing the project
+zola,f2bcdfa83cd9df052fd507c85ee7c1c80db80675,49,components/content/src/page.rs,0,stock,compiler unavailable or recovering; using normal cargo builds + restart
+zola,22cdac529c412f25da8a27291cec363f3f55513c,50,components/imageproc/src/processor.rs,0,stock,Cargo configuration changed; recapturing the project

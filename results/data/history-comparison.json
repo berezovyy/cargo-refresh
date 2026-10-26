@@ -1,0 +1,226 @@
+{
+  "expected_edits": 500,
+  "before": {
+    "skip": 240,
+    "stock": 114,
+    "error": 122,
+    "restart": 17,
+    "live": 4,
+    "waiting": 3
+  },
+  "after": {
+    "skip": 275,
+    "restart": 31,
+    "error": 119,
+    "stock": 57,
+    "waiting": 6,
+    "live": 12
+  },
+  "after_edits": 500,
+  "missing_edit_identities": [],
+  "unexpected_non_conduit": [],
+  "apps": {
+    "atuin": {
+      "sessions": [
+        "results/atuin/session.json"
+      ],
+      "completed_commits": 1,
+      "stock_matched_commits": 1,
+      "stock_build_failed_commits": 0,
+      "before": {
+        "skip": 2,
+        "stock": 6,
+        "error": 4,
+        "restart": 2
+      },
+      "after": {
+        "skip": 8,
+        "restart": 3,
+        "error": 3
+      },
+      "failures": [],
+      "frontiers": [
+        [
+          "atuin-daemon",
+          "atuin-dotfiles",
+          "atuin-history",
+          "atuin-kv",
+          "atuin-scripts",
+          "atuin-client",
+          "atuin-common"
+        ]
+      ],
+      "controller_sha256": [
+        "80fcb8f959528e3e8a8c07495ddf32829b3de76dd741541b91fb6f38452d3e12"
+      ]
+    },
+    "meilisearch": {
+      "sessions": [
+        "results/meilisearch/session.json"
+      ],
+      "completed_commits": 0,
+      "stock_matched_commits": 0,
+      "stock_build_failed_commits": 0,
+      "before": {
+        "skip": 205
+      },
+      "after": {
+        "skip": 205
+      },
+      "failures": [],
+      "frontiers": [
+        [
+          "build-info",
+          "permissive-json-pointer",
+          "tracing-trace"
+        ]
+      ],
+      "controller_sha256": [
+        "80fcb8f959528e3e8a8c07495ddf32829b3de76dd741541b91fb6f38452d3e12"
+      ]
+    },
+    "zola": {
+      "sessions": [
+        "results/zola/session.json"
+      ],
+      "completed_commits": 50,
+      "stock_matched_commits": 50,
+      "stock_build_failed_commits": 0,
+      "before": {
+        "error": 74,
+        "stock": 58,
+        "restart": 5,
+        "live": 4,
+        "skip": 4
+      },
+      "after": {
+        "error": 74,
+        "stock": 43,
+        "restart": 9,
+        "live": 8,
+        "skip": 11
+      },
+      "failures": [],
+      "frontiers": [
+        [
+          "site",
+          "link_checker",
+          "search"
+        ]
+      ],
+      "controller_sha256": [
+        "80fcb8f959528e3e8a8c07495ddf32829b3de76dd741541b91fb6f38452d3e12"
+      ]
+    },
+    "mdbook": {
+      "sessions": [
+        "results/mdbook/session.json"
+      ],
+      "completed_commits": 48,
+      "stock_matched_commits": 48,
+      "stock_build_failed_commits": 0,
+      "before": {
+        "skip": 29,
+        "stock": 50,
+        "restart": 10,
+        "waiting": 3,
+        "error": 44
+      },
+      "after": {
+        "skip": 51,
+        "stock": 14,
+        "restart": 19,
+        "waiting": 6,
+        "error": 42,
+        "live": 4
+      },
+      "failures": [],
+      "frontiers": [
+        [
+          "mdbook-driver",
+          "mdbook-html",
+          "mdbook-markdown",
+          "mdbook-preprocessor",
+          "mdbook-renderer",
+          "mdbook-summary",
+          "mdbook-core"
+        ]
+      ],
+      "controller_sha256": [
+        "80fcb8f959528e3e8a8c07495ddf32829b3de76dd741541b91fb6f38452d3e12"
+      ]
+    }
+  },
+  "conduit": {
+    "sessions": [
+      "results/conduit/session.json"
+    ],
+    "completed_commits": 1,
+    "stock_matched_commits": 1,
+    "stock_build_failed_commits": 0,
+    "before": {},
+    "after": {
+      "restart": 3,
+      "stock": 1
+    },
+    "failures": [],
+    "frontiers": [
+      []
+    ],
+    "controller_sha256": [
+      "80fcb8f959528e3e8a8c07495ddf32829b3de76dd741541b91fb6f38452d3e12"
+    ]
+  },
+  "stock_mismatches": [],
+  "completed_commits": 99,
+  "stock_matched_commits": 99,
+  "targeted_transitions": {
+    "unavailable_recovering": {
+      "before_count": 54,
+      "after_counts": {
+        "restart": 13,
+        "stock": 33,
+        "live": 7,
+        "error": 1
+      },
+      "missing": 0,
+      "remaining_stock_reasons": {
+        "file is outside the editable compiler frontier": 23,
+        "compiler failed: no fresh compiler manifest; restart required": 2,
+        "compiler unavailable or recovering; using normal cargo builds + restart": 7,
+        "native relink required: tracing scalar/discriminant changed": 1
+      }
+    },
+    "no_compiled_change": {
+      "before_count": 39,
+      "after_counts": {
+        "skip": 34,
+        "restart": 4,
+        "stock": 1
+      },
+      "missing": 0,
+      "remaining_stock_reasons": {
+        "Cargo configuration changed; recapturing the project": 1
+      }
+    }
+  },
+  "previous_live_transitions": {
+    "live": 4
+  },
+  "before_shares_percent": {
+    "skip": 48.0,
+    "stock": 22.8,
+    "error": 24.4,
+    "restart": 3.4,
+    "live": 0.8,
+    "waiting": 0.6
+  },
+  "after_shares_percent_of_500": {
+    "skip": 55.0,
+    "restart": 6.2,
+    "error": 23.8,
+    "stock": 11.4,
+    "waiting": 1.2,
+    "live": 2.4
+  }
+}

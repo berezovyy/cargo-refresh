@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Local archive -> private HOME -> running app -> save, with a stock oracle.
 
-Live mode must run in the rustd resource lane. No performance numbers are emitted.
+Use an optional external resource wrapper on shared machines. No performance numbers are emitted.
 Use a new --work directory per run; failures retain small logs for diagnosis.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import socket
 import subprocess
 import time
@@ -86,7 +88,7 @@ def main():
     parser.add_argument('--controller', type=Path, required=True)
     parser.add_argument('--archive', type=Path)
     parser.add_argument('--work', type=Path, required=True)
-    parser.add_argument('--mode', choices=['live', 'unsupported', 'corrupt', 'low-memory', 'override', 'compiler-env', 'profile'], default='live')
+    parser.add_argument('--mode', choices=['live', 'unsupported', 'corrupt', 'low-memory', 'override', 'compiler-env', 'profile', 'stale-archive', 'stale-env', 'incompatible', 'incompatible-rustd', 'incompatible-agent', 'incompatible-handshake'], default='live')
     args = parser.parse_args()
     root = args.work.resolve()
     root.mkdir(parents=True, exist_ok=False)
@@ -138,11 +140,59 @@ def main():
         cache = home / '.cache/cargo-refresh/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4'
         cache.mkdir(parents=True)
         (cache / 'VERSION').write_text('rustc_commit=wrong\n')
+    cache = home / '.cache/cargo-refresh/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4'
+    cache_modes = ('stale-archive', 'stale-env', 'incompatible', 'incompatible-rustd', 'incompatible-agent', 'incompatible-handshake')
+    if args.mode in cache_modes:
+        if not args.archive:
+            parser.error('cache regression modes require --archive as the fixture')
+        cache.mkdir(parents=True)
+        subprocess.run(['tar', '--zstd', '-xf', str(args.archive.resolve()), '-C', str(cache)], check=True)
+        cache.chmod(0o700)
+        for path in cache.rglob('*'):
+            if path.is_dir():
+                path.chmod(0o755)
+            else:
+                path.chmod(0o755 if path.name in ('rustd', 'cargo-rustd', 'rustd-rustc', 'librefresh.so') else 0o644)
+        if args.mode == 'incompatible-rustd':
+            fake_compiler = root / 'incompatible-rustd.c'
+            fake_compiler.write_text('#include <stdio.h>\nint main(void) { puts("{\\"schema\\":1,\\"support_protocol\\":999}"); }\n')
+            subprocess.run(['cc', str(fake_compiler), '-o', str(cache / 'rustd')], check=True)
+            (cache / 'rustd').chmod(0o755)
+        elif args.mode == 'incompatible-agent':
+            fake_agent = root / 'incompatible-agent.c'
+            fake_agent.write_text('unsigned refresh_agent_support_protocol(void) { return 999; }\n')
+            subprocess.run(['cc', '-shared', '-fPIC', str(fake_agent), '-o', str(cache / 'librefresh.so')], check=True)
+            (cache / 'librefresh.so').chmod(0o755)
+        elif args.mode == 'incompatible-handshake':
+            # Advertise the right library ABI but reply with the wrong wire
+            # contract, exercising the final runtime handshake + stock fallback.
+            agent_source = root / 'handshake-agent'
+            shutil.copytree(Path(__file__).resolve().parents[1] / 'agent/src', agent_source)
+            implementation = agent_source / 'agent.c'
+            implementation.write_text(implementation.read_text().replace(
+                'REFRESH_SUPPORT_PROTOCOL, message->txid', '999, message->txid'))
+            subprocess.run(['cc', '-O2', '-shared', '-fPIC', '-fvisibility=hidden',
+                            '-I' + str(agent_source), '-I' + str(agent_source / 'unwind-include'),
+                            *map(str, agent_source.glob('*.c')), '-o', str(cache / 'librefresh.so'),
+                            '-Wl,-z,now', '-ldl', '-lpthread'], check=True)
+            (cache / 'librefresh.so').chmod(0o755)
+        else:
+            version = cache / 'VERSION'
+            version.write_text(version.read_text().replace('support_protocol=1\n', ''))
+        # Keep payload integrity valid so this tests compatibility, not corruption.
+        lines = []
+        for line in (cache / 'SHA256SUMS').read_text().splitlines():
+            _, name = line.split('  ', 1)
+            lines.append(hashlib.sha256((cache / name).read_bytes()).hexdigest() + '  ' + name)
+        (cache / 'SHA256SUMS').write_text('\n'.join(lines) + '\n')
+        if args.mode == 'stale-env':
+            env['CARGO_REFRESH_DIST'] = str(args.archive.resolve())
+    live_mode = args.mode in ('live', 'stale-archive', 'stale-env')
     if args.mode == 'live' and not args.archive:
         parser.error('live mode requires --archive')
     eventfile = root / 'events.jsonl'
     command = [str(args.controller.resolve()), 'refresh', 'run', '--events', str(eventfile), '-v']
-    if args.archive:
+    if args.archive and args.mode not in ('stale-env', 'incompatible', 'incompatible-rustd', 'incompatible-agent', 'incompatible-handshake'):
         command += ['--from-archive', str(args.archive.resolve())]
     log = root / 'controller.log'
     with log.open('w') as output:
@@ -153,15 +203,18 @@ def main():
             assert first[0] == 1, first
             source.write_text(SOURCE.replace('fn value() -> u64 { 1 }', 'fn value() -> u64 { 2 }'))
             saved = wait(lambda: next((e for e in events(eventfile) if e['event'] == 'save'), None), proc, log)
-            expected = 'live' if args.mode == 'live' else 'stock'
+            expected = 'live' if live_mode else 'stock'
             assert saved['path'] == expected, (saved, log.read_text()[-12000:])
             def edited_probe():
                 response = probe(number)
                 return response if response and response[0] == 2 else None
             after = wait(edited_probe, proc, log)
-            if args.mode == 'live':
+            if live_mode:
                 assert first[1] == after[1] and after[2] > first[2], (first, after)
-                cache = home / '.cache/cargo-refresh/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4'
+                selection = home / '.cache/cargo-refresh/.b940084d7eb6a299eb4bfeb8e34901bc051e7ac4.current'
+                selected = selection.read_text().strip()
+                assert selected.endswith(hashlib.sha256(args.archive.read_bytes()).hexdigest()), selected
+                cache = selection.parent / selected
                 assert all((cache / f).is_file() for f in ['rustd', 'cargo-rustd', 'rustd-rustc', 'librefresh.so', 'abi-facts.bundle', 'VERSION'])
                 wait(lambda: any(e['event'] == 'check_ok' for e in events(eventfile)), proc, log)
             else:
@@ -192,6 +245,9 @@ def main():
     text = log.read_text()
     if args.mode == 'unsupported':
         assert '[refresh] cargo-refresh has no qualified support for rustc 1.99.0 (' + '0' * 40 + ').' in text
+    if args.mode.startswith('incompatible'):
+        assert 'incompatible with controller' in text and 'reinstall with --from-archive' in text, text
+        assert 'startup timed out' not in text, text
     if args.mode == 'low-memory':
         assert '+ 1 GiB reserve' in text and 'Continuing in cargo mode' in text
     summary = dict(mode=args.mode, save_path=saved['path'], stock_oracle_match=True,

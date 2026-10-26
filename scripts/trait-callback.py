@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M4-T3 forwarded runtime callback regression. Hold the rustd/quiet lane."""
+"""Forwarded runtime callback regression. An external resource wrapper is optional."""
 import argparse, importlib.util, json, os, signal, subprocess, sys
 sys.dont_write_bytecode=True
 from pathlib import Path

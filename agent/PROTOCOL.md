@@ -9,6 +9,15 @@ Accepted sockets have 5-second `SO_RCVTIMEO` and `SO_SNDTIMEO` settings. These
 are per-I/O inactivity timeouts, not a whole-message deadline. A disconnected
 client cannot signal the app with SIGPIPE. Requests are processed serially.
 
+## Startup compatibility
+
+Release agents export `uint32_t refresh_agent_support_protocol(void)` and include
+`"support_protocol": 1` in every JSON reply. The controller checks this contract
+before injection and again with a PING from the running application. Compiler
+capabilities and bundle VERSION carry the same support protocol. Missing or
+mismatched versions select stock Cargo and print a matching-bundle reinstall
+command. This support contract is separate from the v1 wire header below.
+
 ## Configuration
 
 New names take precedence, including when the new value is empty. Legacy
@@ -108,8 +117,7 @@ and validate rebased displacements; failure leaves existing mappings intact.
 The rotating cursor avoids scanning earlier retained copies on each save. The
 512-copy limit is the binding unwind limit and returns UNWIND_LIMIT. Production
 pages/copies remain append-only; session reclamation/epoch scheduling belongs
-to the controller. See [collision diagnosis](docs/COLLISION.md) for the distinct
-compiler/application-map collision and proposed compiler placement support.
+to the controller.
 
 ## Transaction semantics
 

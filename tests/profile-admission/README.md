@@ -7,8 +7,8 @@ Profile settings are applied to disposable copies of the
 committed fixture.
 
 ```sh
-python3 tests/profile-admission/run.py --stock-only --work /tmp/profile-admission
-python3 tests/profile-admission/run.py --refresh-only --controller /path/to/cargo-refresh --support /path/to/support --work /tmp/profile-admission
+python3 tests/profile-admission/run.py --stock-only --work /path/to/work/profile-admission
+python3 tests/profile-admission/run.py --refresh-only --controller /path/to/cargo-refresh --support /path/to/support --work /path/to/work/profile-admission
 ```
 
 The driver reuses the semantics adapter's lanes, process ownership checks, and

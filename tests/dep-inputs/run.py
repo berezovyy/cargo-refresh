@@ -19,7 +19,7 @@ parser.add_argument("--work", type=Path, required=True)
 parser.add_argument("--stock", action="store_true")
 parser.add_argument("--timeout", type=float, default=180)
 args = parser.parse_args()
-args.lane = Path("/path/to/research/tools/lane.sh")
+args.lane = Path(os.environ["REFRESH_LANE"]) if os.environ.get("REFRESH_LANE") else None
 if not args.stock and not os.environ.get("M4_SEMANTICS_LANE_HELD"):
     sys.exit(subprocess.call([str(args.lane), "rustd", "--", sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]],
                              env=dict(os.environ, M4_SEMANTICS_LANE_HELD="1")))

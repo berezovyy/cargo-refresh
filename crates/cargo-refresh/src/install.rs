@@ -15,6 +15,8 @@ use std::{
 use crate::config::Config;
 
 pub const QUALIFIED_COMMIT: &str = "b940084d7eb6a299eb4bfeb8e34901bc051e7ac4";
+/// Bump whenever the controller, compiler or agent support contract changes.
+pub const SUPPORT_PROTOCOL: u32 = 1;
 pub const TARGET: &str = "x86_64-unknown-linux-gnu";
 const GIB: u64 = 1024 * 1024 * 1024;
 const LIMIT: u64 = 512 * 1024 * 1024;
@@ -96,10 +98,12 @@ pub struct Support {
     bundle: tempfile::TempDir,
 }
 
+#[cfg(test)]
 fn promotion_current_edges(root: &Path) -> bool {
     compiler_capability(root, "promotion_current_edges")
 }
 
+#[cfg(test)]
 fn compiler_capability(root: &Path, name: &str) -> bool {
     Command::new(root.join("rustd"))
         .arg("--capabilities")
@@ -273,8 +277,26 @@ pub fn validate(root: &Path, toolchain: &Toolchain) -> Result<()> {
     ensure!(
         version
             .get("cargo_refresh")
-            .is_some_and(|v| v.strip_suffix("-dev").unwrap_or(v) == env!("CARGO_PKG_VERSION")),
-        "controller version mismatch"
+            .is_some_and(|v| v.strip_suffix("-dev").unwrap_or(v) == env!("CARGO_PKG_VERSION"))
+            && version
+                .get("support_protocol")
+                .and_then(|v| v.parse::<u32>().ok())
+                == Some(SUPPORT_PROTOCOL),
+        "support bundle {} / {} (protocol {}) is incompatible with controller {} (protocol {}); reinstall with --from-archive <matching-bundle.tar.zst> or CARGO_REFRESH_DIST",
+        version
+            .get("cargo_refresh")
+            .map(String::as_str)
+            .unwrap_or("unknown"),
+        version
+            .get("cargo_refresh_commit")
+            .map(String::as_str)
+            .unwrap_or("unknown"),
+        version
+            .get("support_protocol")
+            .map(String::as_str)
+            .unwrap_or("missing"),
+        env!("CARGO_PKG_VERSION"),
+        SUPPORT_PROTOCOL
     );
     let facts: serde_json::Value =
         serde_json::from_slice(&fs::read(root.join("abi-facts.bundle"))?)?;
@@ -341,10 +363,13 @@ pub fn install_archive(archive: &Path, cache: &Path, toolchain: &Toolchain) -> R
         unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX) } == 0,
         "install lock failed"
     );
-    let destination = cache.join(&toolchain.commit);
+    // Preserve legacy caches, but never confuse two bundles for the same rustc.
+    let identity = format!("{}-{}", toolchain.commit, sum.to_ascii_lowercase());
+    let destination = cache.join(&identity);
     if destination.exists() {
         validate(&destination, toolchain)
             .context("existing cache is corrupt; remove it explicitly before reinstalling")?;
+        select_cached_bundle(cache, toolchain, &identity)?;
         return Ok(destination);
     }
     let staging = tempfile::Builder::new()
@@ -397,7 +422,35 @@ pub fn install_archive(archive: &Path, cache: &Path, toolchain: &Toolchain) -> R
     }
     validate(staging.path(), toolchain)?;
     fs::rename(staging.path(), &destination).context("atomic support installation")?;
+    select_cached_bundle(cache, toolchain, &identity)?;
     Ok(destination)
+}
+
+fn select_cached_bundle(cache: &Path, toolchain: &Toolchain, identity: &str) -> Result<()> {
+    let mut selection = tempfile::NamedTempFile::new_in(cache)?;
+    writeln!(selection, "{identity}")?;
+    selection.persist(cache.join(format!(".{}.current", toolchain.commit)))?;
+    Ok(())
+}
+
+fn cached_bundle(cache: &Path, toolchain: &Toolchain) -> Result<PathBuf> {
+    let selection = cache.join(format!(".{}.current", toolchain.commit));
+    match fs::read_to_string(selection) {
+        Ok(identity) => {
+            let identity = identity.trim();
+            let hash = identity
+                .strip_prefix(&format!("{}-", toolchain.commit))
+                .context("invalid cached bundle selection")?;
+            digest(hash)?;
+            Ok(cache.join(identity))
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            // Legacy installations are inspected so an incompatible one produces
+            // a useful diagnostic instead of silently being injected into an app.
+            Ok(cache.join(&toolchain.commit))
+        }
+        Err(error) => Err(error.into()),
+    }
 }
 
 pub fn memory_allows(available: u64, peak: u64) -> bool {
@@ -485,6 +538,8 @@ fn default_environment(config: &Config) -> Result<()> {
         "RUSTC_WORKSPACE_WRAPPER",
         "RUSTC_BOOTSTRAP",
         "LD_PRELOAD",
+        "REFRESH_AGENT_SOCKET",
+        "E077_AGENT",
         "REFRESH_RUSTD_ENV",
     ] {
         ensure!(
@@ -544,6 +599,68 @@ fn default_environment(config: &Config) -> Result<()> {
     }
     Ok(())
 }
+/// Probe the actual executable/library too: VERSION alone cannot describe a mixed bundle.
+fn compatible_runtime(root: &Path) -> Result<serde_json::Value> {
+    let mut output = tempfile::tempfile()?;
+    let mut child = Command::new(root.join("rustd"))
+        .arg("--capabilities")
+        .stdout(output.try_clone()?)
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .context("query rustd support protocol")?;
+    let deadline = Instant::now() + std::time::Duration::from_secs(2);
+    loop {
+        if let Some(status) = child.try_wait()? {
+            ensure!(status.success(), "rustd capability query failed");
+            break;
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            bail!("rustd capability query timed out");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    ensure!(
+        output.metadata()?.len() <= 65536,
+        "rustd capability response too large"
+    );
+    use std::io::Seek;
+    output.rewind()?;
+    let capabilities: serde_json::Value = serde_json::from_reader(output)?;
+    ensure!(
+        capabilities["schema"] == 1 && capabilities["support_protocol"] == SUPPORT_PROTOCOL,
+        "rustd support protocol mismatch (expected {})",
+        SUPPORT_PROTOCOL
+    );
+    // No socket environment is supplied to the library constructor. The exported
+    // query is side-effect free and the handle stays local to this check.
+    use std::os::unix::ffi::OsStrExt;
+    let path = std::ffi::CString::new(root.join("librefresh.so").as_os_str().as_bytes())?;
+    unsafe {
+        let handle = libc::dlopen(path.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL);
+        ensure!(
+            !handle.is_null(),
+            "cannot load agent for support protocol check"
+        );
+        let symbol = libc::dlsym(handle, c"refresh_agent_support_protocol".as_ptr());
+        let version = if symbol.is_null() {
+            None
+        } else {
+            let query: unsafe extern "C" fn() -> u32 = std::mem::transmute(symbol);
+            Some(query())
+        };
+        libc::dlclose(handle);
+        ensure!(
+            version == Some(SUPPORT_PROTOCOL),
+            "agent support protocol mismatch (expected {}, found {:?})",
+            SUPPORT_PROTOCOL,
+            version
+        );
+    }
+    Ok(capabilities)
+}
+
 fn runtime_dependencies(root: &Path) -> Result<()> {
     // --list resolves DT_NEEDED and symbol versions without running constructors.
     for name in ["rustd", "cargo-rustd", "rustd-rustc", "librefresh.so"] {
@@ -622,40 +739,44 @@ pub fn prepare(config: &mut Config) {
         );
         let cache = cache_root()?;
         let local = std::env::var_os("CARGO_REFRESH_SUPPORT").map(PathBuf::from);
-        let mut root = local
+        let archive = config
+            .invocation
+            .from_archive
             .clone()
-            .unwrap_or_else(|| cache.join(&toolchain.commit));
-        if !root.exists() && local.is_none() {
-            if let Some(archive) = config
-                .invocation
-                .from_archive
-                .clone()
-                .or_else(|| std::env::var_os("CARGO_REFRESH_DIST").map(PathBuf::from))
-            {
-                ensure!(
-                    !archive.to_string_lossy().contains("://"),
-                    "URL support download is not available; supply a local release archive"
-                );
-                let started = Instant::now();
-                eprintln!(
-                    "[refresh] installing local toolchain support from {}…",
-                    archive.display()
-                );
-                root = install_archive(&archive, &cache, &toolchain)?;
-                eprintln!(
-                    "[refresh] toolchain support installed in {:.2} s",
-                    started.elapsed().as_secs_f64()
-                );
-            } else {
-                bail!(
-                    "toolchain support missing at {}; downloading is not available yet (use --from-archive or CARGO_REFRESH_DIST)",
-                    root.display()
-                );
-            }
-        }
+            .or_else(|| std::env::var_os("CARGO_REFRESH_DIST").map(PathBuf::from));
+        let root = if let Some(archive) = archive {
+            ensure!(
+                !archive.to_string_lossy().contains("://"),
+                "URL support download is not available; supply a local release archive"
+            );
+            let started = Instant::now();
+            eprintln!(
+                "[refresh] selecting local toolchain support from {}…",
+                archive.display()
+            );
+            let root = install_archive(&archive, &cache, &toolchain)?;
+            eprintln!(
+                "[refresh] toolchain support selected in {:.2} s",
+                started.elapsed().as_secs_f64()
+            );
+            root
+        } else if let Some(local) = local {
+            local
+        } else {
+            let root = cached_bundle(&cache, &toolchain)?;
+            ensure!(
+                root.exists(),
+                "toolchain support missing at {}; downloading is not available yet (use --from-archive or CARGO_REFRESH_DIST)",
+                root.display()
+            );
+            root
+        };
         validate(&root, &toolchain)
             .with_context(|| format!("invalid support at {}", root.display()))?;
         runtime_dependencies(&root)?;
+        let capabilities = compatible_runtime(&root).with_context(|| format!(
+            "support bundle at {} is incompatible with controller {} (protocol {}); reinstall with --from-archive <matching-bundle.tar.zst> or CARGO_REFRESH_DIST",
+            root.display(), env!("CARGO_PKG_VERSION"), SUPPORT_PROTOCOL))?;
         let bundle = tempfile::Builder::new().prefix("refresh-abi-").tempdir()?;
         fs::set_permissions(bundle.path(), fs::Permissions::from_mode(0o700))?;
         fs::copy(
@@ -663,8 +784,9 @@ pub fn prepare(config: &mut Config) {
             bundle.path().join(format!("{}.json", toolchain.commit)),
         )?;
         Ok(Support {
-            promotion_current_edges: promotion_current_edges(&root),
-            assertion_ast_messages: compiler_capability(&root, "assertion_ast_messages"),
+            promotion_current_edges: capabilities["promotion_current_edges"].as_bool()
+                == Some(true),
+            assertion_ast_messages: capabilities["assertion_ast_messages"].as_bool() == Some(true),
             root: root.canonicalize()?,
             warm_peak_bytes: peak,
             bundle,
@@ -677,7 +799,11 @@ pub fn prepare(config: &mut Config) {
         }
         Err(error) => {
             eprintln!("[refresh] {error:#}");
-            eprintln!("{}", toolchain.fallback_message());
+            if toolchain.qualified() {
+                eprintln!("[refresh] Running normal cargo builds + restart (no live patching).");
+            } else {
+                eprintln!("{}", toolchain.fallback_message());
+            }
         }
     }
 }
@@ -754,7 +880,7 @@ mod tests {
         fs::write(
             root.join("VERSION"),
             format!(
-                "cargo_refresh={}\nrustc_commit={QUALIFIED_COMMIT}\ntarget={TARGET}\ncargo_refresh_commit={QUALIFIED_COMMIT}\nrustd_commit={QUALIFIED_COMMIT}\nra_commit={QUALIFIED_COMMIT}\nagent_static_libunwind=0\n",
+                "cargo_refresh={}\nrustc_commit={QUALIFIED_COMMIT}\ntarget={TARGET}\ncargo_refresh_commit={QUALIFIED_COMMIT}\nrustd_commit={QUALIFIED_COMMIT}\nra_commit={QUALIFIED_COMMIT}\nagent_static_libunwind=0\nsupport_protocol=1\n",
                 env!("CARGO_PKG_VERSION")
             ),
         )
@@ -963,7 +1089,11 @@ mod tests {
         archive(&root, &file, None);
         let cache = temp.path().join("cache");
         let installed = install_archive(&file, &cache, &qualified()).unwrap();
-        assert_eq!(installed, cache.join(QUALIFIED_COMMIT));
+        assert_eq!(
+            installed,
+            cache.join(format!("{QUALIFIED_COMMIT}-{}", hash_file(&file).unwrap()))
+        );
+        assert_eq!(cached_bundle(&cache, &qualified()).unwrap(), installed);
         validate(&installed, &qualified()).unwrap();
         assert_eq!(
             install_archive(&file, &cache, &qualified()).unwrap(),
@@ -978,6 +1108,106 @@ mod tests {
         fs::write(installed.join("librefresh.so"), "corrupt").unwrap();
         assert!(install_archive(&file, &cache, &qualified()).is_err());
     }
+    #[test]
+    fn explicit_archive_bypasses_stale_legacy_cache_and_distinguishes_same_rustc_bundles() {
+        let temp = tempfile::tempdir().unwrap();
+        let cache = temp.path().join("cache");
+        let legacy = cache.join(QUALIFIED_COMMIT);
+        package(&legacy);
+        let stale_version = fs::read_to_string(legacy.join("VERSION"))
+            .unwrap()
+            .replace("support_protocol=1\n", "");
+        fs::write(legacy.join("VERSION"), &stale_version).unwrap();
+        checksums(&legacy);
+        assert!(
+            validate(&legacy, &qualified())
+                .unwrap_err()
+                .to_string()
+                .contains("incompatible with controller")
+        );
+        assert_eq!(cached_bundle(&cache, &qualified()).unwrap(), legacy);
+
+        let root = temp.path().join("payload");
+        package(&root);
+        let file = temp.path().join("support.tar.zst");
+        archive(&root, &file, None);
+        let first = install_archive(&file, &cache, &qualified()).unwrap();
+        assert_ne!(first, legacy);
+        assert_eq!(
+            fs::read_to_string(legacy.join("VERSION")).unwrap(),
+            stale_version
+        );
+        assert_eq!(cached_bundle(&cache, &qualified()).unwrap(), first);
+        // An updated archive with the same basename/rustc must select new bytes.
+        fs::write(root.join("rustd"), "new compiler payload").unwrap();
+        checksums(&root);
+        archive(&root, &file, None);
+        let second = install_archive(&file, &cache, &qualified()).unwrap();
+        assert_ne!(first, second);
+        assert_eq!(
+            fs::read_to_string(second.join("rustd")).unwrap(),
+            "new compiler payload"
+        );
+        assert_eq!(cached_bundle(&cache, &qualified()).unwrap(), second);
+        validate(&first, &qualified()).unwrap();
+        validate(&second, &qualified()).unwrap();
+    }
+
+    #[test]
+    fn runtime_protocol_query_rejects_unknown_versions_and_has_a_deadline() {
+        let root = tempfile::tempdir().unwrap();
+        let rustd = root.path().join("rustd");
+        fs::write(
+            &rustd,
+            "#!/bin/sh\nprintf '%s\\n' '{\"schema\":1,\"support_protocol\":999}'\n",
+        )
+        .unwrap();
+        fs::set_permissions(&rustd, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(
+            compatible_runtime(root.path())
+                .unwrap_err()
+                .to_string()
+                .contains("protocol mismatch")
+        );
+        fs::write(&rustd, "#!/bin/sh\nexec sleep 30\n").unwrap();
+        assert!(
+            compatible_runtime(root.path())
+                .unwrap_err()
+                .to_string()
+                .contains("query timed out")
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_cached_selection_and_incompatible_metadata() {
+        let temp = tempfile::tempdir().unwrap();
+        let selection = temp.path().join(format!(".{QUALIFIED_COMMIT}.current"));
+        for identity in [
+            "../outside".to_owned(),
+            format!("{QUALIFIED_COMMIT}-../../outside"),
+        ] {
+            fs::write(&selection, identity).unwrap();
+            assert!(cached_bundle(temp.path(), &qualified()).is_err());
+        }
+        let root = temp.path().join("payload");
+        package(&root);
+        for replacement in ["support_protocol=999\n", ""] {
+            package(&root);
+            let version = fs::read_to_string(root.join("VERSION"))
+                .unwrap()
+                .replace("support_protocol=1\n", replacement);
+            fs::write(root.join("VERSION"), version).unwrap();
+            checksums(&root);
+            let message = validate(&root, &qualified()).unwrap_err().to_string();
+            assert!(
+                message.contains("support bundle")
+                    && message.contains("incompatible with controller")
+                    && message.contains("reinstall with --from-archive"),
+                "{message}"
+            );
+        }
+    }
+
     #[test]
     fn rejects_corrupt_archive_without_exposing_partial_cache() {
         let temp = tempfile::tempdir().unwrap();

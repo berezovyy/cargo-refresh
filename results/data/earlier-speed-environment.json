@@ -1,0 +1,21 @@
+{
+  "time": 1792537388.8910873,
+  "commands": [
+    {
+      "command": [
+        "rustc",
+        "+1.99.0",
+        "-Vv"
+      ],
+      "output": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+    },
+    {
+      "command": [
+        "rustc",
+        "+nightly",
+        "-Vv"
+      ],
+      "output": "rustc 1.101.0-nightly (07e526db9 2026-10-19)\nbinary: rustc\ncommit-hash: 07e526db9df34143c99ec8064acc8ad543f69b30\ncommit-date: 2026-10-19\nhost: x86_64-unknown-linux-gnu\nrelease: 1.101.0-nightly\nLLVM version: 23.1.4\n"
+    }
+  ]
+}

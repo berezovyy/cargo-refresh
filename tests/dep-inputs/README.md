@@ -4,12 +4,11 @@ editing that newly discovered byte input. Every step must produce a stock save
 and the exact stock output; a timeout or an unchanged probe fails.
 
 ```sh
-python3 tests/dep-inputs/run.py --stock --work /tmp/dep-inputs-stock
-python3 tests/dep-inputs/run.py --controller /path/to/cargo-refresh --support /path/to/support --work /tmp/dep-inputs-refresh
+python3 tests/dep-inputs/run.py --stock --work /path/to/work/dep-inputs-stock
+python3 tests/dep-inputs/run.py --controller /path/to/cargo-refresh --support /path/to/support --work /path/to/work/dep-inputs-refresh
 ```
 
-The driver reuses the semantics adapter and acquires the research lanes and
-memory guard. Keep the work directory to reuse warm targets.
+The driver reuses the semantics adapter and uses the memory guard and an optional external resource wrapper. Keep the work directory to reuse warm targets.
 
 Introduced input names are unique per run so an old dep-info file cannot make a
 new dependency accidentally pre-watched. The source/target directory stays stable

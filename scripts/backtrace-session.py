@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Functional backtrace acceptance. Run a disposable fixture under the rustd lane.
+"""Functional backtrace acceptance. Run a disposable fixture with qualified support.
 No latency measurements. Also compares the final source with stock rustc.
 """
 import argparse
@@ -44,7 +44,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--controller", type=Path, required=True)
     parser.add_argument("--work", type=Path, required=True)
-    parser.add_argument("--lane", type=Path, required=True)
+    parser.add_argument("--lane", type=Path, help="optional external build resource wrapper")
     parser.add_argument("--project", type=Path, help="Reuse a disposable fixture and its warm target")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
@@ -56,8 +56,10 @@ def main():
     original = source.read_text()
     events = work / "events.jsonl"
     port = free_port()
-    env = os.environ | {"PORT": str(port), "RUSTUP_TOOLCHAIN": "1.99.0", "RUST_BACKTRACE": "1", "REFRESH_MEMORY_MIN_BYTES": str(6 * 1024**3), "REFRESH_LANE_TOOL": str(args.lane.resolve())}
-    command = [str(args.controller.resolve()), "run", "--no-check", "--events", str(events)]
+    env = os.environ | {"PORT": str(port), "RUSTUP_TOOLCHAIN": "1.99.0", "RUST_BACKTRACE": "1", "REFRESH_MEMORY_MIN_BYTES": str(6 * 1024**3)}
+    if args.lane:
+        env["REFRESH_LANE_TOOL"] = str(args.lane.resolve())
+    command = [str(args.controller.resolve()), "refresh", "run", "--no-check", "--events", str(events)]
     stderr = work / "stderr.log"
     def rows():
         if not events.exists():
@@ -96,7 +98,7 @@ def main():
             stock_env = {key: value for key, value in env.items() if key not in ("RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "LD_PRELOAD", "CARGO_BUILD_TARGET")}
             stock_env["CARGO_TARGET_DIR"] = str(work / "stock-target")
             with (work / "stock-build.log").open("wb") as build_log:
-                subprocess.run([str(args.lane.resolve()), "build", "--", "nice", "-n", "19", "cargo", "build", "--offline", "-j", "4"], cwd=project, env=stock_env, stdout=build_log, stderr=subprocess.STDOUT, check=True)
+                subprocess.run(([str(args.lane.resolve()), "build", "--"] if args.lane else []) + ["nice", "-n", "19", "cargo", "build", "--offline", "-j", "4"], cwd=project, env=stock_env, stdout=build_log, stderr=subprocess.STDOUT, check=True)
             stock_port = free_port()
             with (work / "stock.stderr").open("wb") as stock_log:
                 stock = subprocess.Popen([str(work / "stock-target/debug/refresh-backtrace-fixture")], cwd=project, env=stock_env | {"PORT": str(stock_port)}, stderr=stock_log, start_new_session=True)

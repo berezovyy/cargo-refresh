@@ -381,7 +381,9 @@ else:sys.exit(subprocess.call([os.environ['FIX1_REAL_CARGO'],*args]))
     let rustd = write_executable(
         "rustd",
         r#"#!/usr/bin/env python3
-import os,pathlib,socket,struct,sys,time
+import json,os,pathlib,socket,struct,sys,time
+if sys.argv[1]=='--capabilities':
+ print(json.dumps({'schema':1,'support_protocol':1}));sys.exit(0)
 home=pathlib.Path(os.environ['RUSTD_HOME'])
 if sys.argv[1]=='daemon':
  (home/'workers').mkdir(exist_ok=True)
@@ -442,7 +444,7 @@ int main(int argc, char **argv) {
     let commit = cargo_refresh::install::QUALIFIED_COMMIT;
     let target = cargo_refresh::install::TARGET;
     fs::write(support.join("VERSION"), format!(
-        "cargo_refresh={}\nrustc_commit={commit}\ntarget={target}\ncargo_refresh_commit={commit}\nrustd_commit={commit}\nra_commit={commit}\nagent_static_libunwind=0\n",
+        "cargo_refresh={}\nrustc_commit={commit}\ntarget={target}\ncargo_refresh_commit={commit}\nrustd_commit={commit}\nra_commit={commit}\nagent_static_libunwind=0\nsupport_protocol=1\n",
         env!("CARGO_PKG_VERSION")
     )).unwrap();
     fs::write(

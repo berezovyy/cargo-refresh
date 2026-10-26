@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define REFRESH_SUPPORT_PROTOCOL 1
+
 #define REFRESH_V0_MAGIC UINT32_C(0x76313232)
 #define REFRESH_V0_HOOK UINT32_C(0xe099ca11)
 #define REFRESH_MAX_RECORDS 8192

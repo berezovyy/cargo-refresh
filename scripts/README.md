@@ -1,5 +1,6 @@
 # Scripts
-Run ./scripts/test.sh for the current hand-run workspace checks; later milestones extend it.
+Run `./scripts/test.sh` for formatting, strict Clippy and Rust workspace tests.
+`./try.sh --smoke` checks the demo against stock Cargo.
 
-`backtrace-session.py` runs the M3 three-generation panic/stock-oracle acceptance
-test under a held rustd lane. See [backtrace documentation](../docs/backtraces.md).
+`backtrace-session.py` runs the three-generation panic/stock-oracle acceptance
+test with qualified support.

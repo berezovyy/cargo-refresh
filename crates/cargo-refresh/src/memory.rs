@@ -187,7 +187,7 @@ impl Recovery {
 }
 
 /// One-time project model: fixed runtime/stdlib overhead + owned physical Rust
-/// lines + linked dependency packages. Coefficients are documented in docs/memory.md.
+/// lines + linked dependency packages.
 #[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct Estimate {
     pub rust_lines: u64,

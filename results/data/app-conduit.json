@@ -1,0 +1,517 @@
+{
+  "app": "conduit",
+  "baseline_match": true,
+  "completed": true,
+  "rows": [
+    {
+      "id": 1,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 01]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 01]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 01]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 01]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:54 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 2,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 02]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 02]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 02]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 02]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:54 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 3,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 03]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 03]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 03]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 03]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:55 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 4,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 04]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 04]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 04]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 04]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:55 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 5,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 05]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 05]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 05]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 05]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:55 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 6,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 06]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 06]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 06]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 06]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:56 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 7,
+      "kind": "body-literal",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 07]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 07]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 07]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 07]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:56 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 8,
+      "kind": "comment-and-body",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 08]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 08]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 08]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 08]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:57 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 9,
+      "kind": "line-insert-and-body",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 09]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 09]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 09]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 09]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:57 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 10,
+      "kind": "new-helper-and-call",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 10]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 10]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 10]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 10]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:58 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 11,
+      "kind": "helper-body",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 11]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 11]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 11]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 11]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:51:58 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 12,
+      "kind": "signature-add-parameter",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 12]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 12]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 12]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 12]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:00 GMT"
+        }
+      },
+      "reason": "macro code in ::refresh_label changed"
+    },
+    {
+      "id": 13,
+      "kind": "new-helper-delegation",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 13]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 13]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 13]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 13]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:01 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 14,
+      "kind": "import-and-use",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 14]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 14]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 14]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 14]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:01 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 15,
+      "kind": "signature-add-flag",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 15]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 15]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 15]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 15]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:04 GMT"
+        }
+      },
+      "reason": "macro code in ::refresh_label changed"
+    },
+    {
+      "id": 16,
+      "kind": "struct-introduce",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 16]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 16]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 16]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 16]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:06 GMT"
+        }
+      },
+      "reason": "types or layout changed in <run>/real/apps/conduit/src/http/articles/mod.rs"
+    },
+    {
+      "id": 17,
+      "kind": "struct-field-add",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 17]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 17]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 17]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 17]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:09 GMT"
+        }
+      },
+      "reason": "types or layout changed in <run>/real/apps/conduit/src/http/articles/mod.rs"
+    },
+    {
+      "id": 18,
+      "kind": "struct-field-remove",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 18]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 18]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 18]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 18]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:11 GMT"
+        }
+      },
+      "reason": "types or layout changed in <run>/real/apps/conduit/src/http/articles/mod.rs"
+    },
+    {
+      "id": 19,
+      "kind": "import-qualified-path",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 19]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 19]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 19]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-0\",\"title\":\"M4 Article 0\",\"description\":\"seeded description [review 19]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.426828Z\",\"updatedAt\":\"2026-10-23T12:07:48.426828Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":4}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1386",
+          "date": "Sat, 24 Oct 2026 14:52:14 GMT"
+        }
+      },
+      "reason": "types or layout changed in <run>/real/apps/conduit/src/http/articles/mod.rs"
+    },
+    {
+      "id": 20,
+      "kind": "async-handler",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 20]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 20]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 20]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:14 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 21,
+      "kind": "async-handler-revise",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 21]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 21]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 21]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:14 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 22,
+      "kind": "comment-and-body",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 22]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 22]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 22]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:15 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 23,
+      "kind": "new-helper-text",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 23]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 23]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 23]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:15 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 24,
+      "kind": "signature-helper-flag",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 24]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 24]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 24]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:19 GMT"
+        }
+      },
+      "reason": "macro code in ::refresh_label_text changed"
+    },
+    {
+      "id": 25,
+      "kind": "syntax-error",
+      "path": "waiting",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 24]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 24]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 24]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:19 GMT"
+        }
+      },
+      "reason": "waiting for valid code: <run>/real/apps/conduit/src/http/articles/mod.rs (after): cannot parse string into token stream"
+    },
+    {
+      "id": 26,
+      "kind": "syntax-fix",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 26]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 26]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 26]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:19 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 27,
+      "kind": "borrow-error",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 26]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 26]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 26]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:23 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 28,
+      "kind": "borrow-fix",
+      "path": "restart",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 28]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 28]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 28]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:27 GMT"
+        }
+      },
+      "reason": "compiler recovered; establishing the live baseline; retaining the current compiler epoch"
+    },
+    {
+      "id": 29,
+      "kind": "helper-body-final",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 29]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 29]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 29]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:27 GMT"
+        }
+      },
+      "reason": ""
+    },
+    {
+      "id": 30,
+      "kind": "body-final",
+      "path": "live",
+      "observation_match": true,
+      "observation": {
+        "kind": "http",
+        "status": 200,
+        "body": "{\"articles\":[{\"slug\":\"m4-article-3\",\"title\":\"M4 Article 3\",\"description\":\"seeded description [review 30]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.437236Z\",\"updatedAt\":\"2026-10-23T12:07:48.437236Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-2\",\"title\":\"M4 Article 2\",\"description\":\"seeded description [review 30]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.434232Z\",\"updatedAt\":\"2026-10-23T12:07:48.434232Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}},{\"slug\":\"m4-article-1\",\"title\":\"M4 Article 1\",\"description\":\"seeded description [review 30]\",\"body\":\"seeded body\",\"tagList\":[\"refresh\",\"rust\"],\"createdAt\":\"2026-10-23T12:07:48.43113Z\",\"updatedAt\":\"2026-10-23T12:07:48.43113Z\",\"favorited\":false,\"favoritesCount\":0,\"author\":{\"username\":\"m4writer0\",\"bio\":\"\",\"image\":null,\"following\":false}}],\"articlesCount\":3}",
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "1047",
+          "date": "Sat, 24 Oct 2026 14:52:28 GMT"
+        }
+      },
+      "reason": ""
+    }
+  ]
+}
