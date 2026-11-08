@@ -11,7 +11,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         Arc,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     thread::{self, JoinHandle},
 };
@@ -105,9 +105,20 @@ impl Workspace {
 pub struct Checker {
     cancel: Arc<AtomicBool>,
     task: Option<JoinHandle<Result<CargoResult>>>,
+    completion: Option<Result<CargoResult>>,
     pub revision: u64,
 }
 impl Checker {
+    /// The worker cancels this check before changing its private input tree.
+    /// Editor revisions alone do not invalidate identical immutable inputs.
+    pub fn background(config: &Config, workspace: &Workspace, fence: Fence, floor: u64) -> Self {
+        let fence = Fence {
+            latest: Arc::new(AtomicU64::new(fence.revision)),
+            ..fence
+        };
+        Self::start(config, workspace, fence, floor)
+    }
+
     pub fn start(config: &Config, workspace: &Workspace, fence: Fence, floor: u64) -> Self {
         let storage = config.target_directory.join("refresh");
         let command = fallback::cargo(config, &workspace.root, &storage.join("check"), "check");
@@ -142,18 +153,25 @@ impl Checker {
         Self {
             cancel,
             task: Some(task),
+            completion: None,
             revision,
         }
     }
     pub fn finished(&self) -> bool {
-        self.task.as_ref().is_some_and(|task| task.is_finished())
+        self.completion.is_some() || self.task.as_ref().is_some_and(|task| task.is_finished())
     }
     pub fn finish(&mut self) -> Result<CargoResult> {
+        if let Some(result) = self.completion.take() {
+            return result;
+        }
         self.task
             .take()
             .context("checker already consumed")?
             .join()
             .map_err(|_| anyhow::anyhow!("checker thread panicked"))?
+    }
+    pub(crate) fn defer(&mut self, result: Result<CargoResult>) {
+        self.completion = Some(result);
     }
     pub fn cancel(&mut self) {
         self.cancel.store(true, Ordering::SeqCst);

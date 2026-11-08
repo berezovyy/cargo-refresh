@@ -773,12 +773,35 @@ impl Pipeline {
         }
         Ok(())
     }
+    fn can_reuse_check(&self, changes: &ChangeSet) -> bool {
+        if changes.disposition != Disposition::Skip
+            || !changes.changes.is_empty()
+            || self.fast.is_none()
+            || self.workspace.is_none()
+        {
+            return false;
+        }
+        let Some((_, checked)) = &self.checker else {
+            return false;
+        };
+        // The check began from sources plus these private-tree overrides. No
+        // intervening mutation is permitted while a background check is kept.
+        self.view_dirty
+            .iter()
+            .eq(checked.changes.iter().map(|c| &c.path))
+            && checked
+                .changes
+                .iter()
+                .all(|change| change.content.as_ref() == self.sources.get(&change.path))
+    }
+
     pub fn process(&mut self, mut job: Job) -> Result<()> {
         mark(&mut job.phases, Phase::WorkerStart);
         self.last_save = Instant::now();
         self.epoch_idle_safe = false;
         self.fence.revision = job.changes.revision;
-        if let Some((mut old, _)) = self.checker.take() {
+        let reuse_check = self.can_reuse_check(&job.changes);
+        if !reuse_check && let Some((mut old, _)) = self.checker.take() {
             old.cancel();
         }
         if !self.fence.current() {
@@ -792,6 +815,18 @@ impl Pipeline {
                 &mut job,
                 "application exited; rebuilding and restarting".into(),
             );
+        }
+        if reuse_check {
+            let (check, changes) = self.checker.as_mut().unwrap();
+            check.revision = job.changes.revision;
+            changes.revision = job.changes.revision;
+            // Do not rewrite even identical bytes: truncation could be observed
+            // by Cargo while it reads the retained check's private workspace.
+            self.event(
+                "check_reused",
+                "identical snapshot keeps its pending borrow check",
+            );
+            return self.publish(&job, SavePath::Skip, String::new(), false);
         }
         // A rejected buffer may round-trip back to the applied bytes, producing
         // an empty change set. Restore paths absent from this new delta in the
@@ -822,7 +857,7 @@ impl Pipeline {
                 );
             } else if let Some(workspace) = &self.workspace {
                 self.checker = Some((
-                    Checker::start(&self.config, workspace, self.fence.clone(), self.floor),
+                    Checker::background(&self.config, workspace, self.fence.clone(), self.floor),
                     job.changes.clone(),
                 ));
             }
@@ -854,7 +889,12 @@ impl Pipeline {
                     );
                 } else {
                     self.checker = Some((
-                        Checker::start(&self.config, workspace, self.fence.clone(), self.floor),
+                        Checker::background(
+                            &self.config,
+                            workspace,
+                            self.fence.clone(),
+                            self.floor,
+                        ),
                         job.changes.clone(),
                     ));
                 }
@@ -976,7 +1016,11 @@ impl Pipeline {
         };
         mark(&mut job.phases, Phase::Classify);
         if !admission_checked && let Some(workspace) = &self.workspace {
-            let mut check = Checker::start(&self.config, workspace, self.fence.clone(), self.floor);
+            let mut check = if self.config.strict {
+                Checker::start(&self.config, workspace, self.fence.clone(), self.floor)
+            } else {
+                Checker::background(&self.config, workspace, self.fence.clone(), self.floor)
+            };
             if self.config.strict {
                 let result = check.finish()?;
                 if !self.fence.current() {
@@ -1423,14 +1467,17 @@ impl Pipeline {
             }
         }
 
-        if self
-            .checker
-            .as_ref()
-            .is_some_and(|(check, _)| check.finished())
-        {
+        if self.checker.as_ref().is_some_and(|(check, _)| {
+            check.finished()
+                && check.revision == self.fence.latest.load(std::sync::atomic::Ordering::SeqCst)
+        }) {
             let (mut check, changes) = self.checker.take().unwrap();
             let result = check.finish();
             if check.revision != self.fence.latest.load(std::sync::atomic::Ordering::SeqCst) {
+                // A watcher publication can race the join. Let the queued job
+                // either retarget this result for identical input or cancel it.
+                check.defer(result);
+                self.checker = Some((check, changes));
                 return Ok(());
             }
             match result {
