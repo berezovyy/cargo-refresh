@@ -844,10 +844,20 @@ impl Pipeline {
             if self.fast.is_some()
                 && let Some(workspace) = &self.workspace
             {
-                self.checker = Some((
-                    Checker::start(&self.config, workspace, self.fence.clone(), self.floor),
-                    job.changes.clone(),
-                ));
+                if self.checked_available && self.unchecked.is_empty() {
+                    // Identical bytes already passed checking. An optimistic
+                    // patch leaves unchecked paths until its check succeeds;
+                    // those saves must still run the checker after cancellation.
+                    self.event(
+                        "check_ok",
+                        "identical snapshot already passed borrow checking",
+                    );
+                } else {
+                    self.checker = Some((
+                        Checker::start(&self.config, workspace, self.fence.clone(), self.floor),
+                        job.changes.clone(),
+                    ));
+                }
             }
             return self.publish(&job, SavePath::Skip, String::new(), false);
         }
